@@ -200,21 +200,21 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
           onClick={() => setActiveSubTab('calendar')}
         >
           <Calendar className="icon-xs" />
-          <span>Month 1 Calendar (Starts Aug 12)</span>
+          <span>📅 Month 1 Plan</span>
         </button>
         <button
           className={`subtab-btn ${activeSubTab === 'progressions' ? 'active' : ''}`}
           onClick={() => setActiveSubTab('progressions')}
         >
           <Layers className="icon-xs" />
-          <span>Exercise Progressions</span>
+          <span>💪 Progressions</span>
         </button>
         <button
           className={`subtab-btn ${activeSubTab === 'video' ? 'active' : ''}`}
           onClick={() => setActiveSubTab('video')}
         >
           <Video className="icon-xs" />
-          <span>Video Log</span>
+          <span>📜 History</span>
         </button>
       </div>
 
@@ -454,11 +454,15 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
         <div className="modal-backdrop">
           <div className="modal-content glass-card workout-modal animate-scale-up">
             <div className="modal-header">
+              <button className="btn-secondary text-xs flex items-center gap-1" onClick={() => setActiveExercise(null)}>
+                <ChevronDown className="icon-xs rotate-90" />
+                <span>Back to Menu</span>
+              </button>
               <div>
                 <span className="badge-pill bg-cyan">{activeExercise.category.toUpperCase()}</span>
                 <h2>{activeExercise.name}</h2>
               </div>
-              <button className="btn-close" onClick={() => setActiveExercise(null)}>&times;</button>
+              <button className="btn-close" onClick={() => setActiveExercise(null)} title="Cancel Workout">&times;</button>
             </div>
 
             <div className="workout-player">
@@ -498,17 +502,17 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
                 </div>
               )}
 
-              <div className="modal-actions mt-4">
-                <button className="btn-secondary" onClick={() => setActiveExercise(null)}>
-                  Cancel
+              <div className="modal-actions mt-4 flex gap-2">
+                <button className="btn-secondary flex-1" onClick={() => setActiveExercise(null)}>
+                  ← Back to Menu
                 </button>
                 <button
-                  className="btn-primary"
+                  className="btn-primary flex-1"
                   onClick={handleFinishAndSave}
                   disabled={repsDone.length === 0}
                 >
                   <Sparkles className="icon-sm" />
-                  <span>Save Session to History</span>
+                  <span>Save Workout Session</span>
                 </button>
               </div>
             </div>

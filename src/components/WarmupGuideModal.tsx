@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, ChevronLeft } from 'lucide-react';
 
 interface WarmupGuideModalProps {
   onClose: () => void;
@@ -104,11 +104,15 @@ export const WarmupGuideModal: React.FC<WarmupGuideModalProps> = ({ onClose, onC
     <div className="modal-backdrop">
       <div className="modal-content glass-card animated-guide-modal animate-scale-up">
         <div className="modal-header">
+          <button className="btn-secondary text-xs flex items-center gap-1" onClick={onClose}>
+            <ChevronLeft className="icon-xs" />
+            <span>Back to Menu</span>
+          </button>
           <div>
             <span className="badge-pill bg-amber">HUMANE TEMPO DYNAMIC WARM-UP</span>
             <h2 className="mt-1">{currentStep.title}</h2>
           </div>
-          <button className="btn-close" onClick={onClose}>&times;</button>
+          <button className="btn-close" onClick={onClose} title="Close Warm-Up">&times;</button>
         </div>
 
         {/* Humane Animated Demonstration Box */}

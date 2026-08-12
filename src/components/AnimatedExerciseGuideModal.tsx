@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Volume2, VolumeX, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Volume2, VolumeX, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { HumanGraphicModel } from './HumanGraphicModel';
 
 interface AnimatedExerciseGuideModalProps {
@@ -135,10 +135,14 @@ export const AnimatedExerciseGuideModal: React.FC<AnimatedExerciseGuideModalProp
   return (
     <div className="modal-backdrop">
       <div className="modal-content glass-card leap-fitness-modal animate-scale-up">
-        {/* Top Title & Header */}
+        {/* Top Title & Standardized Back Header */}
         <div className="leap-header">
+          <button className="btn-secondary text-xs flex items-center gap-1" onClick={onClose}>
+            <ChevronLeft className="icon-xs" />
+            <span>Back to Menu</span>
+          </button>
           <h2 className="leap-title">{exerciseName.toUpperCase()}</h2>
-          <button className="btn-close" onClick={onClose}>
+          <button className="btn-close" onClick={onClose} title="Close Guide">
             <X className="icon-sm" />
           </button>
         </div>
@@ -284,19 +288,14 @@ export const AnimatedExerciseGuideModal: React.FC<AnimatedExerciseGuideModalProp
 
         {/* Leap Fitness Bottom Footer Action */}
         <div className="leap-footer mt-4">
-          <div className="leap-pagination">
-            <button className="icon-btn" onClick={onClose}><ChevronLeft className="icon-xs" /></button>
-            <span className="pag-text">1 / 1</span>
-            <button className="icon-btn" onClick={onClose}><ChevronRight className="icon-xs" /></button>
-          </div>
-
-          <div className="flex gap-2 flex-1">
-            <button className="btn-primary w-full btn-large bg-emerald" onClick={onCompleteWorkout}>
-              <CheckCircle2 className="icon-sm" />
-              <span>MARK WORKOUT COMPLETED</span>
+          <div className="flex gap-2 w-full">
+            <button className="btn-secondary flex-1 btn-large flex items-center justify-center gap-1" onClick={onClose}>
+              <ChevronLeft className="icon-sm" />
+              <span>Back to Menu</span>
             </button>
-            <button className="btn-secondary btn-large" onClick={onClose}>
-              CLOSE
+            <button className="btn-primary flex-1 btn-large bg-emerald flex items-center justify-center gap-1" onClick={onCompleteWorkout}>
+              <CheckCircle2 className="icon-sm" />
+              <span>Mark Workout Completed</span>
             </button>
           </div>
         </div>
