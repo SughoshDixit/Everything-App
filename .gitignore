@@ -1,0 +1,17 @@
+# Node dependencies & build outputs
+node_modules
+dist
+.tmp
+
+# Android build outputs & IDE
+android-app/app/build
+android-app/.gradle
+android-app/.idea
+android-app/*.iml
+.gradle
+.idea
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
