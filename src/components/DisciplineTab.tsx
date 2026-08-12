@@ -5,7 +5,6 @@ import {
   Circle,
   Plus,
   Zap,
-  Target,
   Sparkles,
   Award,
   Sun,
@@ -13,7 +12,9 @@ import {
   BookOpen,
   Music,
   Moon,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface DisciplineTabProps {
@@ -40,6 +41,9 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
   const [newDuration, setNewDuration] = useState(15);
   const [newAssigned, setNewAssigned] = useState<'men' | 'women' | 'both'>('men');
   const [quoteIdx, setQuoteIdx] = useState(0);
+  
+  const [showManifesto, setShowManifesto] = useState(false);
+  const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
 
   // Filter routines based on persona
   const filteredRoutines = routines.filter((r) => {
@@ -84,34 +88,25 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
 
   return (
     <div className="tab-container animate-fade-in">
-      {/* Motivational Quote Banner */}
-      <div className="quote-banner glass-card">
-        <div className="quote-header">
-          <div className="quote-tag">
-            <Sparkles className="icon-xs" />
-            <span>CORE BELIEF & MOTIVATION</span>
+      {/* Motivational Quote Banner - Scrolling Ticker */}
+      <div className="quote-banner glass-card" style={{ padding: '0.5rem', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+        <button className="btn-icon" onClick={handleNextQuote} style={{ flexShrink: 0, marginRight: '1rem' }}>
+          <Sparkles className="icon-xs text-amber" />
+        </button>
+        <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', width: '100%' }}>
+          <div style={{ display: 'inline-block', animation: 'ticker 15s linear infinite' }}>
+            <span style={{ fontWeight: 'bold' }}>"{currentQuote.text}"</span> &mdash; {currentQuote.author}
           </div>
-          <button className="btn-text" onClick={handleNextQuote}>
-            Next Quote &rarr;
-          </button>
         </div>
-        <blockquote className="quote-text">
-          "{currentQuote.text}"
-        </blockquote>
-        <div className="quote-author">&mdash; {currentQuote.author}</div>
       </div>
 
       {/* Discipline Dashboard & Score Header */}
       <div className="discipline-grid">
-        <div className="score-card glass-card">
-          <div className="score-header">
-            <h3>Daily Consistency Score</h3>
-            <span className="badge-pill">{currentProfile.toUpperCase()}</span>
-          </div>
-          <div className="score-display">
+        <div className="score-card glass-card hover-scale">
+          <div className="score-display" style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
             <div className="score-circle">
-              <svg className="progress-ring" width="120" height="120">
-                <circle className="progress-ring-bg" strokeWidth="8" r="50" cx="60" cy="60" />
+              <svg className="progress-ring" width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
+                <circle className="progress-ring-bg" strokeWidth="8" r="50" cx="60" cy="60" style={{ stroke: '#333', fill: 'transparent' }} />
                 <circle
                   className="progress-ring-fill"
                   strokeWidth="8"
@@ -120,88 +115,103 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
                   r="50"
                   cx="60"
                   cy="60"
+                  style={{ stroke: 'var(--color-cyan)', fill: 'transparent', transition: 'stroke-dashoffset 1s ease-out' }}
                 />
               </svg>
-              <div className="score-number">{completionPct}%</div>
+              <div className="score-number" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '1.5rem', fontWeight: 'bold' }}>
+                {completionPct}%
+              </div>
             </div>
-            <div className="score-details">
+            <div className="score-details" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'center' }}>
               <div className="score-stat">
-                <span className="stat-value">{completedCount} / {totalCount}</span>
-                <span className="stat-label">Habits Completed Today</span>
+                <span className="stat-value text-xl font-bold">{completedCount}/{totalCount}</span>
               </div>
               <div className="score-stat">
-                <span className="stat-value text-emerald">
-                  {currentProfile === 'men' ? stats.menStreak : currentProfile === 'women' ? stats.womenStreak : stats.coupleStreak} Days
+                <span className="stat-value text-emerald text-xl font-bold">
+                  {currentProfile === 'men' ? stats.menStreak : currentProfile === 'women' ? stats.womenStreak : stats.coupleStreak}🔥
                 </span>
-                <span className="stat-label">Unbroken Consistency</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Self-Discipline Core Principles Card */}
-        <div className="principles-card glass-card">
-          <h3 className="card-title">
-            <Target className="icon-sm text-cyan" />
-            <span>The Self-Discipline Manifesto</span>
-          </h3>
-          <ul className="principles-list">
-            <li>
-              <Zap className="icon-bullet text-amber" />
-              <span><strong>Consistency &gt; Adrenaline:</strong> One focused hour daily beats an 8-hour weekend spike.</span>
-            </li>
-            <li>
-              <Award className="icon-bullet text-emerald" />
-              <span><strong>Identity First:</strong> You aren't "trying to exercise"—you are a dedicated athlete & artist.</span>
-            </li>
-            <li>
-              <Clock className="icon-bullet text-indigo" />
-              <span><strong>Mastery over Rush:</strong> Master Calisthenics & Football step-by-step; hold non-essentials till ready.</span>
-            </li>
-          </ul>
+        <div className="principles-card glass-card hover-scale">
+          <button 
+            className="btn-secondary w-full" 
+            onClick={() => setShowManifesto(!showManifesto)}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          >
+            <span><Zap className="icon-sm text-cyan inline mr-2" /> Manifesto</span>
+            {showManifesto ? <ChevronUp className="icon-sm" /> : <ChevronDown className="icon-sm" />}
+          </button>
+          
+          {showManifesto && (
+            <ul className="principles-list mt-4 animate-fade-in">
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Zap className="icon-bullet text-amber" /> <span>Consistency &gt; Adrenaline</span>
+              </li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Award className="icon-bullet text-emerald" /> <span>Identity First</span>
+              </li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Clock className="icon-bullet text-indigo" /> <span>Mastery over Rush</span>
+              </li>
+            </ul>
+          )}
         </div>
       </div>
 
       {/* Routine Checklist Section */}
-      <div className="routine-section">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">Daily Routine Checklist</h2>
-            <p className="section-desc">Track your actions for {currentProfile === 'couple' ? 'both profiles' : currentProfile.toUpperCase()}</p>
-          </div>
-          <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-            <Plus className="icon-sm" />
-            <span>Add Habit</span>
+      <div className="routine-section mt-4">
+        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 className="section-title m-0">Checklist</h2>
+          <button className="btn-icon bg-cyan rounded-full p-2" onClick={() => setShowAddModal(true)}>
+            <Plus className="icon-sm text-black" />
           </button>
         </div>
 
-        <div className="routine-list">
-          {filteredRoutines.map((item) => (
+        <div className="routine-list mt-4">
+          {filteredRoutines.map((item, index) => (
             <div
               key={item.id}
-              className={`routine-card glass-card ${item.completed ? 'completed' : ''}`}
-              onClick={() => onToggleRoutine(item.id)}
+              className={`routine-card glass-card card-stagger hover-scale ${item.completed ? 'completed' : ''}`}
+              style={{ animationDelay: `${index * 0.08}s`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: 'pointer' }}
+              onClick={() => setExpandedRoutineId(expandedRoutineId === item.id ? null : item.id)}
             >
-              <button className="toggle-btn" aria-label="Toggle completed">
-                {item.completed ? (
-                  <CheckCircle2 className="icon-check text-emerald" />
-                ) : (
-                  <Circle className="icon-check text-muted" />
-                )}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <button 
+                  className="toggle-btn btn-icon" 
+                  aria-label="Toggle completed"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleRoutine(item.id);
+                  }}
+                >
+                  {item.completed ? (
+                    <CheckCircle2 className="icon-check text-emerald pulse-glow" />
+                  ) : (
+                    <Circle className="icon-check text-muted" />
+                  )}
+                </button>
 
-              <div className="routine-icon-box">{getCategoryIcon(item.category)}</div>
+                <div className="routine-icon-box">{getCategoryIcon(item.category)}</div>
 
-              <div className="routine-info">
-                <h4 className="routine-title">{item.title}</h4>
-                <div className="routine-meta">
-                  <span><Clock className="icon-xs inline" /> {item.timeOfDay}</span>
-                  <span>&bull;</span>
-                  <span>{item.durationMinutes} mins</span>
-                  <span>&bull;</span>
-                  <span className="badge-tag">{item.assignedTo.toUpperCase()}</span>
+                <div className="routine-info" style={{ flex: 1 }}>
+                  <h4 className="routine-title m-0" style={{ fontSize: '1.1rem' }}>{item.title}</h4>
+                </div>
+                
+                <div className="routine-time">
+                  <span className="badge-pill bg-dark"><Clock className="icon-xs inline mr-1" />{item.timeOfDay}</span>
                 </div>
               </div>
+              
+              {expandedRoutineId === item.id && (
+                <div className="routine-details animate-fade-in" style={{ paddingLeft: '3rem', paddingTop: '0.5rem', display: 'flex', gap: '1rem' }}>
+                  <span className="badge-tag bg-cyan/20 text-cyan">{item.durationMinutes}m</span>
+                  <span className="badge-tag bg-indigo/20 text-indigo">{item.assignedTo.toUpperCase()}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -282,6 +292,34 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
           </div>
         </div>
       )}
+      
+      <style>{`
+        @keyframes ticker {
+          0% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .card-stagger {
+          opacity: 0;
+          animation: fadeInUp 0.4s ease forwards;
+        }
+        .hover-scale {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .hover-scale:hover {
+          transform: scale(1.02);
+        }
+        .pulse-glow {
+          animation: pulseGlow 2s infinite;
+        }
+        @keyframes pulseGlow {
+          0%, 100% { filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4)); }
+          50% { filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.8)); }
+        }
+      `}</style>
     </div>
   );
 };

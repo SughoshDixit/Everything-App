@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { CarnaticYouTubeItem, InstrumentSong, VedaSukta } from '../types';
-import { Music, Guitar, BookOpen, Play, Pause } from 'lucide-react';
+import { Music, Guitar, BookOpen, Play, Pause, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface MusicVedasTabProps {
   carnaticItems: CarnaticYouTubeItem[];
@@ -14,11 +14,10 @@ export const MusicVedasTab: React.FC<MusicVedasTabProps> = ({
   vedaSuktas
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'carnatic' | 'instruments' | 'vedas'>('carnatic');
-
-  // Practice Timer
   const [isPracticing, setIsPracticing] = useState(false);
   const [practiceSeconds, setPracticeSeconds] = useState(0);
   const [timerRef, setTimerRef] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const togglePracticeTimer = () => {
     if (isPracticing) {
@@ -39,17 +38,12 @@ export const MusicVedasTab: React.FC<MusicVedasTabProps> = ({
     return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
   return (
     <div className="tab-container animate-fade-in">
-      {/* Hero */}
-      <div className="music-hero glass-card">
-        <div className="badge-pill bg-violet">ARTISTIC & SPIRITUAL MASTERY</div>
-        <h2>Carnatic Classical, Instrument Songs & Vedas</h2>
-        <p>
-          Nurturing your voice, classical heritage, YouTube music production, and sacred Veda recitations.
-        </p>
-      </div>
-
       {/* Sub Tab Buttons */}
       <div className="subtab-bar">
         <button
@@ -57,128 +51,161 @@ export const MusicVedasTab: React.FC<MusicVedasTabProps> = ({
           onClick={() => setActiveSubTab('carnatic')}
         >
           <Music className="icon-xs" />
-          <span>Carnatic & YouTube Studio</span>
+          <span>🎶 Carnatic</span>
         </button>
         <button
           className={`subtab-btn ${activeSubTab === 'instruments' ? 'active' : ''}`}
           onClick={() => setActiveSubTab('instruments')}
         >
           <Guitar className="icon-xs" />
-          <span>Ukulele & Guitar Sing-Along</span>
+          <span>🎸 Strings</span>
         </button>
         <button
           className={`subtab-btn ${activeSubTab === 'vedas' ? 'active' : ''}`}
           onClick={() => setActiveSubTab('vedas')}
         >
           <BookOpen className="icon-xs" />
-          <span>Veda Sukta Memorizer</span>
+          <span>📿 Vedas</span>
         </button>
       </div>
 
-      {/* 1. CARNATIC CLASSICAL & YOUTUBE PIPELINE */}
+      {/* 1. CARNATIC */}
       {activeSubTab === 'carnatic' && (
         <div className="subtab-content">
-          {/* Practice Timer */}
-          <div className="practice-timer-card glass-card">
-            <div className="timer-header">
-              <h3>Abhyasa (Practice) Session Timer</h3>
-              <span className="badge-pill bg-violet">VOCAL & RAGA</span>
-            </div>
-            <div className="timer-clock">{formatTime(practiceSeconds)}</div>
+          {/* Practice Timer - Visual Only */}
+          <div className="practice-timer-card glass-card card-hover-lift" style={{ textAlign: 'center' }}>
+            <div className="timer-clock number-pop" style={{ fontSize: '3rem' }}>{formatTime(practiceSeconds)}</div>
             <button
               className={`btn-primary btn-large ${isPracticing ? 'bg-rose' : ''}`}
               onClick={togglePracticeTimer}
+              style={{ marginTop: '0.75rem' }}
             >
               {isPracticing ? <Pause className="icon-sm" /> : <Play className="icon-sm" />}
-              <span>{isPracticing ? 'Pause Abhyasa' : 'Start Practice Session'}</span>
+              <span>{isPracticing ? 'Pause' : 'Practice'}</span>
             </button>
           </div>
 
-          {/* YouTube Video Pipeline */}
-          <div className="pipeline-section mt-4">
-            <div className="section-header">
-              <h3>YouTube Cover & Music Production Pipeline</h3>
-            </div>
-            <div className="items-list">
-              {carnaticItems.map((item) => (
-                <div key={item.id} className="pipeline-card glass-card">
-                  <div className="card-top">
-                    <div>
-                      <span className="badge-pill bg-violet">Raga {item.raga}</span>
-                      <h4 className="kriti-title">{item.kritiName}</h4>
-                      <div className="composer-name">Composer: {item.composer}</div>
-                    </div>
-                    <span className="status-tag">{item.status}</span>
+          {/* Pipeline Cards */}
+          <div className="items-list" style={{ marginTop: '1rem' }}>
+            {carnaticItems.map((item, idx) => (
+              <div
+                key={item.id}
+                className="pipeline-card glass-card card-stagger card-hover-lift"
+                style={{ animationDelay: `${idx * 0.1}s`, marginBottom: '0.75rem' }}
+              >
+                <div className="card-top">
+                  <div>
+                    <span className="badge-pill bg-violet">{item.raga}</span>
+                    <h4 className="kriti-title" style={{ marginTop: '0.25rem' }}>{item.kritiName}</h4>
                   </div>
-                  <p className="notes-text">{item.notes}</p>
+                  <span className="status-tag">{item.status}</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. UKULELE & GUITAR */}
-      {activeSubTab === 'instruments' && (
-        <div className="subtab-content">
-          <div className="section-header">
-            <h3>Sing-Along & Performance Repertoire</h3>
-            <p>Ready to play whenever and wherever asked!</p>
-          </div>
-          <div className="songs-grid">
-            {instrumentSongs.map((song) => (
-              <div key={song.id} className="song-card glass-card">
-                <div className="song-header">
-                  <span className="badge-pill bg-amber">{song.instrument}</span>
-                  <span className="status-tag">{song.status}</span>
-                </div>
-                <h4 className="song-title">{song.title}</h4>
-                <div className="genre-tag">Genre: {song.genre} &bull; {song.difficulty}</div>
-
-                <div className="chords-box mt-3">
-                  <span className="chords-lbl">Chords:</span>
-                  <div className="chords-list">
-                    {song.chords.map((c, idx) => (
-                      <span key={idx} className="chord-pill">{c}</span>
-                    ))}
+                <button
+                  className={`toggle-details-btn ${expandedId === item.id ? 'active' : ''}`}
+                  onClick={() => toggleExpand(item.id)}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  {expandedId === item.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  📝 Notes
+                </button>
+                {expandedId === item.id && (
+                  <div className="collapsible-content">
+                    <div><strong>Composer:</strong> {item.composer}</div>
+                    <div style={{ marginTop: '0.25rem' }}>{item.notes}</div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* 3. VEDA SUKTAS */}
+      {/* 2. INSTRUMENTS */}
+      {activeSubTab === 'instruments' && (
+        <div className="subtab-content">
+          <div className="songs-grid">
+            {instrumentSongs.map((song, idx) => (
+              <div
+                key={song.id}
+                className="song-card glass-card card-stagger card-hover-lift"
+                style={{ animationDelay: `${idx * 0.1}s` }}
+              >
+                <div className="song-header">
+                  <span className="badge-pill bg-amber">{song.instrument}</span>
+                  <span className="status-tag">{song.status}</span>
+                </div>
+                <h4 className="song-title">{song.title}</h4>
+                <div className="chords-box mt-2">
+                  <div className="chords-list">
+                    {song.chords.map((c, i) => (
+                      <span key={i} className="chord-pill">{c}</span>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  className={`toggle-details-btn ${expandedId === song.id ? 'active' : ''}`}
+                  onClick={() => toggleExpand(song.id)}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  {expandedId === song.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  ℹ️ Details
+                </button>
+                {expandedId === song.id && (
+                  <div className="collapsible-content">
+                    {song.genre} · {song.difficulty}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. VEDAS */}
       {activeSubTab === 'vedas' && (
         <div className="subtab-content">
-          <div className="section-header">
-            <h3>Veda Suktas & Svara Accents Memorizer</h3>
-          </div>
           <div className="suktas-grid">
-            {vedaSuktas.map((sukta) => {
+            {vedaSuktas.map((sukta, idx) => {
               const pct = Math.round((sukta.memorizedVerses / sukta.totalVerses) * 100);
               return (
-                <div key={sukta.id} className="sukta-card glass-card">
+                <div
+                  key={sukta.id}
+                  className="sukta-card glass-card card-stagger card-hover-lift"
+                  style={{ animationDelay: `${idx * 0.1}s` }}
+                >
                   <div className="sukta-header">
                     <BookOpen className="icon-sm text-green" />
                     <h4>{sukta.name}</h4>
                   </div>
-                  <div className="transliteration">"{sukta.transliteration}"</div>
 
-                  <div className="verse-stat mt-3">
-                    <span>Memorized: {sukta.memorizedVerses} / {sukta.totalVerses} Verses</span>
-                    <span className="text-emerald font-bold">{pct}%</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    <div className="progress-bar-wrap progress-animated" style={{ flex: 1 }}>
+                      <div
+                        className="progress-bar-fill bg-emerald"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-emerald font-bold number-pop">{pct}%</span>
                   </div>
 
-                  <div className="progress-bar-wrap">
-                    <div
-                      className="progress-bar-fill bg-emerald"
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    {sukta.memorizedVerses}/{sukta.totalVerses} verses
                   </div>
 
-                  <p className="sukta-notes mt-2">{sukta.notes}</p>
+                  <button
+                    className={`toggle-details-btn ${expandedId === sukta.id ? 'active' : ''}`}
+                    onClick={() => toggleExpand(sukta.id)}
+                    style={{ marginTop: '0.5rem' }}
+                  >
+                    {expandedId === sukta.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    📖 View
+                  </button>
+                  {expandedId === sukta.id && (
+                    <div className="collapsible-content">
+                      <div style={{ fontStyle: 'italic' }}>"{sukta.transliteration}"</div>
+                      <div style={{ marginTop: '0.25rem' }}>{sukta.notes}</div>
+                    </div>
+                  )}
                 </div>
               );
             })}

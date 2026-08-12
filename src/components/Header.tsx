@@ -24,33 +24,26 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="app-header">
       <div className="header-top">
         <div className="brand">
-          <div className="brand-logo">
+          <div className="brand-logo animate-breathe">
             <ShieldCheck className="icon-shield" />
           </div>
-          <div>
-            <h1 className="brand-title">EVERYTHING APP</h1>
-            <div className="brand-subtitle">
-              <span>ALL-IN-ONE PERFORMANCE & DISCIPLINE APP</span>
-            </div>
-          </div>
+          <h1 className="brand-title">EVERYTHING APP</h1>
         </div>
 
-        {/* Global Immersed Discipline Motto Ticker */}
-        <div className="global-discipline-ticker glass-card">
-          <Zap className="icon-xs text-amber inline mr-1" />
-          <span className="ticker-text">
-            <strong>IMMERSING SELF-DISCIPLINE:</strong> Consistency &gt; Adrenaline &bull; Action Creates Motivation
+        {/* Compact Discipline Ticker */}
+        <div className="global-discipline-ticker glass-card" style={{ padding: '0.3rem 0.75rem' }}>
+          <Zap className="icon-xs text-amber" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-sub)' }}>
+            DISCIPLINE · CONSISTENCY · ACTION
           </span>
         </div>
 
         <div className="header-right">
-          {/* Streak pill */}
-          <div className="streak-badge">
+          {/* Streak pill with pulse */}
+          <div className="streak-badge pulse-glow">
             <Flame className="icon-flame" />
-            <div>
-              <div className="streak-num">{activeStreak} Days</div>
-              <div className="streak-label">Unbroken Consistency</div>
-            </div>
+            <span className="streak-num number-pop">{activeStreak}</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>days</span>
           </div>
 
           {/* Persona Switcher */}
@@ -74,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => onSelectProfile('couple')}
             >
               <Users className="icon-sm" />
-              <span>Couples</span>
+              <span>Both</span>
             </button>
           </div>
         </div>
