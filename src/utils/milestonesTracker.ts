@@ -1,4 +1,11 @@
-import type { GpsLocationPoint, GpsActivityLog, PersonalMilestones } from '../types';
+import type {
+  GpsLocationPoint,
+  GpsActivityLog,
+  PersonalMilestones,
+  ActivitySplit,
+  WeeklyHeartPointsSummary,
+  WorkoutSessionLog
+} from '../types';
 
 /**
  * Calculates geodesic distance between two GPS coordinates using the Haversine formula (in km).
@@ -51,6 +58,94 @@ export function formatPace(distanceKm: number, durationSeconds: number): string 
 }
 
 /**
+ * Calculates cumulative positive elevation gain in meters.
+ */
+export function calculateElevationGain(points: GpsLocationPoint[]): number {
+  if (!points || points.length < 2) return 0;
+  let totalAscent = 0;
+
+  for (let i = 1; i < points.length; i++) {
+    const prevAlt = points[i - 1].altitude;
+    const currAlt = points[i].altitude;
+    if (prevAlt !== undefined && currAlt !== undefined) {
+      const delta = currAlt - prevAlt;
+      // Filter micro GPS altitude jitter (> 0.5m threshold)
+      if (delta > 0.5 && delta < 50) {
+        totalAscent += delta;
+      }
+    }
+  }
+
+  return Math.round(totalAscent);
+}
+
+/**
+ * Calculates step counts based on activity type and distance.
+ */
+export function estimateSteps(activityType: 'run' | 'cycle' | 'walk', distanceKm: number): number {
+  if (activityType === 'run') {
+    return Math.round(distanceKm * 1250); // ~1250 steps/km
+  } else if (activityType === 'walk') {
+    return Math.round(distanceKm * 1350); // ~1350 steps/km
+  }
+  return 0; // Cycling does not add walking steps
+}
+
+/**
+ * Slices GPS trajectory points into 100m split intervals.
+ */
+export function calculateSplits(points: GpsLocationPoint[], splitIntervalMeters = 100): ActivitySplit[] {
+  if (!points || points.length < 2) return [];
+
+  const splits: ActivitySplit[] = [];
+  let currentSplitDistMeters = 0;
+  let splitStartIndex = 0;
+  let splitNumber = 1;
+
+  for (let i = 1; i < points.length; i++) {
+    const segDistKm = calculateDistanceKm(
+      points[i - 1].latitude,
+      points[i - 1].longitude,
+      points[i].latitude,
+      points[i].longitude
+    );
+    const segDistMeters = segDistKm * 1000;
+    currentSplitDistMeters += segDistMeters;
+
+    if (currentSplitDistMeters >= splitIntervalMeters || i === points.length - 1) {
+      const timeStart = points[splitStartIndex].timestamp;
+      const timeEnd = points[i].timestamp;
+      const durationSeconds = Math.max(1, Math.round((timeEnd - timeStart) / 1000));
+      const distKm = currentSplitDistMeters / 1000;
+      const speedKmh = distKm / (durationSeconds / 3600);
+
+      const altStart = points[splitStartIndex].altitude || 0;
+      const altEnd = points[i].altitude || 0;
+      const elevationDelta = Math.round(altEnd - altStart);
+
+      const fromM = (splitNumber - 1) * splitIntervalMeters;
+      const toM = fromM + Math.round(currentSplitDistMeters);
+
+      splits.push({
+        splitNumber,
+        distanceLabel: `${fromM}m - ${toM}m`,
+        distanceMeters: Math.round(currentSplitDistMeters),
+        durationSeconds,
+        paceMinKm: formatPace(distKm, durationSeconds),
+        elevationDeltaMeters: elevationDelta,
+        speedKmh: Number(speedKmh.toFixed(1))
+      });
+
+      splitNumber++;
+      currentSplitDistMeters = 0;
+      splitStartIndex = i;
+    }
+  }
+
+  return splits;
+}
+
+/**
  * Calculates Google Fit Heart Points and Estimated Calories.
  */
 export function calculateFitMetrics(
@@ -65,7 +160,7 @@ export function calculateFitMetrics(
 
   if (activityType === 'run') {
     calories = Math.round(distanceKm * 65);
-    heartPoints = Math.round(durationMin * 2); // Vigorous cardio
+    heartPoints = Math.round(durationMin * 2); // 2 Heart Points/min for vigorous running
   } else if (activityType === 'cycle') {
     calories = Math.round(distanceKm * 32);
     heartPoints = avgSpeedKmh >= 20 ? Math.round(durationMin * 2) : Math.round(durationMin * 1);
@@ -76,6 +171,71 @@ export function calculateFitMetrics(
   }
 
   return { calories: Math.max(0, calories), heartPoints: Math.max(0, heartPoints) };
+}
+
+/**
+ * Google Fit & WHO Weekly 150 Heart Points Calculation (Sunday to Saturday).
+ */
+export function calculateWeeklyHeartPoints(
+  activities: GpsActivityLog[],
+  workoutLogs: WorkoutSessionLog[]
+): WeeklyHeartPointsSummary {
+  const now = new Date();
+  // Get Sunday of current week
+  const dayOfWeek = now.getDay(); // 0 is Sunday, 6 is Saturday
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() - dayOfWeek);
+  sunday.setHours(0, 0, 0, 0);
+
+  const saturday = new Date(sunday);
+  saturday.setDate(sunday.getDate() + 6);
+  saturday.setHours(23, 59, 59, 999);
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dailyMap: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+
+  // Accumulate GPS activities points this week
+  activities.forEach((act) => {
+    const actDate = new Date(act.startTime || act.date);
+    if (actDate >= sunday && actDate <= saturday) {
+      const d = actDate.getDay();
+      dailyMap[d] = (dailyMap[d] || 0) + (act.heartPointsEarned || 0);
+    }
+  });
+
+  // Accumulate Calisthenics & Football workout points this week (15 pts per session)
+  workoutLogs.forEach((w) => {
+    const wDate = new Date(w.date);
+    if (wDate >= sunday && wDate <= saturday) {
+      const d = wDate.getDay();
+      dailyMap[d] = (dailyMap[d] || 0) + 15;
+    }
+  });
+
+  let totalPoints = 0;
+  const dailyBreakdown = dayNames.map((name, index) => {
+    const dayDate = new Date(sunday);
+    dayDate.setDate(sunday.getDate() + index);
+    const points = dailyMap[index] || 0;
+    totalPoints += points;
+    return {
+      day: name,
+      points,
+      date: dayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      isToday: index === dayOfWeek
+    };
+  });
+
+  const targetPoints = 150; // Google Fit mandatory weekly target
+
+  return {
+    weekStartDateStr: sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    weekEndDateStr: saturday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    targetPoints,
+    currentPoints: totalPoints,
+    dailyBreakdown,
+    isGoalAchieved: totalPoints >= targetPoints
+  };
 }
 
 /**
@@ -200,7 +360,6 @@ export function generateRouteSvgPath(points: GpsLocationPoint[], width = 280, he
   const padding = 15;
 
   const toX = (lon: number) => padding + ((lon - minLon) / lonRange) * (width - padding * 2);
-  // Invert Y because SVG coordinates increase downwards, latitude increases upwards
   const toY = (lat: number) => height - (padding + ((lat - minLat) / latRange) * (height - padding * 2));
 
   let pathStr = `M ${toX(points[0].longitude).toFixed(1)} ${toY(points[0].latitude).toFixed(1)}`;

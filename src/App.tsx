@@ -12,6 +12,7 @@ import { MusicVedasTab } from './components/MusicVedasTab';
 import { SettingsVaultTab } from './components/SettingsVaultTab';
 import { GpsActivityTrackerModal } from './components/GpsActivityTrackerModal';
 import { SocialWorkoutShareModal } from './components/SocialWorkoutShareModal';
+import { StravaRouteFlybyPlayer } from './components/StravaRouteFlybyPlayer';
 
 import type {
   UserProfile,
@@ -93,6 +94,7 @@ export function App() {
   // Modal States
   const [gpsModalActivityType, setGpsModalActivityType] = useState<'run' | 'cycle' | 'walk' | null>(null);
   const [activeShareCardData, setActiveShareCardData] = useState<SocialShareCardData | null>(null);
+  const [flybyActivity, setFlybyActivity] = useState<GpsActivityLog | null>(null);
 
   // Sync state to local storage
   useEffect(() => {
@@ -165,6 +167,28 @@ export function App() {
     setMilestones(updatedMilestones);
   };
 
+  const openShareFromGps = (act: GpsActivityLog) => {
+    const quote = quotes[Math.floor(Math.random() * quotes.length)] || {
+      text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.',
+      author: 'Aristotle'
+    };
+    setActiveShareCardData({
+      title: `${act.distanceKm} km ${act.activityType === 'run' ? 'Run' : 'Ride'}`,
+      workoutType: act.activityType === 'run' ? 'Outdoor Running' : 'Outdoor Cycling',
+      stats: [
+        { label: 'Distance', value: `${act.distanceKm}`, unit: 'km' },
+        { label: 'Avg Pace', value: act.avgPaceMinKm },
+        { label: 'Ascent', value: `+${act.elevationGainMeters || 0}`, unit: 'm' },
+        { label: 'Heart Points', value: `+${act.heartPointsEarned}`, unit: 'pts' }
+      ],
+      motivationalQuote: quote.text,
+      quoteAuthor: quote.author,
+      streakDays: 14,
+      date: act.date,
+      persona: currentProfile
+    });
+  };
+
   return (
     <div className="app-layout">
       {/* Top Header */}
@@ -190,6 +214,7 @@ export function App() {
             onOpenCalisthenics={() => setActiveTab('calisthenics')}
             onOpenFootball={() => setActiveTab('football')}
             onOpenSocialShare={(data) => setActiveShareCardData(data)}
+            onOpenFlyby={(act) => setFlybyActivity(act)}
           />
         )}
 
@@ -250,29 +275,26 @@ export function App() {
           currentProfile={currentProfile}
           currentMilestones={milestones}
           onSaveActivity={handleSaveGpsActivity}
-          onOpenSocialShare={(log) => {
-            const quote = quotes[Math.floor(Math.random() * quotes.length)] || {
-              text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.',
-              author: 'Aristotle'
-            };
-            setActiveShareCardData({
-              title: `${log.distanceKm} km ${log.activityType === 'run' ? 'Run' : 'Ride'}`,
-              workoutType: log.activityType === 'run' ? 'Outdoor Running' : 'Outdoor Cycling',
-              stats: [
-                { label: 'Distance', value: `${log.distanceKm}`, unit: 'km' },
-                { label: 'Avg Pace', value: log.avgPaceMinKm },
-                { label: 'Duration', value: `${Math.floor(log.durationSeconds / 60)}m` },
-                { label: 'Heart Points', value: `+${log.heartPointsEarned}`, unit: 'pts' }
-              ],
-              motivationalQuote: quote.text,
-              quoteAuthor: quote.author,
-              streakDays: 14,
-              date: log.date,
-              persona: currentProfile
-            });
+          onOpenFlyby={(log) => {
             setGpsModalActivityType(null);
+            setFlybyActivity(log);
+          }}
+          onOpenSocialShare={(log) => {
+            setGpsModalActivityType(null);
+            openShareFromGps(log);
           }}
           onClose={() => setGpsModalActivityType(null)}
+        />
+      )}
+
+      {/* STRAVA-STYLE ROUTE FLYBY MODAL */}
+      {flybyActivity && (
+        <StravaRouteFlybyPlayer
+          activity={flybyActivity}
+          onOpenSocialShare={(act) => {
+            openShareFromGps(act);
+          }}
+          onClose={() => setFlybyActivity(null)}
         />
       )}
 

@@ -7,14 +7,16 @@ import type {
   MotivationalQuote,
   SocialShareCardData
 } from '../types';
-import { formatDuration } from '../utils/milestonesTracker';
+import { formatDuration, calculateWeeklyHeartPoints } from '../utils/milestonesTracker';
 import {
-  Flame,
   Heart,
   Zap,
   Trophy,
   Share2,
-  Navigation
+  Navigation,
+  Footprints,
+  CheckCircle2,
+  Film
 } from 'lucide-react';
 
 interface GoogleFitHomeDashboardProps {
@@ -27,6 +29,7 @@ interface GoogleFitHomeDashboardProps {
   onOpenCalisthenics: () => void;
   onOpenFootball: () => void;
   onOpenSocialShare: (data: SocialShareCardData) => void;
+  onOpenFlyby: (activity: GpsActivityLog) => void;
 }
 
 export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
@@ -38,7 +41,8 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
   onOpenGpsTracker,
   onOpenCalisthenics,
   onOpenFootball,
-  onOpenSocialShare
+  onOpenSocialShare,
+  onOpenFlyby
 }) => {
   // Calculate Daily Google Fit Ring Stats
   const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -47,14 +51,20 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
 
   const totalHeartPoints = todayGps.reduce((acc, a) => acc + (a.heartPointsEarned || 0), 0) + todayWorkouts.length * 15;
   const totalMoveMinutes = todayGps.reduce((acc, a) => acc + Math.round(a.durationSeconds / 60), 0) + todayWorkouts.length * 20;
-  const totalCalories = todayGps.reduce((acc, a) => acc + (a.caloriesBurned || 0), 0) + todayWorkouts.length * 120;
   const totalDistanceKm = todayGps.reduce((acc, a) => acc + a.distanceKm, 0);
+  const totalSteps = todayGps.reduce((acc, a) => acc + (a.stepsCount || 0), 0) + (todayWorkouts.length > 0 ? 3200 : 1500);
 
-  const heartPointsTarget = 30;
-  const moveMinutesTarget = 60;
+  const heartPointsDailyTarget = 30;
+  const moveMinutesDailyTarget = 60;
 
-  const heartProgress = Math.min(100, Math.round((totalHeartPoints / heartPointsTarget) * 100));
-  const moveProgress = Math.min(100, Math.round((totalMoveMinutes / moveMinutesTarget) * 100));
+  const heartProgress = Math.min(100, Math.round((totalHeartPoints / heartPointsDailyTarget) * 100));
+  const moveProgress = Math.min(100, Math.round((totalMoveMinutes / moveMinutesDailyTarget) * 100));
+
+  // Calculate Google Fit Official 150 Heart Points / Week (Sunday to Saturday)
+  const weeklySummary = calculateWeeklyHeartPoints(gpsActivities, workoutLogs);
+  const weeklyPoints = weeklySummary.currentPoints;
+  const weeklyProgress = Math.min(100, Math.round((weeklyPoints / weeklySummary.targetPoints) * 100));
+  const pointsRemaining = Math.max(0, weeklySummary.targetPoints - weeklyPoints);
 
   // Quick Share for Calisthenics Workout
   const handleShareWorkout = (log: WorkoutSessionLog) => {
@@ -93,7 +103,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       stats: [
         { label: 'Distance', value: `${act.distanceKm}`, unit: 'km' },
         { label: 'Avg Pace', value: act.avgPaceMinKm },
-        { label: 'Duration', value: formatDuration(act.durationSeconds) },
+        { label: 'Ascent', value: `+${act.elevationGainMeters || 0}`, unit: 'm' },
         { label: 'Heart Points', value: `+${act.heartPointsEarned}`, unit: 'pts' }
       ],
       motivationalQuote: quote.text,
@@ -177,7 +187,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
               <span>Heart Points</span>
             </div>
             <div className="text-xl font-black text-white font-mono">
-              {totalHeartPoints} <span className="text-xs text-sub font-normal">/ {heartPointsTarget} pts</span>
+              {totalHeartPoints} <span className="text-xs text-sub font-normal">/ {heartPointsDailyTarget} pts</span>
             </div>
           </div>
 
@@ -187,17 +197,17 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
               <span>Move Minutes</span>
             </div>
             <div className="text-xl font-black text-white font-mono">
-              {totalMoveMinutes} <span className="text-xs text-sub font-normal">/ {moveMinutesTarget} min</span>
+              {totalMoveMinutes} <span className="text-xs text-sub font-normal">/ {moveMinutesDailyTarget} min</span>
             </div>
           </div>
 
           <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800">
-            <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold uppercase mb-1">
-              <Flame size={14} />
-              <span>Energy Burned</span>
+            <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase mb-1">
+              <Footprints size={14} />
+              <span>Daily Steps</span>
             </div>
             <div className="text-xl font-black text-white font-mono">
-              {totalCalories} <span className="text-xs text-sub font-normal">kcal</span>
+              {totalSteps.toLocaleString()} <span className="text-xs text-sub font-normal">/ 10k</span>
             </div>
           </div>
 
@@ -214,7 +224,74 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* 2. 1-TAP QUICK ACTION ACTIVITY LAUNCHER */}
+      {/* 2. GOOGLE FIT MANDATORY 150 WEEKLY HEART POINTS MILESTONE */}
+      {/* ------------------------------------------------------------------- */}
+      <div className="glass-card p-5 border-l-4 border-cyan-400">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-black text-sm">
+              💙
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                Weekly Heart Points Goal (150 Pts)
+              </h3>
+              <div className="text-[11px] text-sub">
+                {weeklySummary.weekStartDateStr} – {weeklySummary.weekEndDateStr} (Sunday to Saturday)
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-700 text-xs font-bold font-mono">
+            {weeklySummary.isGoalAchieved ? (
+              <span className="text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 size={14} /> Goal Achieved!
+              </span>
+            ) : (
+              <span className="text-cyan-400">{pointsRemaining} pts needed by Saturday</span>
+            )}
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-800 mb-4">
+          <div
+            className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-700"
+            style={{ width: `${weeklyProgress}%` }}
+          />
+        </div>
+
+        {/* 7-Day Mini Bar Chart (Sunday to Saturday) */}
+        <div className="grid grid-cols-7 gap-1.5 text-center">
+          {weeklySummary.dailyBreakdown.map((d) => {
+            const barHeight = Math.min(100, Math.max(12, Math.round((d.points / 30) * 100)));
+            return (
+              <div
+                key={d.day}
+                className={`p-2 rounded-xl border flex flex-col items-center justify-between ${
+                  d.isToday
+                    ? 'bg-cyan-500/10 border-cyan-400 text-white'
+                    : 'bg-slate-900/40 border-slate-800 text-sub'
+                }`}
+              >
+                <span className="text-[10px] font-bold uppercase">{d.day}</span>
+                <div className="w-2.5 bg-slate-800 h-10 rounded-full my-1 relative flex items-end">
+                  <div
+                    className="w-full bg-cyan-400 rounded-full"
+                    style={{ height: `${barHeight}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-bold font-mono text-white">
+                  {d.points}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------------------- */}
+      {/* 3. 1-TAP QUICK ACTION ACTIVITY LAUNCHER */}
       {/* ------------------------------------------------------------------- */}
       <div>
         <h3 className="text-xs font-black text-sub uppercase tracking-wider mb-2 px-1">
@@ -228,7 +305,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
             <div className="w-10 h-10 rounded-full bg-cyan-500/15 text-cyan-400 flex items-center justify-center font-bold text-lg">
               🏃
             </div>
-            <span className="text-xs font-bold text-white">Track Run (GPS)</span>
+            <span className="text-xs font-bold text-white">Record Run (GPS)</span>
           </button>
 
           <button
@@ -238,7 +315,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
             <div className="w-10 h-10 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold text-lg">
               🚴
             </div>
-            <span className="text-xs font-bold text-white">Track Ride (GPS)</span>
+            <span className="text-xs font-bold text-white">Record Ride (GPS)</span>
           </button>
 
           <button
@@ -264,7 +341,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* 3. PERSONAL MILESTONES & RECORDS SHOWCASE */}
+      {/* 4. PERSONAL MILESTONES & RECORDS SHOWCASE */}
       {/* ------------------------------------------------------------------- */}
       <div className="glass-card p-4">
         <div className="flex items-center justify-between mb-3">
@@ -313,7 +390,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* 4. RECENT ACTIVITY TIMELINE WITH 1-TAP SOCIAL SHARING */}
+      {/* 5. RECENT ACTIVITY TIMELINE WITH 1-TAP FLYBY & SOCIAL SHARING */}
       {/* ------------------------------------------------------------------- */}
       <div className="glass-card p-4">
         <h3 className="text-sm font-black text-white uppercase tracking-wider mb-3">
@@ -341,19 +418,30 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
                       {act.distanceKm} km {act.activityType === 'run' ? 'Outdoor Run' : 'Ride'}
                     </h4>
                     <div className="text-[11px] text-sub">
-                      {act.date} · {formatDuration(act.durationSeconds)} · {act.avgPaceMinKm}
+                      {act.date} · {formatDuration(act.durationSeconds)} · {act.avgPaceMinKm} · Ascent +{act.elevationGainMeters || 0}m
                     </div>
                   </div>
                 </div>
 
-                <button
-                  className="btn-secondary text-xs flex items-center gap-1.5 py-1 px-3 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 rounded-full"
-                  onClick={() => handleShareGps(act)}
-                  title="Generate Social Share Card"
-                >
-                  <Share2 size={13} />
-                  <span>Share Card</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="btn-secondary text-xs flex items-center gap-1.5 py-1 px-3 bg-lime-500/20 hover:bg-lime-500/30 text-lime-400 border border-lime-500/40 rounded-full cursor-pointer"
+                    onClick={() => onOpenFlyby(act)}
+                    title="Play Strava-Style Route Animation"
+                  >
+                    <Film size={13} />
+                    <span>Route Flyby</span>
+                  </button>
+
+                  <button
+                    className="btn-secondary text-xs flex items-center gap-1.5 py-1 px-3 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 rounded-full cursor-pointer"
+                    onClick={() => handleShareGps(act)}
+                    title="Generate Social Share Card"
+                  >
+                    <Share2 size={13} />
+                    <span>Share Card</span>
+                  </button>
+                </div>
               </div>
             ))}
 
@@ -376,7 +464,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
                 </div>
 
                 <button
-                  className="btn-secondary text-xs flex items-center gap-1.5 py-1 px-3 bg-slate-900 hover:bg-slate-800 text-lime-400 border border-slate-700 rounded-full"
+                  className="btn-secondary text-xs flex items-center gap-1.5 py-1 px-3 bg-slate-900 hover:bg-slate-800 text-lime-400 border border-slate-700 rounded-full cursor-pointer"
                   onClick={() => handleShareWorkout(w)}
                   title="Generate Social Share Card"
                 >

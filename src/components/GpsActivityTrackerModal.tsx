@@ -7,7 +7,10 @@ import {
   calculateFitMetrics,
   evaluateMilestones,
   defaultMilestones,
-  generateRouteSvgPath
+  generateRouteSvgPath,
+  calculateElevationGain,
+  calculateSplits,
+  estimateSteps
 } from '../utils/milestonesTracker';
 import { playBeepTone } from '../utils/audioCoach';
 import {
@@ -17,7 +20,9 @@ import {
   Compass,
   ChevronLeft,
   X,
-  Trophy
+  Trophy,
+  Mountain,
+  Footprints
 } from 'lucide-react';
 
 interface GpsActivityTrackerModalProps {
@@ -26,6 +31,7 @@ interface GpsActivityTrackerModalProps {
   currentMilestones?: PersonalMilestones;
   onSaveActivity: (log: GpsActivityLog, updatedMilestones: PersonalMilestones) => void;
   onOpenSocialShare?: (log: GpsActivityLog) => void;
+  onOpenFlyby?: (log: GpsActivityLog) => void;
   onClose: () => void;
 }
 
@@ -35,6 +41,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   currentMilestones = defaultMilestones,
   onSaveActivity,
   onOpenSocialShare,
+  onOpenFlyby,
   onClose
 }) => {
   const [activityType, setActivityType] = useState<'run' | 'cycle' | 'walk'>(initialActivityType);
@@ -113,7 +120,6 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
               if (timeDiffHours > 0) {
                 const speed = segmentDist / timeDiffHours;
                 if (speed < 70) {
-                  // Cap realistic human speeds
                   setCurrentSpeedKmh(Number(speed.toFixed(1)));
                   setTopSpeedKmh((top) => Math.max(top, Number(speed.toFixed(1))));
                 }
@@ -152,6 +158,9 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
     const avgSpeed = durationSeconds > 0 ? (distanceKm / (durationSeconds / 3600)) : 0;
     const paceStr = formatPace(distanceKm, durationSeconds);
     const { calories, heartPoints } = calculateFitMetrics(activityType, distanceKm, durationSeconds, avgSpeed);
+    const elevationGainMeters = calculateElevationGain(routePoints);
+    const stepsCount = estimateSteps(activityType, distanceKm);
+    const splits = calculateSplits(routePoints, 100);
 
     const activityLog: GpsActivityLog = {
       id: `gps_${Date.now()}`,
@@ -164,9 +173,11 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
       avgSpeedKmh: Number(avgSpeed.toFixed(1)),
       topSpeedKmh: Number(topSpeedKmh.toFixed(1)),
       avgPaceMinKm: paceStr,
-      elevationGainMeters: 0,
+      elevationGainMeters,
       caloriesBurned: calories,
       heartPointsEarned: heartPoints,
+      stepsCount,
+      splits,
       routePoints,
       milestonesReached: [],
       userId: currentProfile === 'women' ? 'women' : 'men'
@@ -184,7 +195,9 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
 
     onSaveActivity(activityLog, updatedMilestones);
 
-    if (onOpenSocialShare) {
+    if (onOpenFlyby) {
+      onOpenFlyby(activityLog);
+    } else if (onOpenSocialShare) {
       onOpenSocialShare(activityLog);
     }
   };
@@ -192,6 +205,8 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   // SVG route path for live mini-map visualization
   const routeSvgPath = generateRouteSvgPath(routePoints, 320, 160);
   const avgSpeedDisplay = durationSeconds > 0 ? (distanceKm / (durationSeconds / 3600)).toFixed(1) : '0.0';
+  const liveElevationGain = calculateElevationGain(routePoints);
+  const liveSteps = estimateSteps(activityType, distanceKm);
 
   return (
     <div className="modal-backdrop" style={{ zIndex: 9999 }}>
@@ -276,25 +291,41 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
           </div>
 
           {/* Time & Pace Sub-Grid */}
-          <div className="grid grid-cols-3 gap-2 mt-4 bg-zinc-950 p-3 rounded-2xl border border-zinc-900">
+          <div className="grid grid-cols-5 gap-1.5 mt-4 bg-zinc-950 p-2.5 rounded-2xl border border-zinc-900">
             <div>
-              <div className="text-[10px] text-zinc-500 font-bold uppercase">DURATION</div>
-              <div className="text-base md:text-lg font-black text-white font-mono mt-0.5">
+              <div className="text-[8px] text-zinc-500 font-bold uppercase">TIME</div>
+              <div className="text-xs md:text-sm font-black text-white font-mono mt-0.5">
                 {formatDuration(durationSeconds)}
               </div>
             </div>
 
             <div>
-              <div className="text-[10px] text-zinc-500 font-bold uppercase">PACE</div>
-              <div className="text-base md:text-lg font-black text-cyan-400 font-mono mt-0.5">
+              <div className="text-[8px] text-zinc-500 font-bold uppercase">PACE</div>
+              <div className="text-xs md:text-sm font-black text-cyan-400 font-mono mt-0.5">
                 {formatPace(distanceKm, durationSeconds)}
               </div>
             </div>
 
             <div>
-              <div className="text-[10px] text-zinc-500 font-bold uppercase">SPEED</div>
-              <div className="text-base md:text-lg font-black text-amber-400 font-mono mt-0.5">
-                {currentSpeedKmh > 0 ? `${currentSpeedKmh} km/h` : `${avgSpeedDisplay} km/h`}
+              <div className="text-[8px] text-zinc-500 font-bold uppercase">SPEED</div>
+              <div className="text-xs md:text-sm font-black text-lime-400 font-mono mt-0.5">
+                {currentSpeedKmh > 0 ? `${currentSpeedKmh}k` : `${avgSpeedDisplay}k`}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[8px] text-zinc-500 font-bold uppercase">ASCENT</div>
+              <div className="text-xs md:text-sm font-black text-amber-400 font-mono mt-0.5 flex items-center justify-center gap-0.5">
+                <Mountain size={10} className="text-amber-400" />
+                <span>+{liveElevationGain}m</span>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[8px] text-zinc-500 font-bold uppercase">STEPS</div>
+              <div className="text-xs md:text-sm font-black text-emerald-400 font-mono mt-0.5 flex items-center justify-center gap-0.5">
+                <Footprints size={10} className="text-emerald-400" />
+                <span>{liveSteps.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -306,7 +337,6 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
         <div className="bg-black/90 rounded-2xl border border-zinc-900 p-3 my-2 flex flex-col items-center justify-center relative min-h-[140px] overflow-hidden">
           {routePoints.length >= 2 ? (
             <svg width="300" height="130" className="overflow-visible">
-              {/* Route Polyline Glow */}
               <path
                 d={routeSvgPath}
                 fill="none"
@@ -351,7 +381,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
               onClick={startGpsTracking}
             >
               <Play size={20} fill="#000" />
-              <span>Start Tracking {activityType.toUpperCase()}</span>
+              <span>Start Recording {activityType.toUpperCase()}</span>
             </button>
           ) : (
             <div className="flex items-center justify-center gap-3">
@@ -372,7 +402,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
                 onClick={handleFinishAndSave}
               >
                 <StopCircle size={16} />
-                <span>Finish & Share</span>
+                <span>Finish & Flyby</span>
               </button>
             </div>
           )}

@@ -206,6 +206,16 @@ export interface GpsLocationPoint {
   accuracy?: number;
 }
 
+export interface ActivitySplit {
+  splitNumber: number;
+  distanceLabel: string; // e.g. "0 - 100m" or "1.0 km"
+  distanceMeters: number;
+  durationSeconds: number;
+  paceMinKm: string;
+  elevationDeltaMeters: number;
+  speedKmh: number;
+}
+
 export interface GpsActivityLog {
   id: string;
   activityType: 'run' | 'cycle' | 'walk';
@@ -220,10 +230,21 @@ export interface GpsActivityLog {
   elevationGainMeters: number;
   caloriesBurned: number;
   heartPointsEarned: number;
+  stepsCount: number;
+  splits: ActivitySplit[];
   routePoints: GpsLocationPoint[];
   milestonesReached: string[];
   userId: 'men' | 'women';
   notes?: string;
+}
+
+export interface WeeklyHeartPointsSummary {
+  weekStartDateStr: string; // Sunday
+  weekEndDateStr: string;   // Saturday
+  targetPoints: number;     // 150 points standard
+  currentPoints: number;
+  dailyBreakdown: { day: string; points: number; date: string; isToday: boolean }[];
+  isGoalAchieved: boolean;
 }
 
 export interface PersonalMilestones {
