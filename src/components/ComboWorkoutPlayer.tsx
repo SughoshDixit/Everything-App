@@ -12,6 +12,7 @@ import {
   toggleAudioMute,
   cancelSpeech
 } from '../utils/audioCoach';
+import { ZoomableImageModal } from './ZoomableImageModal';
 import {
   ChevronLeft,
   Volume2,
@@ -24,7 +25,8 @@ import {
   Info,
   Award,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  ZoomIn
 } from 'lucide-react';
 
 interface ComboWorkoutPlayerProps {
@@ -64,6 +66,7 @@ export const ComboWorkoutPlayer: React.FC<ComboWorkoutPlayerProps> = ({
   const [currentRepsInput, setCurrentRepsInput] = useState<number>(10);
   const [repsHistory, setRepsHistory] = useState<number[]>([]);
   const [showInfoModal, setShowInfoModal] = useState<boolean>(false);
+  const [zoomImage, setZoomImage] = useState<{ src: string; title: string; page?: number } | null>(null);
 
   const currentWarmup = yellowDudeWarmupSteps[warmupStepIdx];
   const currentExercise: PlaybookExercise = routine.exercises[exerciseIdx] || routine.exercises[0];
@@ -306,13 +309,20 @@ export const ComboWorkoutPlayer: React.FC<ComboWorkoutPlayerProps> = ({
               <span className="text-white font-bold">{currentWarmup.title}</span>
             </div>
 
-            {/* Bounded Clean Image Stage (Fitted to screen) */}
-            <div className="h-40 w-full flex items-center justify-center bg-zinc-950 rounded-xl p-2 border border-zinc-900 my-1 overflow-hidden">
+            {/* Bounded Clean Image Stage (100% Fit, Tap to Zoom & Read) */}
+            <div
+              className="playbook-img-card my-1 group cursor-zoom-in"
+              onClick={() => setZoomImage({ src: currentWarmup.image, title: currentWarmup.title })}
+              title="Tap to Zoom & Read Full Page"
+            >
               <img
                 src={currentWarmup.image}
                 alt={currentWarmup.title}
-                className="max-h-full max-w-full object-contain rounded"
               />
+              <div className="absolute bottom-2 right-2 bg-black/75 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700">
+                <ZoomIn size={11} className="text-cyan-400" />
+                <span>Zoom</span>
+              </div>
             </div>
 
             {/* 72pt Countdown Clock */}
@@ -403,13 +413,20 @@ export const ComboWorkoutPlayer: React.FC<ComboWorkoutPlayerProps> = ({
               <span className="text-white font-bold truncate max-w-[180px]">{currentExercise.name}</span>
             </div>
 
-            {/* Bounded Clean Image Stage (Fitted to screen) */}
-            <div className="h-40 w-full flex items-center justify-center bg-zinc-950 rounded-xl p-2 border border-zinc-900 my-1 overflow-hidden">
+            {/* Bounded Clean Image Stage (100% Fit, Tap to Zoom & Read) */}
+            <div
+              className="playbook-img-card my-1 group cursor-zoom-in"
+              onClick={() => setZoomImage({ src: currentExercise.image, title: currentExercise.name, page: currentExercise.pageNumber })}
+              title="Tap to Zoom & Read Full Page"
+            >
               <img
                 src={currentExercise.image}
                 alt={currentExercise.name}
-                className="max-h-full max-w-full object-contain rounded"
               />
+              <div className="absolute bottom-2 right-2 bg-black/75 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700">
+                <ZoomIn size={11} className="text-cyan-400" />
+                <span>Zoom</span>
+              </div>
             </div>
 
             {/* Set or Rest State */}
@@ -569,6 +586,16 @@ export const ComboWorkoutPlayer: React.FC<ComboWorkoutPlayerProps> = ({
               </button>
             </div>
           </div>
+        )}
+
+        {/* ZOOMABLE IMAGE MODAL (PINCH-TO-ZOOM & PAN) */}
+        {zoomImage && (
+          <ZoomableImageModal
+            imageSrc={zoomImage.src}
+            title={zoomImage.title}
+            pageNumber={zoomImage.page}
+            onClose={() => setZoomImage(null)}
+          />
         )}
       </div>
     </div>

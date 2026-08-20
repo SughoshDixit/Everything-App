@@ -55,6 +55,33 @@
   padding: 0;
 }
 
+img, svg, video, canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.playbook-img-card {
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: zoom-in;
+}
+
+.playbook-img-card img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  margin: auto;
+}
+
 body {
   background-color: var(--bg-dark);
   color: var(--text-main);

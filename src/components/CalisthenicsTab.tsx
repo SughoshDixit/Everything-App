@@ -8,6 +8,7 @@ import {
 import type { ComboWorkoutRoutine, PlaybookExercise } from '../utils/yellowDudePlaybook';
 import { ComboWorkoutPlayer } from './ComboWorkoutPlayer';
 import { OnboardingModal } from './OnboardingModal';
+import { ZoomableImageModal } from './ZoomableImageModal';
 import { speakExerciseIntro } from '../utils/audioCoach';
 import {
   Play,
@@ -20,7 +21,8 @@ import {
   Info,
   BookOpen,
   Award,
-  CheckCircle2
+  CheckCircle2,
+  ZoomIn
 } from 'lucide-react';
 
 interface CalisthenicsTabProps {
@@ -44,6 +46,9 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
   // Info Modal States (For User to Peruse upon clicking 'i' icon)
   const [infoRoutine, setInfoRoutine] = useState<ComboWorkoutRoutine | null>(null);
   const [infoExercise, setInfoExercise] = useState<PlaybookExercise | null>(null);
+
+  // Zoomable Image Modal State
+  const [zoomImage, setZoomImage] = useState<{ src: string; title: string; page?: number } | null>(null);
 
   // User Fitness Profile
   const [fitnessProfile, setFitnessProfile] = useState<UserFitnessProfile>({
@@ -244,7 +249,7 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
       )}
 
       {/* ------------------------------------------------------------------- */}
-      {/* 3. YELLOW DUDE PLAYBOOK LIBRARY (VISUAL + AUDIO FIRST) */}
+      {/* 3. YELLOW DUDE PLAYBOOK LIBRARY (READABLE, ZOOMABLE & FIT-TO-SCREEN) */}
       {/* ------------------------------------------------------------------- */}
       {activeSubTab === 'library' && (
         <div className="subtab-content flex flex-col gap-3">
@@ -270,13 +275,20 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
                 style={{ animationDelay: `${idx * 0.04}s` }}
               >
                 <div>
-                  {/* Clean Bounded Character Image Stage */}
-                  <div className="h-40 w-full flex items-center justify-center bg-zinc-950 rounded-lg p-2 overflow-hidden border border-zinc-900 mb-2.5">
+                  {/* Clean Bounded Character Image Stage (100% Fit, Tap to Zoom & Read) */}
+                  <div
+                    className="playbook-img-card mb-2.5 group"
+                    onClick={() => setZoomImage({ src: ex.image, title: ex.name, page: ex.pageNumber })}
+                    title="Tap to Zoom & Read Full Page"
+                  >
                     <img
                       src={ex.image}
                       alt={ex.name}
-                      className="max-h-full max-w-full object-contain rounded"
                     />
+                    <div className="absolute bottom-2 right-2 bg-black/75 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700 opacity-90 group-hover:opacity-100 transition-opacity">
+                      <ZoomIn size={11} className="text-cyan-400" />
+                      <span>Zoom</span>
+                    </div>
                   </div>
 
                   {/* Title & Level */}
@@ -414,13 +426,20 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
               <button className="btn-close" onClick={() => setInfoExercise(null)}>&times;</button>
             </div>
 
-            {/* Clean Bounded Image */}
-            <div className="h-44 w-full flex items-center justify-center bg-zinc-950 rounded-lg p-2 border border-zinc-900 my-2">
+            {/* Clean Bounded Image (Tap to Zoom) */}
+            <div
+              className="playbook-img-card my-2 group cursor-zoom-in"
+              onClick={() => setZoomImage({ src: infoExercise.image, title: infoExercise.name, page: infoExercise.pageNumber })}
+              title="Tap to Zoom & Read Full Page"
+            >
               <img
                 src={infoExercise.image}
                 alt={infoExercise.name}
-                className="max-h-full max-w-full object-contain rounded"
               />
+              <div className="absolute bottom-2 right-2 bg-black/75 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700">
+                <ZoomIn size={11} className="text-cyan-400" />
+                <span>Tap to Zoom</span>
+              </div>
             </div>
 
             <div className="flex flex-col gap-2.5 text-xs mt-2">
@@ -470,6 +489,16 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
             </button>
           </div>
         </div>
+      )}
+
+      {/* ZOOMABLE IMAGE MODAL (PINCH-TO-ZOOM & PAN) */}
+      {zoomImage && (
+        <ZoomableImageModal
+          imageSrc={zoomImage.src}
+          title={zoomImage.title}
+          pageNumber={zoomImage.page}
+          onClose={() => setZoomImage(null)}
+        />
       )}
 
       {/* ONBOARDING QUESTIONNAIRE MODAL */}
