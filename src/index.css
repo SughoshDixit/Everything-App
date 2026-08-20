@@ -19,12 +19,12 @@
   --accent-lime: #CCFF00;
   --bg-oled: #000000;
 
-  --font-heading: 'Outfit', sans-serif;
-  --font-body: 'Inter', sans-serif;
+  --font-heading: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
   --radius-full: 9999px;
 }
 
@@ -47,6 +47,9 @@
   --accent-indigo: #4f46e5;
   --accent-lime: #84cc16;
   --bg-oled: #000000;
+
+  --font-heading: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 * {
@@ -107,7 +110,25 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* Google Fit Tabular Numerals for metrics, timers, and streaks */
+.number-pop,
+.streak-num,
+.oled-countdown-clock,
+.font-mono,
+.timer-display,
+.metric-value {
+  font-family: var(--font-heading);
+  font-feature-settings: "tnum" 1, "ss01" 1, "cv01" 1;
+  letter-spacing: -0.03em;
 }
 
 /* Glassmorphism card utility */
