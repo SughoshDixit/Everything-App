@@ -136,14 +136,14 @@ export const AnimatedExerciseGuideModal: React.FC<AnimatedExerciseGuideModalProp
     <div className="modal-backdrop">
       <div className="modal-content glass-card leap-fitness-modal animate-scale-up">
         {/* Top Title & Standardized Back Header */}
-        <div className="leap-header">
-          <button className="btn-secondary text-xs flex items-center gap-1" onClick={onClose}>
-            <ChevronLeft className="icon-xs" />
-            <span>Back to Menu</span>
+        <div className="flex items-center justify-between border-b border-glass pb-3 mb-3">
+          <button className="btn-google-outlined text-xs py-1.5 px-3 flex items-center gap-1" onClick={onClose}>
+            <ChevronLeft size={16} />
+            <span>Back</span>
           </button>
-          <h2 className="leap-title">{exerciseName.toUpperCase()}</h2>
-          <button className="btn-close" onClick={onClose} title="Close Guide">
-            <X className="icon-sm" />
+          <h2 className="text-sm md:text-base font-black text-main uppercase tracking-wide">{exerciseName}</h2>
+          <button className="btn-google-icon" onClick={onClose} aria-label="Close Guide">
+            <X size={18} />
           </button>
         </div>
 

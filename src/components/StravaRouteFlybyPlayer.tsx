@@ -44,7 +44,6 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
 
     const animate = (time: number) => {
       const delta = time - lastTimeRef.current;
-      // Advance index based on speed multiplier
       if (delta > 30 / playbackSpeed) {
         setCurrentIndex((prev) => {
           if (prev >= totalPoints - 1) {
@@ -226,25 +225,27 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
 
   return (
     <div className="modal-backdrop" style={{ zIndex: 10000 }}>
-      <div className="modal-content oled-workout-player animate-scale-up max-w-lg w-full max-h-[94vh] overflow-y-auto p-4 md:p-6 flex flex-col justify-between">
+      <div className="modal-content google-card animate-scale-up max-w-lg w-full max-h-[94vh] overflow-y-auto p-5 md:p-6 flex flex-col justify-between">
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-zinc-900 pb-3 mb-2">
+        <div className="flex items-center justify-between border-b border-glass pb-3 mb-2">
           <button
-            className="btn-secondary text-xs flex items-center gap-1 bg-zinc-900 border-zinc-800 text-zinc-300 py-1.5 px-3"
+            className="btn-google-outlined text-xs py-1.5 px-3 flex items-center gap-1"
             onClick={onClose}
           >
             <ChevronLeft size={16} />
-            <span>Close</span>
+            <span>Back</span>
           </button>
 
           <div className="text-center">
-            <span className="oled-badge-lime text-[10px]">STRAVA-STYLE FLYBY</span>
-            <h3 className="text-sm md:text-base font-black text-white mt-0.5 uppercase tracking-wide">
+            <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">
+              STRAVA-STYLE FLYBY
+            </span>
+            <h3 className="text-sm md:text-base font-black text-main mt-0.5 uppercase tracking-wide">
               {activity.distanceKm} km {activity.activityType === 'run' ? 'Run Route Replay' : 'Cycling Route Replay'}
             </h3>
           </div>
 
-          <button className="btn-close" onClick={onClose}>
+          <button className="btn-google-icon" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
         </div>
@@ -252,7 +253,7 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         {/* ------------------------------------------------------------------- */}
         {/* 1. CINEMATIC GPS ROUTE CANVAS STAGE */}
         {/* ------------------------------------------------------------------- */}
-        <div className="relative bg-black rounded-2xl border border-zinc-800 overflow-hidden my-2 shadow-2xl flex items-center justify-center">
+        <div className="relative bg-black rounded-2xl border border-glass overflow-hidden my-2 shadow-2xl flex items-center justify-center">
           <canvas
             ref={canvasRef}
             width={480}
@@ -261,18 +262,18 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
           />
 
           {/* Floating Top Telemetry HUD */}
-          <div className="absolute top-3 left-3 bg-zinc-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-800 flex items-center gap-3">
+          <div className="absolute top-3 left-3 bg-slate-950/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-slate-800 flex items-center gap-3 shadow-lg">
             <div>
-              <div className="text-[9px] text-zinc-400 font-bold uppercase">DISTANCE</div>
+              <div className="text-[9px] text-slate-400 font-bold uppercase">DISTANCE</div>
               <div className="text-sm font-black text-white font-mono leading-none mt-0.5">
                 {currentDistanceKm} <span className="text-[10px] text-lime-400 font-normal">km</span>
               </div>
             </div>
 
-            <div className="h-6 w-px bg-zinc-800" />
+            <div className="h-6 w-px bg-slate-800" />
 
             <div>
-              <div className="text-[9px] text-zinc-400 font-bold uppercase">ELAPSED</div>
+              <div className="text-[9px] text-slate-400 font-bold uppercase">ELAPSED</div>
               <div className="text-sm font-black text-cyan-400 font-mono leading-none mt-0.5">
                 {formatDuration(currentDurationSec)}
               </div>
@@ -280,9 +281,9 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
 
             {currentAltitude > 0 && (
               <>
-                <div className="h-6 w-px bg-zinc-800" />
+                <div className="h-6 w-px bg-slate-800" />
                 <div>
-                  <div className="text-[9px] text-zinc-400 font-bold uppercase">ALTITUDE</div>
+                  <div className="text-[9px] text-slate-400 font-bold uppercase">ALTITUDE</div>
                   <div className="text-sm font-black text-amber-400 font-mono leading-none mt-0.5">
                     {currentAltitude}m
                   </div>
@@ -293,7 +294,7 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
 
           {/* Floating Active 100m Split Pill */}
           {activeSplit && (
-            <div className="absolute bottom-3 left-3 bg-zinc-950/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-lime-500/40 text-[11px] text-lime-400 font-bold flex items-center gap-1.5">
+            <div className="absolute bottom-3 left-3 bg-slate-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-lime-500/40 text-[11px] text-lime-400 font-bold flex items-center gap-1.5 shadow-lg">
               <span className="w-2 h-2 rounded-full bg-lime-400 animate-pulse" />
               <span>Split #{activeSplit.splitNumber} ({activeSplit.distanceLabel}): {activeSplit.durationSeconds}s</span>
             </div>
@@ -303,34 +304,34 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         {/* ------------------------------------------------------------------- */}
         {/* 2. PLAYBACK CONTROLS & TIMELINE SCRUBBER */}
         {/* ------------------------------------------------------------------- */}
-        <div className="bg-zinc-950 p-3 rounded-2xl border border-zinc-900 my-2">
+        <div className="bg-card p-3 rounded-2xl border border-glass my-2">
           {/* Progress Slider */}
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-mono text-zinc-500">{formatDuration(currentDurationSec)}</span>
+            <span className="text-[10px] font-mono text-sub">{formatDuration(currentDurationSec)}</span>
             <input
               type="range"
               min="0"
               max={Math.max(1, totalPoints - 1)}
               value={currentIndex}
               onChange={handleSeek}
-              className="flex-1 accent-lime-400 cursor-pointer h-1.5 bg-zinc-800 rounded-lg"
+              className="flex-1 accent-cyan-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
             />
-            <span className="text-[10px] font-mono text-zinc-500">{formatDuration(activity.durationSeconds)}</span>
+            <span className="text-[10px] font-mono text-sub">{formatDuration(activity.durationSeconds)}</span>
           </div>
 
           {/* Control Buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
-                className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white transition-all cursor-pointer"
+                className="btn-google-icon"
                 onClick={() => setIsPlaying(!isPlaying)}
                 title={isPlaying ? 'Pause' : 'Play'}
               >
-                {isPlaying ? <Pause size={16} /> : <Play size={16} fill="#fff" />}
+                {isPlaying ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
               </button>
 
               <button
-                className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all cursor-pointer"
+                className="btn-google-icon"
                 onClick={handleReset}
                 title="Restart Flyby"
               >
@@ -339,12 +340,14 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
             </div>
 
             {/* Playback Speed Multiplier Pills */}
-            <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-full border border-glass">
               {[1, 2, 5, 10].map((s) => (
                 <button
                   key={s}
-                  className={`py-0.5 px-2 rounded-lg text-[10px] font-bold transition-all ${
-                    playbackSpeed === s ? 'bg-lime-400 text-black font-black' : 'text-zinc-400 hover:text-white'
+                  className={`py-0.5 px-2.5 rounded-full text-[10px] font-bold transition-all ${
+                    playbackSpeed === s
+                      ? 'bg-cyan-500 text-white font-black shadow-sm'
+                      : 'text-sub hover:text-main'
                   }`}
                   onClick={() => setPlaybackSpeed(s)}
                 >
@@ -355,12 +358,10 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
 
             {/* Toggle 100m Splits Table */}
             <button
-              className={`p-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
-                showSplitsTable ? 'bg-cyan-500 text-black' : 'bg-zinc-900 text-zinc-400 hover:text-white'
-              }`}
+              className={showSplitsTable ? 'btn-google-primary text-xs py-1.5 px-3' : 'btn-google-outlined text-xs py-1.5 px-3'}
               onClick={() => setShowSplitsTable(!showSplitsTable)}
             >
-              <ListOrdered size={15} />
+              <ListOrdered size={14} />
               <span>Splits</span>
             </button>
           </div>
@@ -370,11 +371,11 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         {/* 3. 100m SPLIT TIMES EXPANDABLE DRAWER */}
         {/* ------------------------------------------------------------------- */}
         {showSplitsTable && (
-          <div className="bg-zinc-950 p-3 rounded-2xl border border-zinc-900 my-2 max-h-48 overflow-y-auto animate-fade-in">
-            <h4 className="text-[11px] font-black text-zinc-400 uppercase tracking-wider mb-2">
+          <div className="bg-card p-3 rounded-2xl border border-glass my-2 max-h-48 overflow-y-auto animate-fade-in">
+            <h4 className="text-[11px] font-black text-sub uppercase tracking-wider mb-2">
               100m Split Times & Elevation Analysis
             </h4>
-            <div className="grid grid-cols-4 text-[10px] font-bold text-zinc-500 border-b border-zinc-900 pb-1 mb-1">
+            <div className="grid grid-cols-4 text-[10px] font-bold text-sub border-b border-glass pb-1 mb-1">
               <div>SPLIT</div>
               <div>TIME</div>
               <div>PACE</div>
@@ -383,12 +384,12 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
             {splits.map((s) => (
               <div
                 key={s.splitNumber}
-                className="grid grid-cols-4 text-[11px] font-mono py-1 border-b border-zinc-900/60 items-center text-zinc-300"
+                className="grid grid-cols-4 text-[11px] font-mono py-1 border-b border-glass/50 items-center text-sub"
               >
-                <div className="font-bold text-white">#{s.splitNumber} ({s.distanceLabel})</div>
-                <div className="text-lime-400 font-bold">{s.durationSeconds}s</div>
-                <div className="text-cyan-400">{s.paceMinKm}</div>
-                <div className="text-right text-amber-400">
+                <div className="font-bold text-main">#{s.splitNumber} ({s.distanceLabel})</div>
+                <div className="text-emerald-600 dark:text-emerald-400 font-bold">{s.durationSeconds}s</div>
+                <div className="text-cyan-600 dark:text-cyan-400">{s.paceMinKm}</div>
+                <div className="text-right text-amber-600 dark:text-amber-400">
                   {s.elevationDeltaMeters >= 0 ? `+${s.elevationDeltaMeters}m` : `${s.elevationDeltaMeters}m`}
                 </div>
               </div>
@@ -400,23 +401,23 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         {/* 4. TOTAL SUMMARY CARDS & SHARE BUTTON */}
         {/* ------------------------------------------------------------------- */}
         <div className="grid grid-cols-3 gap-2 my-2">
-          <div className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 text-center">
-            <div className="text-[9px] text-zinc-500 font-bold uppercase">ELEVATION GAIN</div>
-            <div className="text-sm font-black text-amber-400 font-mono mt-0.5">
+          <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
+            <div className="text-[9px] text-sub font-bold uppercase">ELEVATION GAIN</div>
+            <div className="text-sm font-black text-amber-600 dark:text-amber-400 font-mono mt-0.5">
               +{activity.elevationGainMeters || 0}m
             </div>
           </div>
 
-          <div className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 text-center">
-            <div className="text-[9px] text-zinc-500 font-bold uppercase">AVG PACE</div>
-            <div className="text-sm font-black text-cyan-400 font-mono mt-0.5">
+          <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
+            <div className="text-[9px] text-sub font-bold uppercase">AVG PACE</div>
+            <div className="text-sm font-black text-cyan-600 dark:text-cyan-400 font-mono mt-0.5">
               {activity.avgPaceMinKm}
             </div>
           </div>
 
-          <div className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 text-center">
-            <div className="text-[9px] text-zinc-500 font-bold uppercase">STEPS TAKEN</div>
-            <div className="text-sm font-black text-emerald-400 font-mono mt-0.5">
+          <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
+            <div className="text-[9px] text-sub font-bold uppercase">STEPS TAKEN</div>
+            <div className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
               {activity.stepsCount ? activity.stepsCount.toLocaleString() : '—'}
             </div>
           </div>
@@ -425,7 +426,7 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         {/* Share Button */}
         {onOpenSocialShare && (
           <button
-            className="btn-primary w-full bg-lime-400 hover:bg-lime-300 text-black font-black uppercase tracking-wider text-xs py-3 rounded-xl shadow-xl flex items-center justify-center gap-2 mt-2 cursor-pointer"
+            className="btn-google-primary w-full py-3 text-xs uppercase tracking-wider mt-2"
             onClick={() => onOpenSocialShare(activity)}
           >
             <Share2 size={16} />

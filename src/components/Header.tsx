@@ -43,98 +43,78 @@ export const Header: React.FC<HeaderProps> = ({
       : stats.coupleStreak;
 
   return (
-    <header className="app-header pb-2">
-      {/* Top Main Bar: Brand & High-Visibility Actions */}
-      <div className="flex items-center justify-between gap-2 pb-2">
+    <header className="app-header pb-2 mb-1">
+      {/* Top App Bar: Brand + Quick Actions */}
+      <div className="flex items-center justify-between gap-3 pb-2.5">
         {/* Brand */}
-        <div className="brand flex items-center gap-2">
-          <div className="brand-logo animate-breathe flex items-center justify-center p-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
-            <ShieldCheck className="icon-shield text-cyan-400" size={22} />
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md">
+            <ShieldCheck size={20} />
           </div>
           <div>
-            <h1 className="brand-title text-base md:text-lg font-black tracking-wider text-main leading-tight">
+            <h1 className="text-base md:text-lg font-black tracking-wide leading-tight text-main">
               EVERYTHING APP
             </h1>
+            <span className="text-[10px] font-bold text-sub tracking-wider uppercase">
+              Performance & Fitness Hub
+            </span>
           </div>
         </div>
 
-        {/* Right Actions: High-Visibility Theme Toggle & Streak Badge */}
+        {/* Right Actions: Theme Toggle Circle & Streak Pill */}
         <div className="flex items-center gap-2">
-          {/* Prominent High-Visibility Theme Switcher Pill */}
+          {/* Material 3 Circular Theme Switcher */}
           <button
-            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all shadow-md cursor-pointer border ${
-              theme === 'dark'
-                ? 'bg-amber-500/20 text-amber-300 border-amber-400/50 hover:bg-amber-500/30 hover:border-amber-400'
-                : 'bg-indigo-900/10 text-indigo-900 border-indigo-300 hover:bg-indigo-900/20'
-            }`}
+            className="btn-google-icon"
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle Theme"
           >
             {theme === 'dark' ? (
-              <>
-                <Sun size={15} className="text-amber-400 animate-spin-slow" />
-                <span>Light</span>
-              </>
+              <Sun size={18} className="text-amber-400" />
             ) : (
-              <>
-                <Moon size={15} className="text-indigo-600" />
-                <span>Dark</span>
-              </>
+              <Moon size={18} className="text-indigo-600" />
             )}
           </button>
 
-          {/* Streak pill with pulse */}
-          <div className="streak-badge pulse-glow flex items-center gap-1 py-1.5 px-2.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400">
-            <Flame size={15} className="text-rose-500" />
-            <span className="streak-num font-black text-xs">{activeStreak}</span>
-            <span className="text-[10px] opacity-75 font-semibold">d</span>
+          {/* Google Fit Streak Pill */}
+          <div className="flex items-center gap-1.5 py-1.5 px-3 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 shadow-sm">
+            <Flame size={16} className="text-amber-500" />
+            <span className="font-mono font-black text-xs">{activeStreak}</span>
+            <span className="text-[10px] font-bold opacity-80">days</span>
           </div>
         </div>
       </div>
 
-      {/* Row 2: Clean Persona Switcher & Mini Discipline Ticker */}
+      {/* Row 2: Google Material 3 Segmented Persona Selector */}
       <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-glass">
-        {/* Persona Switcher Tabs */}
-        <div className="persona-selector flex items-center gap-1 bg-slate-900/60 p-1 rounded-full border border-glass">
+        <div className="persona-selector">
           <button
-            className={`persona-btn text-xs py-1 px-3 rounded-full transition-all flex items-center gap-1 font-bold ${
-              currentProfile === 'men'
-                ? 'bg-cyan-500 text-black shadow-md'
-                : 'text-sub hover:text-white'
-            }`}
+            className={`persona-btn ${currentProfile === 'men' ? 'active' : ''}`}
             onClick={() => onSelectProfile('men')}
           >
-            <User size={13} />
+            <User size={14} />
             <span>Men</span>
           </button>
           <button
-            className={`persona-btn text-xs py-1 px-3 rounded-full transition-all flex items-center gap-1 font-bold ${
-              currentProfile === 'women'
-                ? 'bg-rose-500 text-white shadow-md'
-                : 'text-sub hover:text-white'
-            }`}
+            className={`persona-btn ${currentProfile === 'women' ? 'active' : ''}`}
             onClick={() => onSelectProfile('women')}
           >
-            <Heart size={13} />
+            <Heart size={14} />
             <span>Women</span>
           </button>
           <button
-            className={`persona-btn text-xs py-1 px-3 rounded-full transition-all flex items-center gap-1 font-bold ${
-              currentProfile === 'couple'
-                ? 'bg-violet-500 text-white shadow-md'
-                : 'text-sub hover:text-white'
-            }`}
+            className={`persona-btn ${currentProfile === 'couple' ? 'active' : ''}`}
             onClick={() => onSelectProfile('couple')}
           >
-            <Users size={13} />
+            <Users size={14} />
             <span>Both</span>
           </button>
         </div>
 
-        {/* Discipline Ticker */}
-        <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-bold text-sub px-3 py-1 rounded-full bg-slate-900/40 border border-glass">
-          <Zap size={12} className="text-amber-400" />
+        {/* Compact Discipline Ticker */}
+        <div className="hidden sm:flex items-center gap-1 text-[11px] font-bold text-sub px-3 py-1 rounded-full bg-card border border-glass">
+          <Zap size={12} className="text-amber-500" />
           <span className="tracking-widest">DISCIPLINE · CONSISTENCY</span>
         </div>
       </div>

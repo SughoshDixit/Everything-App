@@ -81,23 +81,25 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
   return (
     <div className="modal-backdrop" style={{ zIndex: 10000 }}>
-      <div className="modal-content glass-card animate-scale-up max-w-lg w-full max-h-[94vh] overflow-y-auto p-4 md:p-6 flex flex-col justify-between">
+      <div className="modal-content google-card animate-scale-up max-w-lg w-full max-h-[94vh] overflow-y-auto p-5 md:p-6 flex flex-col justify-between">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+        <div className="flex items-center justify-between border-b border-glass pb-3 mb-3">
           <button
-            className="btn-secondary text-xs flex items-center gap-1 bg-slate-900 border-slate-800 text-slate-300 py-1.5 px-3"
+            className="btn-google-outlined text-xs flex items-center gap-1 py-1.5 px-3"
             onClick={onClose}
           >
             <ChevronLeft size={16} />
-            <span>Close</span>
+            <span>Back</span>
           </button>
 
           <div className="text-center">
-            <span className="badge-pill bg-cyan text-[10px]">SOCIAL SHARE STUDIO</span>
-            <h3 className="text-sm md:text-base font-black text-white mt-0.5">Workout Share Card</h3>
+            <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">
+              SOCIAL SHARE STUDIO
+            </span>
+            <h3 className="text-sm md:text-base font-black text-main mt-0.5">Workout Share Card</h3>
           </div>
 
-          <button className="btn-close" onClick={onClose}>
+          <button className="btn-google-icon" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
         </div>
@@ -105,32 +107,24 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
         {/* Format Selector Pills (Story 9:16 vs Square 1:1) */}
         <div className="flex items-center justify-center gap-2 mb-3">
           <button
-            className={`flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-xs font-bold transition-all border ${
-              format === 'story'
-                ? 'bg-cyan-500 text-black border-cyan-400 shadow-md'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
-            }`}
+            className={format === 'story' ? 'btn-google-primary text-xs py-1.5 px-3.5' : 'btn-google-outlined text-xs py-1.5 px-3.5'}
             onClick={() => setFormat('story')}
           >
             <Smartphone size={14} />
-            <span>Instagram Story (9:16)</span>
+            <span>Story (9:16)</span>
           </button>
 
           <button
-            className={`flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-xs font-bold transition-all border ${
-              format === 'square'
-                ? 'bg-cyan-500 text-black border-cyan-400 shadow-md'
-                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
-            }`}
+            className={format === 'square' ? 'btn-google-primary text-xs py-1.5 px-3.5' : 'btn-google-outlined text-xs py-1.5 px-3.5'}
             onClick={() => setFormat('square')}
           >
             <Square size={14} />
-            <span>Feed Post (1:1)</span>
+            <span>Square (1:1)</span>
           </button>
         </div>
 
         {/* Card Live Preview Stage */}
-        <div className="relative flex items-center justify-center bg-black/90 p-2 rounded-2xl border border-slate-800 my-2 overflow-hidden max-h-[380px]">
+        <div className="relative flex items-center justify-center bg-black/95 p-3 rounded-2xl border border-glass my-2 overflow-hidden max-h-[380px] shadow-xl">
           {previewUrl ? (
             <img
               src={previewUrl}
@@ -138,14 +132,14 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               className="max-h-[360px] object-contain rounded-xl shadow-2xl"
             />
           ) : (
-            <div className="h-64 flex items-center justify-center text-xs text-slate-500 font-bold">
+            <div className="h-64 flex items-center justify-center text-xs text-sub font-bold">
               Rendering HD Poster...
             </div>
           )}
 
           {/* Quick Quote Cycler Floating Pill */}
           <button
-            className="absolute bottom-4 bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md text-amber-400 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-700 flex items-center gap-1.5 shadow-xl transition-all cursor-pointer"
+            className="absolute bottom-4 bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md text-amber-400 text-xs font-bold px-3.5 py-1.5 rounded-full border border-slate-700 flex items-center gap-1.5 shadow-xl transition-all cursor-pointer"
             onClick={handleNextQuote}
             title="Cycle Motivational Quote"
           >
@@ -155,22 +149,22 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
         </div>
 
         {/* Actions Grid: Share to WhatsApp / Instagram & Download PNG */}
-        <div className="grid grid-cols-2 gap-2.5 mt-3 pt-3 border-t border-slate-800">
+        <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-glass">
           <button
-            className="btn-primary flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black uppercase tracking-wider text-xs py-3 rounded-xl shadow-lg"
+            className="btn-google-primary text-xs py-3 rounded-full"
             onClick={handleShareNative}
             disabled={isSharing}
           >
             <Share2 size={16} />
-            <span>{isSharing ? 'Sharing...' : 'Share to WhatsApp / Insta'}</span>
+            <span>{isSharing ? 'Sharing...' : 'Share (WhatsApp / Insta)'}</span>
           </button>
 
           <button
-            className="btn-secondary flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl border border-slate-700 shadow-lg"
+            className="btn-google-tonal text-xs py-3 rounded-full"
             onClick={handleDownload}
           >
-            {copied ? <Check size={16} className="text-emerald-400" /> : <Download size={16} className="text-cyan-400" />}
-            <span>{copied ? 'Saved to Gallery!' : 'Download PNG Image'}</span>
+            {copied ? <Check size={16} className="text-emerald-500" /> : <Download size={16} />}
+            <span>{copied ? 'Saved to Gallery!' : 'Download PNG'}</span>
           </button>
         </div>
       </div>

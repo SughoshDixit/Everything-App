@@ -1,8 +1,8 @@
 :root,
 :root[data-theme="dark"] {
   --bg-dark: #090d16;
-  --bg-card: rgba(19, 28, 46, 0.75);
-  --bg-card-hover: rgba(28, 41, 66, 0.85);
+  --bg-card: rgba(19, 28, 46, 0.85);
+  --bg-card-hover: rgba(28, 41, 66, 0.95);
   --border-glass: rgba(255, 255, 255, 0.08);
   --border-glow: rgba(6, 182, 212, 0.3);
 
@@ -19,34 +19,46 @@
   --accent-lime: #CCFF00;
   --bg-oled: #000000;
 
+  /* Google Fit Material 3 Ring Colors (Dark) */
+  --ring-heart-track: rgba(6, 182, 212, 0.15);
+  --ring-heart-fill: #06b6d4;
+  --ring-move-track: rgba(16, 185, 129, 0.15);
+  --ring-move-fill: #10b981;
+
   --font-heading: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --radius-sm: 10px;
-  --radius-md: 18px;
-  --radius-lg: 24px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
   --radius-full: 9999px;
 }
 
 :root[data-theme="light"] {
-  --bg-dark: #f1f5f9;
-  --bg-card: rgba(255, 255, 255, 0.92);
-  --bg-card-hover: rgba(255, 255, 255, 1);
-  --border-glass: rgba(0, 0, 0, 0.08);
-  --border-glow: rgba(6, 182, 212, 0.4);
+  --bg-dark: #f8f9fa;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f3f4;
+  --border-glass: #e8eaed;
+  --border-glow: rgba(26, 115, 232, 0.3);
 
-  --text-main: #0f172a;
-  --text-sub: #475569;
-  --text-muted: #64748b;
+  --text-main: #202124;
+  --text-sub: #5f6368;
+  --text-muted: #80868b;
 
-  --accent-cyan: #0284c7;
-  --accent-amber: #d97706;
-  --accent-emerald: #059669;
-  --accent-violet: #7c3aed;
-  --accent-rose: #e11d48;
-  --accent-indigo: #4f46e5;
-  --accent-lime: #84cc16;
-  --bg-oled: #000000;
+  --accent-cyan: #1a73e8;
+  --accent-amber: #e37400;
+  --accent-emerald: #1e8e3e;
+  --accent-violet: #8430ce;
+  --accent-rose: #d93025;
+  --accent-indigo: #1a73e8;
+  --accent-lime: #0d652d;
+  --bg-oled: #ffffff;
+
+  /* Google Fit Material 3 Ring Colors (Light) */
+  --ring-heart-track: #e8f0fe;
+  --ring-heart-fill: #1a73e8;
+  --ring-move-track: #e6f4ea;
+  --ring-move-fill: #1e8e3e;
 
   --font-heading: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -109,69 +121,192 @@ body {
 }
 
 :root[data-theme="light"] .glass-card {
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+  border: 1px solid #e8eaed;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* ---------------------------------------------------------------------------
+   GOOGLE FIT MATERIAL DESIGN 3 COMPONENT SYSTEM
+--------------------------------------------------------------------------- */
+.google-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.google-card:hover {
+  border-color: var(--border-glow);
+}
+
+/* Material 3 Buttons */
+.btn-google-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--radius-full);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+  background: linear-gradient(135deg, #1a73e8, #00875a);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root[data-theme="dark"] .btn-google-primary {
+  background: linear-gradient(135deg, #06b6d4, #10b981);
+  color: #000000;
+  box-shadow: 0 2px 12px rgba(6, 182, 212, 0.3);
+}
+
+.btn-google-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(26, 115, 232, 0.35);
+}
+
+.btn-google-primary:active {
+  transform: translateY(0);
+}
+
+.btn-google-tonal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--radius-full);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.82rem;
+  background: rgba(26, 115, 232, 0.1);
+  color: #1a73e8;
+  border: 1px solid rgba(26, 115, 232, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+:root[data-theme="dark"] .btn-google-tonal {
+  background: rgba(6, 182, 212, 0.12);
+  color: #06b6d4;
+  border-color: rgba(6, 182, 212, 0.25);
+}
+
+.btn-google-tonal:hover {
+  background: rgba(26, 115, 232, 0.18);
+}
+
+.btn-google-outlined {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-full);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.82rem;
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-glass);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-google-outlined:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--text-sub);
+}
+
+.btn-google-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-google-icon:hover {
+  background: var(--bg-card-hover);
+  transform: scale(1.05);
 }
 
 :root[data-theme="light"] .persona-selector {
-  background: #e2e8f0;
-  border-color: #cbd5e1;
+  background: #e8eaed;
+  border-color: #dadce0;
 }
 
 :root[data-theme="light"] .persona-btn {
-  color: #334155;
+  color: #5f6368;
+}
+
+:root[data-theme="light"] .persona-btn.active {
+  background: #1a73e8;
+  color: #ffffff;
 }
 
 :root[data-theme="light"] .nav-item {
   background: #ffffff;
-  color: #334155;
-  border-color: #e2e8f0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  color: #5f6368;
+  border-color: #e8eaed;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 :root[data-theme="light"] .nav-item:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: #f1f3f4;
+  color: #202124;
 }
 
 :root[data-theme="light"] .nav-item.active {
-  background: linear-gradient(135deg, #0284c7, #4f46e5);
+  background: #1a73e8;
   color: #ffffff;
 }
 
 :root[data-theme="light"] .subtab-btn {
-  color: #475569;
+  color: #5f6368;
 }
 
 :root[data-theme="light"] .subtab-btn.active {
-  background: #0284c7;
+  background: #1a73e8;
   color: #ffffff;
 }
 
 :root[data-theme="light"] .cat-pill {
   background: #ffffff;
-  color: #334155;
-  border-color: #cbd5e1;
+  color: #5f6368;
+  border-color: #dadce0;
 }
 
 :root[data-theme="light"] .cat-pill.active {
-  background: #0284c7;
+  background: #1a73e8;
   color: #ffffff;
 }
 
 :root[data-theme="light"] .btn-secondary {
   background: #ffffff;
-  color: #0f172a;
-  border-color: #cbd5e1;
+  color: #202124;
+  border-color: #dadce0;
 }
 
 :root[data-theme="light"] .text-sub {
-  color: #475569;
+  color: #5f6368;
 }
 
 :root[data-theme="light"] .text-muted {
-  color: #64748b;
+  color: #80868b;
 }
 
 h1, h2, h3, h4, h5, h6 {

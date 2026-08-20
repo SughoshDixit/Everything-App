@@ -103,16 +103,18 @@ export const WarmupGuideModal: React.FC<WarmupGuideModalProps> = ({ onClose, onC
   return (
     <div className="modal-backdrop">
       <div className="modal-content glass-card animated-guide-modal animate-scale-up">
-        <div className="modal-header">
-          <button className="btn-secondary text-xs flex items-center gap-1" onClick={onClose}>
-            <ChevronLeft className="icon-xs" />
-            <span>Back to Menu</span>
+        <div className="flex items-center justify-between border-b border-glass pb-3 mb-3">
+          <button className="btn-google-outlined text-xs py-1.5 px-3 flex items-center gap-1" onClick={onClose}>
+            <ChevronLeft size={16} />
+            <span>Back</span>
           </button>
-          <div>
-            <span className="badge-pill bg-amber">HUMANE TEMPO DYNAMIC WARM-UP</span>
-            <h2 className="mt-1">{currentStep.title}</h2>
+          <div className="text-center">
+            <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">DYNAMIC WARM-UP</span>
+            <h2 className="text-sm md:text-base font-black text-main mt-0.5">{currentStep.title}</h2>
           </div>
-          <button className="btn-close" onClick={onClose} title="Close Warm-Up">&times;</button>
+          <button className="btn-google-icon" onClick={onClose} aria-label="Close Warm-Up">
+            &times;
+          </button>
         </div>
 
         {/* Humane Animated Demonstration Box */}

@@ -245,9 +245,9 @@ export const ComboWorkoutPlayer: React.FC<ComboWorkoutPlayerProps> = ({
     <div className="modal-backdrop">
       <div className="modal-content oled-workout-player animate-scale-up max-w-md w-full max-h-[92vh] overflow-y-auto p-4 flex flex-col justify-between">
         {/* Top Header & Navigation */}
-        <div className="flex items-center justify-between border-b border-zinc-900 pb-2 mb-2">
+        <div className="flex items-center justify-between border-b border-glass pb-2 mb-2">
           <button
-            className="btn-secondary text-xs flex items-center gap-1 bg-zinc-900 text-zinc-300 border-zinc-800 py-1 px-2"
+            className="btn-google-outlined text-xs py-1 px-2.5 flex items-center gap-1"
             onClick={() => {
               cancelSpeech();
               onClose();
