@@ -21,7 +21,10 @@ const KEYS = {
   VEDAS: 'everything_app_vedas',
   STATS: 'everything_app_stats',
   PERIOD_LOGS: 'everything_app_period_logs',
-  PERIOD_SETTINGS: 'everything_app_period_settings'
+  PERIOD_SETTINGS: 'everything_app_period_settings',
+  GPS_ACTIVITIES: 'everything_app_gps_activities',
+  PERSONAL_MILESTONES: 'everything_app_personal_milestones',
+  MAPS_API_KEY: 'everything_app_maps_api_key'
 };
 
 // Initial Pre-loaded Data

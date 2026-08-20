@@ -191,3 +191,64 @@ export interface UserStats {
   menDisciplineScore: number;
   womenDisciplineScore: number;
 }
+
+// -----------------------------------------------------------------------------
+// GPS Activity Tracking & Milestones Types
+// -----------------------------------------------------------------------------
+export type ActivityType = 'run' | 'cycle' | 'walk' | 'calisthenics' | 'football' | 'workout';
+
+export interface GpsLocationPoint {
+  latitude: number;
+  longitude: number;
+  altitude?: number;
+  timestamp: number;
+  speed?: number; // m/s
+  accuracy?: number;
+}
+
+export interface GpsActivityLog {
+  id: string;
+  activityType: 'run' | 'cycle' | 'walk';
+  date: string;
+  startTime: number;
+  endTime: number;
+  durationSeconds: number;
+  distanceKm: number;
+  avgSpeedKmh: number;
+  topSpeedKmh: number;
+  avgPaceMinKm: string; // e.g. "5:12 /km"
+  elevationGainMeters: number;
+  caloriesBurned: number;
+  heartPointsEarned: number;
+  routePoints: GpsLocationPoint[];
+  milestonesReached: string[];
+  userId: 'men' | 'women';
+  notes?: string;
+}
+
+export interface PersonalMilestones {
+  fastest1kRunSeconds: number; // in seconds, e.g. 245s (4:05)
+  fastest5kRunSeconds: number; // in seconds
+  fastest1kCycleSeconds: number; // in seconds
+  fastest10kCycleSeconds: number;
+  longestRunKm: number;
+  longestCycleKm: number;
+  topSpeedRunKmh: number;
+  topSpeedCycleKmh: number;
+  totalDistanceRunKm: number;
+  totalDistanceCycleKm: number;
+  lastUpdated: string;
+}
+
+export interface SocialShareCardData {
+  title: string;
+  workoutType: string;
+  stats: { label: string; value: string; unit?: string }[];
+  motivationalQuote: string;
+  quoteAuthor: string;
+  streakDays: number;
+  date: string;
+  persona: 'men' | 'women' | 'couple';
+  accentColor?: string;
+  routeSvgPath?: string;
+}

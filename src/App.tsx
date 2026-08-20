@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import type { TabType } from './components/Navigation';
+import { GoogleFitHomeDashboard } from './components/GoogleFitHomeDashboard';
 import { DisciplineTab } from './components/DisciplineTab';
 import { CalisthenicsTab } from './components/CalisthenicsTab';
 import { FootballTab } from './components/FootballTab';
@@ -9,6 +10,8 @@ import { NutritionTab } from './components/NutritionTab';
 import { PeriodTab } from './components/PeriodTab';
 import { MusicVedasTab } from './components/MusicVedasTab';
 import { SettingsVaultTab } from './components/SettingsVaultTab';
+import { GpsActivityTrackerModal } from './components/GpsActivityTrackerModal';
+import { SocialWorkoutShareModal } from './components/SocialWorkoutShareModal';
 
 import type {
   UserProfile,
@@ -21,7 +24,10 @@ import type {
   VedaSukta,
   UserStats,
   CycleLogsMap,
-  CycleSettings
+  CycleSettings,
+  GpsActivityLog,
+  PersonalMilestones,
+  SocialShareCardData
 } from './types';
 
 import {
@@ -38,10 +44,11 @@ import {
 } from './utils/storage';
 
 import { initialCycleLogs, initialCycleSettings } from './utils/cycleTracker';
+import { defaultMilestones } from './utils/milestonesTracker';
 
 export function App() {
   const [currentProfile, setCurrentProfile] = useState<UserProfile>('men');
-  const [activeTab, setActiveTab] = useState<TabType>('routine');
+  const [activeTab, setActiveTab] = useState<TabType>('fithub');
 
   // App Data State
   const [routines, setRoutines] = useState<RoutineItem[]>(() =>
@@ -52,6 +59,12 @@ export function App() {
   );
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutSessionLog[]>(() =>
     loadFromStorage(KEYS.WORKOUT_LOGS, [])
+  );
+  const [gpsActivities, setGpsActivities] = useState<GpsActivityLog[]>(() =>
+    loadFromStorage(KEYS.GPS_ACTIVITIES, [])
+  );
+  const [milestones, setMilestones] = useState<PersonalMilestones>(() =>
+    loadFromStorage(KEYS.PERSONAL_MILESTONES, defaultMilestones)
   );
   const [footballDrills] = useState<FootballDrill[]>(() =>
     loadFromStorage(KEYS.FOOTBALL_DRILLS, initialFootballDrills)
@@ -77,6 +90,10 @@ export function App() {
     loadFromStorage(KEYS.PERIOD_SETTINGS, initialCycleSettings)
   );
 
+  // Modal States
+  const [gpsModalActivityType, setGpsModalActivityType] = useState<'run' | 'cycle' | 'walk' | null>(null);
+  const [activeShareCardData, setActiveShareCardData] = useState<SocialShareCardData | null>(null);
+
   // Sync state to local storage
   useEffect(() => {
     saveToStorage(KEYS.ROUTINES, routines);
@@ -89,6 +106,14 @@ export function App() {
   useEffect(() => {
     saveToStorage(KEYS.WORKOUT_LOGS, workoutLogs);
   }, [workoutLogs]);
+
+  useEffect(() => {
+    saveToStorage(KEYS.GPS_ACTIVITIES, gpsActivities);
+  }, [gpsActivities]);
+
+  useEffect(() => {
+    saveToStorage(KEYS.PERSONAL_MILESTONES, milestones);
+  }, [milestones]);
 
   useEffect(() => {
     saveToStorage(KEYS.STATS, stats);
@@ -135,6 +160,11 @@ export function App() {
     setWorkoutLogs((prev) => [newLog, ...prev]);
   };
 
+  const handleSaveGpsActivity = (log: GpsActivityLog, updatedMilestones: PersonalMilestones) => {
+    setGpsActivities((prev) => [log, ...prev]);
+    setMilestones(updatedMilestones);
+  };
+
   return (
     <div className="app-layout">
       {/* Top Header */}
@@ -149,6 +179,20 @@ export function App() {
 
       {/* View Content */}
       <main className="app-main">
+        {activeTab === 'fithub' && (
+          <GoogleFitHomeDashboard
+            currentProfile={currentProfile}
+            workoutLogs={workoutLogs}
+            gpsActivities={gpsActivities}
+            milestones={milestones}
+            quotes={quotes}
+            onOpenGpsTracker={(type) => setGpsModalActivityType(type)}
+            onOpenCalisthenics={() => setActiveTab('calisthenics')}
+            onOpenFootball={() => setActiveTab('football')}
+            onOpenSocialShare={(data) => setActiveShareCardData(data)}
+          />
+        )}
+
         {activeTab === 'routine' && (
           <DisciplineTab
             currentProfile={currentProfile}
@@ -198,6 +242,48 @@ export function App() {
           <SettingsVaultTab quotes={quotes} onAddQuote={handleAddQuote} />
         )}
       </main>
+
+      {/* GPS LIVE TRACKER MODAL */}
+      {gpsModalActivityType && (
+        <GpsActivityTrackerModal
+          initialActivityType={gpsModalActivityType}
+          currentProfile={currentProfile}
+          currentMilestones={milestones}
+          onSaveActivity={handleSaveGpsActivity}
+          onOpenSocialShare={(log) => {
+            const quote = quotes[Math.floor(Math.random() * quotes.length)] || {
+              text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.',
+              author: 'Aristotle'
+            };
+            setActiveShareCardData({
+              title: `${log.distanceKm} km ${log.activityType === 'run' ? 'Run' : 'Ride'}`,
+              workoutType: log.activityType === 'run' ? 'Outdoor Running' : 'Outdoor Cycling',
+              stats: [
+                { label: 'Distance', value: `${log.distanceKm}`, unit: 'km' },
+                { label: 'Avg Pace', value: log.avgPaceMinKm },
+                { label: 'Duration', value: `${Math.floor(log.durationSeconds / 60)}m` },
+                { label: 'Heart Points', value: `+${log.heartPointsEarned}`, unit: 'pts' }
+              ],
+              motivationalQuote: quote.text,
+              quoteAuthor: quote.author,
+              streakDays: 14,
+              date: log.date,
+              persona: currentProfile
+            });
+            setGpsModalActivityType(null);
+          }}
+          onClose={() => setGpsModalActivityType(null)}
+        />
+      )}
+
+      {/* SOCIAL WORKOUT SHARE POSTER MODAL */}
+      {activeShareCardData && (
+        <SocialWorkoutShareModal
+          initialData={activeShareCardData}
+          quotesList={quotes}
+          onClose={() => setActiveShareCardData(null)}
+        />
+      )}
 
       <footer className="app-footer">
         <p>&copy; {new Date().getFullYear()} Everything App &bull; Performance & Discipline Suite</p>
