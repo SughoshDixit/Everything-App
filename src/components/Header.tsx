@@ -43,65 +43,99 @@ export const Header: React.FC<HeaderProps> = ({
       : stats.coupleStreak;
 
   return (
-    <header className="app-header">
-      <div className="header-top">
+    <header className="app-header pb-2">
+      {/* Top Main Bar: Brand & High-Visibility Actions */}
+      <div className="flex items-center justify-between gap-2 pb-2">
+        {/* Brand */}
         <div className="brand flex items-center gap-2">
-          <div className="brand-logo animate-breathe">
-            <ShieldCheck className="icon-shield text-cyan-400" />
+          <div className="brand-logo animate-breathe flex items-center justify-center p-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+            <ShieldCheck className="icon-shield text-cyan-400" size={22} />
           </div>
-          <h1 className="brand-title text-lg font-black tracking-wider">EVERYTHING APP</h1>
+          <div>
+            <h1 className="brand-title text-base md:text-lg font-black tracking-wider text-main leading-tight">
+              EVERYTHING APP
+            </h1>
+          </div>
         </div>
 
-        {/* Compact Discipline Ticker */}
-        <div className="global-discipline-ticker glass-card" style={{ padding: '0.3rem 0.75rem' }}>
-          <Zap className="icon-xs text-amber" style={{ flexShrink: 0 }} />
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-sub)' }}>
-            DISCIPLINE · CONSISTENCY · ACTION
-          </span>
-        </div>
-
-        <div className="header-right flex items-center gap-2">
-          {/* Light / Dark Mode Toggle */}
+        {/* Right Actions: High-Visibility Theme Toggle & Streak Badge */}
+        <div className="flex items-center gap-2">
+          {/* Prominent High-Visibility Theme Switcher Pill */}
           <button
-            className="p-2 rounded-full glass-card border border-slate-700 hover:border-cyan-400 text-sub hover:text-cyan-400 transition-all flex items-center justify-center cursor-pointer"
+            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all shadow-md cursor-pointer border ${
+              theme === 'dark'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-400/50 hover:bg-amber-500/30 hover:border-amber-400'
+                : 'bg-indigo-900/10 text-indigo-900 border-indigo-300 hover:bg-indigo-900/20'
+            }`}
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle Theme"
           >
-            {theme === 'dark' ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-indigo-600" />}
+            {theme === 'dark' ? (
+              <>
+                <Sun size={15} className="text-amber-400 animate-spin-slow" />
+                <span>Light</span>
+              </>
+            ) : (
+              <>
+                <Moon size={15} className="text-indigo-600" />
+                <span>Dark</span>
+              </>
+            )}
           </button>
 
           {/* Streak pill with pulse */}
-          <div className="streak-badge pulse-glow">
-            <Flame className="icon-flame" />
-            <span className="streak-num number-pop">{activeStreak}</span>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>days</span>
+          <div className="streak-badge pulse-glow flex items-center gap-1 py-1.5 px-2.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400">
+            <Flame size={15} className="text-rose-500" />
+            <span className="streak-num font-black text-xs">{activeStreak}</span>
+            <span className="text-[10px] opacity-75 font-semibold">d</span>
           </div>
+        </div>
+      </div>
 
-          {/* Persona Switcher */}
-          <div className="persona-selector">
-            <button
-              className={`persona-btn ${currentProfile === 'men' ? 'active' : ''}`}
-              onClick={() => onSelectProfile('men')}
-            >
-              <User className="icon-sm" />
-              <span>Men</span>
-            </button>
-            <button
-              className={`persona-btn ${currentProfile === 'women' ? 'active' : ''}`}
-              onClick={() => onSelectProfile('women')}
-            >
-              <Heart className="icon-sm" />
-              <span>Women</span>
-            </button>
-            <button
-              className={`persona-btn ${currentProfile === 'couple' ? 'active' : ''}`}
-              onClick={() => onSelectProfile('couple')}
-            >
-              <Users className="icon-sm" />
-              <span>Both</span>
-            </button>
-          </div>
+      {/* Row 2: Clean Persona Switcher & Mini Discipline Ticker */}
+      <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-glass">
+        {/* Persona Switcher Tabs */}
+        <div className="persona-selector flex items-center gap-1 bg-slate-900/60 p-1 rounded-full border border-glass">
+          <button
+            className={`persona-btn text-xs py-1 px-3 rounded-full transition-all flex items-center gap-1 font-bold ${
+              currentProfile === 'men'
+                ? 'bg-cyan-500 text-black shadow-md'
+                : 'text-sub hover:text-white'
+            }`}
+            onClick={() => onSelectProfile('men')}
+          >
+            <User size={13} />
+            <span>Men</span>
+          </button>
+          <button
+            className={`persona-btn text-xs py-1 px-3 rounded-full transition-all flex items-center gap-1 font-bold ${
+              currentProfile === 'women'
+                ? 'bg-rose-500 text-white shadow-md'
+                : 'text-sub hover:text-white'
+            }`}
+            onClick={() => onSelectProfile('women')}
+          >
+            <Heart size={13} />
+            <span>Women</span>
+          </button>
+          <button
+            className={`persona-btn text-xs py-1 px-3 rounded-full transition-all flex items-center gap-1 font-bold ${
+              currentProfile === 'couple'
+                ? 'bg-violet-500 text-white shadow-md'
+                : 'text-sub hover:text-white'
+            }`}
+            onClick={() => onSelectProfile('couple')}
+          >
+            <Users size={13} />
+            <span>Both</span>
+          </button>
+        </div>
+
+        {/* Discipline Ticker */}
+        <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-bold text-sub px-3 py-1 rounded-full bg-slate-900/40 border border-glass">
+          <Zap size={12} className="text-amber-400" />
+          <span className="tracking-widest">DISCIPLINE · CONSISTENCY</span>
         </div>
       </div>
     </header>
