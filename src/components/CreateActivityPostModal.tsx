@@ -19,11 +19,12 @@ import {
   Share2,
   Download,
   Image as ImageIcon,
-  Sparkles,
   Check,
   RefreshCw,
   CheckCircle2,
-  X
+  X,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 
 interface CreateActivityPostModalProps {
@@ -49,7 +50,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   // ---------------------------------------------------------------------------
-  // 1. COMPILE TODAY'S WORKOUTS (EXCLUDING WARM-UPS)
+  // 1. COMPILE TODAY'S WORKOUTS (STRICTLY EXCLUDING WARM-UPS)
   // ---------------------------------------------------------------------------
   const buildInitialCompiledItems = (): CompiledActivityItem[] => {
     if (initialPost && initialPost.activities.length > 0) {
@@ -63,21 +64,21 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
       items.push({
         id: `comp_gps_${gps.id}`,
         category: gps.activityType === 'run' ? 'gps_run' : gps.activityType === 'cycle' ? 'gps_cycle' : 'gps_walk',
-        title: `${gps.distanceKm} km ${gps.activityType === 'run' ? 'Outdoor Run' : 'Outdoor Ride'}`,
-        details: `${Math.floor(gps.durationSeconds / 60)} mins • Pace ${gps.avgPaceMinKm} • Ascent +${gps.elevationGainMeters || 0}m`,
+        title: `${gps.distanceKm} km ${gps.activityType === 'run' ? 'Run' : 'Ride'}`,
+        details: `${Math.floor(gps.durationSeconds / 60)}m • ${gps.avgPaceMinKm} • +${gps.elevationGainMeters || 0}m`,
         gpsActivityId: gps.id,
         includedInPost: true
       });
     });
 
-    // Add Calisthenics workouts (strictly sets & reps, NO warm-up)
+    // Add Calisthenics workouts (sets & reps, NO warm-up)
     todayWorkoutLogs.forEach((w) => {
       const totalReps = w.repsCompleted.reduce((a, b) => a + b, 0);
       items.push({
         id: `comp_w_${w.id}`,
         category: 'calisthenics',
         title: w.exerciseName,
-        details: `${w.setsCompleted} Sets (${w.repsCompleted.join(', ')} reps) • Total ${totalReps} Reps`,
+        details: `${w.setsCompleted} Sets (${w.repsCompleted.join(', ')} reps) • ${totalReps} Reps`,
         workoutLogId: w.id,
         includedInPost: true
       });
@@ -90,7 +91,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const [postTitle, setPostTitle] = useState<string>(() => {
     if (initialPost) return initialPost.title;
     if (todayGpsActivities.length > 0 && todayWorkoutLogs.length > 0) {
-      return 'Outdoor Run & Calisthenics Mastery';
+      return 'Outdoor Run & Calisthenics Combo';
     } else if (todayGpsActivities.length > 0) {
       return `${todayGpsActivities[0].distanceKm} km ${todayGpsActivities[0].activityType === 'run' ? 'Tempo Run' : 'Cycling Session'}`;
     } else if (todayWorkoutLogs.length > 0) {
@@ -148,12 +149,12 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
 
   const cardData: SocialShareCardData = {
     title: postTitle,
-    workoutType: includedItems.length > 1 ? 'Consolidated Daily Session' : includedItems[0]?.title || 'Workout',
+    workoutType: includedItems.length > 1 ? 'Daily Summary' : includedItems[0]?.title || 'Workout',
     stats: [
       { label: 'Workouts', value: `${includedItems.length}`, unit: 'Done' },
       { label: 'Distance', value: `${totalDistance.toFixed(1)}`, unit: 'km' },
-      { label: 'Move Time', value: `${totalMoveMins}`, unit: 'min' },
-      { label: 'Heart Points', value: `+${totalHeartPts}`, unit: 'pts' }
+      { label: 'Time', value: `${totalMoveMins}`, unit: 'min' },
+      { label: 'Points', value: `+${totalHeartPts}`, unit: 'pts' }
     ],
     activityItems: includedItems.map((i) => ({
       title: i.title,
@@ -196,7 +197,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
     setSavedBadge(true);
     setTimeout(() => {
       onClose();
-    }, 1200);
+    }, 1000);
   };
 
   const handleShare = async () => {
@@ -211,9 +212,9 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
 
   return (
     <div className="modal-backdrop" style={{ zIndex: 10000 }}>
-      <div className="modal-content google-card animate-scale-up max-w-xl w-full max-h-[94vh] overflow-y-auto p-5 md:p-6 flex flex-col justify-between">
-        {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-glass pb-3 mb-3">
+      <div className="modal-content google-card animate-scale-up max-w-lg w-full max-h-[94vh] overflow-y-auto p-5 md:p-6 flex flex-col justify-between">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-glass pb-3 mb-2">
           <button
             className="btn-google-outlined text-xs py-1.5 px-3 flex items-center gap-1"
             onClick={onClose}
@@ -224,10 +225,10 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
 
           <div className="text-center">
             <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">
-              STRAVA-STYLE POST STUDIO
+              POST STUDIO
             </span>
             <h3 className="text-sm md:text-base font-black text-main mt-0.5">
-              {initialPost ? 'Edit Activity Post' : "Compile Today's Activity Post"}
+              {initialPost ? 'Edit Activity Post' : "Compile Today's Post"}
             </h3>
           </div>
 
@@ -237,27 +238,31 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         </div>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 1. WORKOUT COMPILATION SELECTION */}
+        {/* 1. WORKOUT COMPILATION SELECTION (CENTERED, MINIMAL) */}
         {/* ------------------------------------------------------------------- */}
         <div className="my-2">
-          <label className="text-xs font-bold text-sub uppercase tracking-wider block mb-1.5">
-            1. Select Activities to Include in Post ({includedItems.length} selected)
-          </label>
+          <div className="flex items-center justify-between mb-1.5 px-1">
+            <span className="text-xs font-bold text-sub uppercase flex items-center gap-1">
+              <span>📋</span>
+              <span>Activities ({includedItems.length})</span>
+            </span>
+          </div>
 
           {activities.length === 0 ? (
-            <div className="p-3 rounded-2xl bg-card border border-glass text-xs text-sub text-center">
-              No activities tracked yet today. Complete a run, cycling session, or calisthenics set to compile them!
+            <div className="p-4 rounded-2xl bg-card border border-glass flex flex-col items-center justify-center text-center">
+              <Sparkles size={18} className="text-cyan-500 mb-1" />
+              <p className="text-xs text-sub">No activities logged yet today.</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 max-h-44 overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-36 overflow-y-auto pr-1">
               {activities.map((act) => (
                 <div
                   key={act.id}
                   onClick={() => handleToggleActivity(act.id)}
-                  className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+                  className={`p-2.5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
                     act.includedInPost
-                      ? 'bg-cyan-500/10 border-cyan-500/50 text-main'
-                      : 'bg-card border-glass text-sub opacity-60'
+                      ? 'bg-cyan-500/10 border-cyan-500/50 text-main shadow-sm'
+                      : 'bg-card border-glass text-sub opacity-50'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -265,8 +270,8 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
                       {act.category === 'calisthenics' ? '⚡' : act.category.includes('run') ? '🏃' : '🚴'}
                     </span>
                     <div>
-                      <h4 className="text-xs font-bold text-main">{act.title}</h4>
-                      <p className="text-[11px] text-sub">{act.details}</p>
+                      <h4 className="text-xs font-bold text-main leading-tight">{act.title}</h4>
+                      <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-medium">{act.details}</p>
                     </div>
                   </div>
 
@@ -284,135 +289,125 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         </div>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 2. POST DETAILS (TITLE, NOTES, RPE) */}
+        {/* 2. TITLE & RPE (CLEAN & CENTERED) */}
         {/* ------------------------------------------------------------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 my-2">
-          <div>
-            <label className="text-xs font-bold text-sub uppercase tracking-wider block mb-1">
-              Post Title
-            </label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 my-1.5">
+          <div className="sm:col-span-2">
             <input
               type="text"
               value={postTitle}
               onChange={(e) => setPostTitle(e.target.value)}
-              className="w-full bg-card border border-glass rounded-2xl px-3 py-2 text-xs font-bold text-main outline-none focus:border-cyan-500"
-              placeholder="e.g. Morning 5K Tempo & Push-Up Flow"
+              className="w-full bg-card border border-glass rounded-2xl px-3.5 py-2.5 text-xs font-bold text-main outline-none focus:border-cyan-500"
+              placeholder="Post Title..."
             />
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-sub uppercase tracking-wider block mb-1">
-              Perceived Exertion (RPE: {rpe}/10)
-            </label>
-            <div className="flex items-center gap-2 bg-card border border-glass rounded-2xl px-3 py-2">
-              <input
-                type="range"
-                min="1"
-                max="10"
-                value={rpe}
-                onChange={(e) => setRpe(Number(e.target.value))}
-                className="flex-1 accent-cyan-500 cursor-pointer"
-              />
-              <span className="text-xs font-black font-mono text-cyan-600 dark:text-cyan-400">{rpe}/10</span>
-            </div>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs font-bold text-sub uppercase tracking-wider block mb-1">
-              Athlete Notes & Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="w-full bg-card border border-glass rounded-2xl p-3 text-xs text-main outline-none focus:border-cyan-500"
-              placeholder="Felt explosive today on the 3rd set. Consistent pacing throughout..."
+          <div className="bg-card border border-glass rounded-2xl px-3 py-2 flex items-center justify-center gap-2">
+            <Zap size={14} className="text-amber-500" />
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={rpe}
+              onChange={(e) => setRpe(Number(e.target.value))}
+              className="w-16 accent-cyan-500 cursor-pointer"
             />
+            <span className="text-xs font-black font-mono text-cyan-600 dark:text-cyan-400">{rpe}/10</span>
           </div>
         </div>
 
+        {/* Notes (Optional) */}
+        <div className="my-1">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={1}
+            className="w-full bg-card border border-glass rounded-2xl p-2.5 text-xs text-main outline-none focus:border-cyan-500"
+            placeholder="Athlete notes (optional)..."
+          />
+        </div>
+
         {/* ------------------------------------------------------------------- */}
-        {/* 3. MESMERIZING BACKGROUND THEME & CUSTOM MEDIA UPLOADER */}
+        {/* 3. THEME CHIPS (CENTERED, MINIMAL ICON-FIRST) */}
         {/* ------------------------------------------------------------------- */}
-        <div className="my-2">
-          <label className="text-xs font-bold text-sub uppercase tracking-wider block mb-1.5">
-            3. Choose Mesmerizing Poster Background or Upload Custom Photo
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div className="my-1.5">
+          <div className="grid grid-cols-5 gap-1.5">
             <button
-              className={`p-2 rounded-2xl border text-[11px] font-bold transition-all ${
-                theme === 'cyber_neon' ? 'bg-cyan-500/20 border-cyan-400 text-cyan-400' : 'bg-card border-glass text-sub'
+              className={`p-2 rounded-2xl border text-[10px] font-bold flex flex-col items-center justify-center text-center transition-all ${
+                theme === 'cyber_neon' ? 'bg-cyan-500/20 border-cyan-400 text-cyan-600 dark:text-cyan-400' : 'bg-card border-glass text-sub'
               }`}
               onClick={() => setTheme('cyber_neon')}
             >
-              🌌 Cyber Neon
+              <span>🌌</span>
+              <span className="mt-0.5">Neon</span>
             </button>
 
             <button
-              className={`p-2 rounded-2xl border text-[11px] font-bold transition-all ${
-                theme === 'strava_sunset' ? 'bg-amber-500/20 border-amber-400 text-amber-400' : 'bg-card border-glass text-sub'
+              className={`p-2 rounded-2xl border text-[10px] font-bold flex flex-col items-center justify-center text-center transition-all ${
+                theme === 'strava_sunset' ? 'bg-amber-500/20 border-amber-400 text-amber-500' : 'bg-card border-glass text-sub'
               }`}
               onClick={() => setTheme('strava_sunset')}
             >
-              🌅 Strava Sunset
+              <span>🌅</span>
+              <span className="mt-0.5">Sunset</span>
             </button>
 
             <button
-              className={`p-2 rounded-2xl border text-[11px] font-bold transition-all ${
-                theme === 'electric_aurora' ? 'bg-emerald-500/20 border-emerald-400 text-emerald-400' : 'bg-card border-glass text-sub'
+              className={`p-2 rounded-2xl border text-[10px] font-bold flex flex-col items-center justify-center text-center transition-all ${
+                theme === 'electric_aurora' ? 'bg-emerald-500/20 border-emerald-400 text-emerald-500' : 'bg-card border-glass text-sub'
               }`}
               onClick={() => setTheme('electric_aurora')}
             >
-              🌊 Aurora Wave
+              <span>🌊</span>
+              <span className="mt-0.5">Aurora</span>
             </button>
 
             <button
-              className={`p-2 rounded-2xl border text-[11px] font-bold transition-all ${
+              className={`p-2 rounded-2xl border text-[10px] font-bold flex flex-col items-center justify-center text-center transition-all ${
                 theme === 'monochrome_titanium' ? 'bg-slate-500/20 border-slate-400 text-slate-300' : 'bg-card border-glass text-sub'
               }`}
               onClick={() => setTheme('monochrome_titanium')}
             >
-              🛡️ Titanium
+              <span>🛡️</span>
+              <span className="mt-0.5">Titanium</span>
             </button>
 
             {/* Custom Photo Uploader */}
-            <label className="p-2 rounded-2xl border border-glass bg-card hover:bg-card-hover text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center justify-center gap-1 cursor-pointer transition-all">
+            <label className="p-2 rounded-2xl border border-glass bg-card hover:bg-card-hover text-[10px] font-bold text-cyan-600 dark:text-cyan-400 flex flex-col items-center justify-center text-center cursor-pointer transition-all">
               <ImageIcon size={14} />
-              <span>{customMediaUrl ? 'Photo Added' : 'Custom Photo'}</span>
+              <span className="mt-0.5">{customMediaUrl ? 'Photo ✓' : 'Custom'}</span>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
             </label>
           </div>
         </div>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 4. MOTIVATIONAL QUOTE CYCLER */}
+        {/* 4. MOTIVATIONAL QUOTE BANNER (CENTERED, MINIMAL) */}
         {/* ------------------------------------------------------------------- */}
-        <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl my-2 flex items-center justify-between gap-2">
-          <div>
-            <div className="text-[10px] font-bold text-amber-500 uppercase">INCLUDED QUOTE</div>
-            <p className="text-xs font-semibold text-main italic">"{activeQuote.text}"</p>
-            <span className="text-[10px] text-amber-500 font-bold">— {activeQuote.author}</span>
-          </div>
+        <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-2xl my-1.5 flex items-center justify-between gap-2">
+          <p className="text-[11px] font-medium text-main italic truncate flex-1 text-center">
+            "{activeQuote.text}"
+          </p>
 
           <button
-            className="btn-google-tonal text-xs py-1 px-2.5 flex items-center gap-1 shrink-0"
+            className="btn-google-tonal text-[10px] py-1 px-2 flex items-center gap-1 shrink-0"
             onClick={() => setQuoteIndex((prev) => prev + 1)}
           >
-            <RefreshCw size={12} />
+            <RefreshCw size={11} />
             <span>Shuffle</span>
           </button>
         </div>
 
         {/* Format Selector Pills */}
-        <div className="flex items-center justify-center gap-2 my-2">
+        <div className="flex items-center justify-center gap-2 my-1.5">
           <button
-            className={format === 'story' ? 'btn-google-primary text-xs py-1 px-3' : 'btn-google-outlined text-xs py-1 px-3'}
+            className={format === 'story' ? 'btn-google-primary text-xs py-1 px-3.5' : 'btn-google-outlined text-xs py-1 px-3.5'}
             onClick={() => setFormat('story')}
           >
             Story (9:16)
           </button>
           <button
-            className={format === 'square' ? 'btn-google-primary text-xs py-1 px-3' : 'btn-google-outlined text-xs py-1 px-3'}
+            className={format === 'square' ? 'btn-google-primary text-xs py-1 px-3.5' : 'btn-google-outlined text-xs py-1 px-3.5'}
             onClick={() => setFormat('square')}
           >
             Square (1:1)
@@ -422,30 +417,30 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         {/* ------------------------------------------------------------------- */}
         {/* 5. ACTION BUTTONS: SAVE & SHARE */}
         {/* ------------------------------------------------------------------- */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3 pt-3 border-t border-glass">
+        <div className="grid grid-cols-3 gap-2 mt-2 pt-2.5 border-t border-glass">
           <button
-            className="btn-google-primary text-xs py-3"
+            className="btn-google-primary text-xs py-2.5 flex items-center justify-center gap-1.5"
             onClick={handleSave}
           >
-            {savedBadge ? <CheckCircle2 size={16} className="text-white" /> : <Sparkles size={16} />}
-            <span>{savedBadge ? 'Saved to Timeline!' : 'Save Activity Post'}</span>
+            {savedBadge ? <CheckCircle2 size={15} className="text-white" /> : <Sparkles size={15} />}
+            <span>{savedBadge ? 'Saved!' : 'Save'}</span>
           </button>
 
           <button
-            className="btn-google-tonal text-xs py-3"
+            className="btn-google-tonal text-xs py-2.5 flex items-center justify-center gap-1.5"
             onClick={handleShare}
             disabled={isSharing}
           >
-            <Share2 size={16} />
-            <span>{isSharing ? 'Sharing...' : 'Share (WhatsApp / Insta)'}</span>
+            <Share2 size={15} />
+            <span>{isSharing ? 'Sharing...' : 'Share'}</span>
           </button>
 
           <button
-            className="btn-google-outlined text-xs py-3"
+            className="btn-google-outlined text-xs py-2.5 flex items-center justify-center gap-1.5"
             onClick={handleDownload}
           >
-            <Download size={16} />
-            <span>Download PNG</span>
+            <Download size={15} />
+            <span>PNG</span>
           </button>
         </div>
       </div>
