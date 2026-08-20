@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { UserProfile, UserStats } from '../types';
-import { Flame, User, Users, ShieldCheck, Heart, Zap } from 'lucide-react';
+import { Flame, User, Users, ShieldCheck, Heart, Zap, Sun, Moon } from 'lucide-react';
 
 interface HeaderProps {
   currentProfile: UserProfile;
@@ -13,6 +13,28 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectProfile,
   stats
 }) => {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      const saved = localStorage.getItem('everything_app_theme');
+      return saved === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('everything_app_theme', theme);
+    } catch {
+      // Ignore storage errors
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   const activeStreak =
     currentProfile === 'men'
       ? stats.menStreak
@@ -23,11 +45,11 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="app-header">
       <div className="header-top">
-        <div className="brand">
+        <div className="brand flex items-center gap-2">
           <div className="brand-logo animate-breathe">
-            <ShieldCheck className="icon-shield" />
+            <ShieldCheck className="icon-shield text-cyan-400" />
           </div>
-          <h1 className="brand-title">EVERYTHING APP</h1>
+          <h1 className="brand-title text-lg font-black tracking-wider">EVERYTHING APP</h1>
         </div>
 
         {/* Compact Discipline Ticker */}
@@ -38,7 +60,17 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         </div>
 
-        <div className="header-right">
+        <div className="header-right flex items-center gap-2">
+          {/* Light / Dark Mode Toggle */}
+          <button
+            className="p-2 rounded-full glass-card border border-slate-700 hover:border-cyan-400 text-sub hover:text-cyan-400 transition-all flex items-center justify-center cursor-pointer"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle Theme"
+          >
+            {theme === 'dark' ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-indigo-600" />}
+          </button>
+
           {/* Streak pill with pulse */}
           <div className="streak-badge pulse-glow">
             <Flame className="icon-flame" />

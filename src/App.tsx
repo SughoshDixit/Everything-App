@@ -14,7 +14,6 @@ import type {
   UserProfile,
   RoutineItem,
   MotivationalQuote,
-  CalisthenicsExercise,
   WorkoutSessionLog,
   FootballDrill,
   CarnaticYouTubeItem,
@@ -31,7 +30,6 @@ import {
   KEYS,
   initialRoutines,
   initialQuotes,
-  initialCalisthenics,
   initialFootballDrills,
   initialCarnaticItems,
   initialInstrumentSongs,
@@ -51,9 +49,6 @@ export function App() {
   );
   const [quotes, setQuotes] = useState<MotivationalQuote[]>(() =>
     loadFromStorage(KEYS.QUOTES, initialQuotes)
-  );
-  const [calisthenics] = useState<CalisthenicsExercise[]>(() =>
-    loadFromStorage(KEYS.CALISTHENICS, initialCalisthenics)
   );
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutSessionLog[]>(() =>
     loadFromStorage(KEYS.WORKOUT_LOGS, [])
@@ -167,7 +162,6 @@ export function App() {
 
         {activeTab === 'calisthenics' && (
           <CalisthenicsTab
-            exercises={calisthenics}
             logs={workoutLogs}
             currentProfile={currentProfile}
             onLogWorkout={handleLogWorkout}
