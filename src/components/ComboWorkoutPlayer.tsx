@@ -601,3 +601,6 @@ export const ComboWorkoutPlayer: React.FC<ComboWorkoutPlayerProps> = ({
     </div>
   );
 };
+
+export default ComboWorkoutPlayer;
+
