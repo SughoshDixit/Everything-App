@@ -4,11 +4,12 @@ import {
   Dumbbell,
   Trophy,
   Utensils,
+  Heart,
   Music,
   Sliders
 } from 'lucide-react';
 
-export type TabType = 'routine' | 'calisthenics' | 'football' | 'nutrition' | 'music_veda' | 'settings';
+export type TabType = 'routine' | 'calisthenics' | 'football' | 'nutrition' | 'period' | 'music_veda' | 'settings';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -21,6 +22,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'calisthenics', label: '💪 Workout', icon: Dumbbell },
     { id: 'football', label: '⚽ Football', icon: Trophy },
     { id: 'nutrition', label: '🥗 Nutrition', icon: Utensils },
+    { id: 'period', label: '🌸 Cycle', icon: Heart },
     { id: 'music_veda', label: '🎵 Music', icon: Music },
     { id: 'settings', label: '⚙️ Settings', icon: Sliders }
   ];

@@ -20,6 +20,8 @@ const KEYS = {
   INSTRUMENTS: 'everything_app_instruments',
   VEDAS: 'everything_app_vedas',
   STATS: 'everything_app_stats',
+  PERIOD_LOGS: 'everything_app_period_logs',
+  PERIOD_SETTINGS: 'everything_app_period_settings'
 };
 
 // Initial Pre-loaded Data

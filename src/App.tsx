@@ -6,6 +6,7 @@ import { DisciplineTab } from './components/DisciplineTab';
 import { CalisthenicsTab } from './components/CalisthenicsTab';
 import { FootballTab } from './components/FootballTab';
 import { NutritionTab } from './components/NutritionTab';
+import { PeriodTab } from './components/PeriodTab';
 import { MusicVedasTab } from './components/MusicVedasTab';
 import { SettingsVaultTab } from './components/SettingsVaultTab';
 
@@ -19,7 +20,9 @@ import type {
   CarnaticYouTubeItem,
   InstrumentSong,
   VedaSukta,
-  UserStats
+  UserStats,
+  CycleLogsMap,
+  CycleSettings
 } from './types';
 
 import {
@@ -35,6 +38,8 @@ import {
   initialVedaSuktas,
   initialStats
 } from './utils/storage';
+
+import { initialCycleLogs, initialCycleSettings } from './utils/cycleTracker';
 
 export function App() {
   const [currentProfile, setCurrentProfile] = useState<UserProfile>('men');
@@ -69,6 +74,14 @@ export function App() {
     loadFromStorage(KEYS.STATS, initialStats)
   );
 
+  // Period / Menstruation Tracker State
+  const [periodLogs, setPeriodLogs] = useState<CycleLogsMap>(() =>
+    loadFromStorage(KEYS.PERIOD_LOGS, initialCycleLogs)
+  );
+  const [periodSettings, setPeriodSettings] = useState<CycleSettings>(() =>
+    loadFromStorage(KEYS.PERIOD_SETTINGS, initialCycleSettings)
+  );
+
   // Sync state to local storage
   useEffect(() => {
     saveToStorage(KEYS.ROUTINES, routines);
@@ -85,6 +98,14 @@ export function App() {
   useEffect(() => {
     saveToStorage(KEYS.STATS, stats);
   }, [stats]);
+
+  useEffect(() => {
+    saveToStorage(KEYS.PERIOD_LOGS, periodLogs);
+  }, [periodLogs]);
+
+  useEffect(() => {
+    saveToStorage(KEYS.PERIOD_SETTINGS, periodSettings);
+  }, [periodSettings]);
 
   // Handlers
   const handleToggleRoutine = (id: string) => {
@@ -159,6 +180,16 @@ export function App() {
 
         {activeTab === 'nutrition' && (
           <NutritionTab currentProfile={currentProfile} />
+        )}
+
+        {activeTab === 'period' && (
+          <PeriodTab
+            currentProfile={currentProfile}
+            logs={periodLogs}
+            settings={periodSettings}
+            onUpdateLogs={setPeriodLogs}
+            onUpdateSettings={setPeriodSettings}
+          />
         )}
 
         {activeTab === 'music_veda' && (

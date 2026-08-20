@@ -102,6 +102,57 @@ export interface NutritionLog {
   notes: string;
 }
 
+// -----------------------------------------------------------------------------
+// Period / Menstruation & Ovulation Tracker Types
+// -----------------------------------------------------------------------------
+export type CycleFlowType = 'none' | 'light' | 'medium' | 'heavy';
+
+export interface CycleLogEntry {
+  flow: CycleFlowType;
+  symptoms: string[];
+  moods: string[];
+  notes: string;
+}
+
+export type CycleLogsMap = Record<string, CycleLogEntry>;
+
+export interface CycleSettings {
+  cycleLength: number;
+  periodLength: number;
+}
+
+export interface PeriodGroup {
+  startDateStr: string;
+  endDateStr: string;
+  startDate: Date;
+  endDate: Date;
+  length: number;
+  daysStr: string[];
+}
+
+export interface CyclePrediction {
+  periods: { startStr: string; endStr: string; start: Date; end: Date }[];
+  ovulations: string[];
+  fertileWindows: string[][];
+}
+
+export interface CycleMetrics {
+  groups: PeriodGroup[];
+  avgCycleLength: number;
+  avgPeriodLength: number;
+  predictions: CyclePrediction;
+}
+
+export type CyclePhaseName = 'Menstrual' | 'Follicular' | 'Ovulation' | 'Luteal';
+
+export interface CurrentPhaseInfo {
+  phaseName: CyclePhaseName;
+  cycleDay: number;
+  pregnancyChance: 'High Chance' | 'Medium Chance' | 'Low Chance';
+  safetyLabel: string;
+  phaseDescription: string;
+}
+
 export interface CarnaticYouTubeItem {
   id: string;
   raga: string;
