@@ -449,70 +449,126 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
         />
       )}
 
-      {/* Interactive Workout Session Modal */}
+      {/* Interactive Workout Session Modal (OLED Electric Lime Design) */}
       {activeExercise && (
         <div className="modal-backdrop">
-          <div className="modal-content glass-card workout-modal animate-scale-up">
-            <div className="modal-header">
-              <button className="btn-secondary text-xs flex items-center gap-1" onClick={() => setActiveExercise(null)}>
+          <div className="modal-content oled-workout-player animate-scale-up max-w-md w-full">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4 border-b border-zinc-900 pb-3">
+              <button
+                className="btn-secondary text-xs flex items-center gap-1 bg-zinc-900 text-zinc-300 border-zinc-800"
+                onClick={() => setActiveExercise(null)}
+              >
                 <ChevronDown className="icon-xs rotate-90" />
-                <span>Back to Menu</span>
+                <span>Back</span>
               </button>
-              <div>
-                <span className="badge-pill bg-cyan">{activeExercise.category.toUpperCase()}</span>
-                <h2>{activeExercise.name}</h2>
+
+              <div className="text-center">
+                <span className="oled-badge-lime">{activeExercise.category.toUpperCase()}</span>
+                <h2 className="text-xl font-black text-white mt-1 uppercase tracking-wider">{activeExercise.name}</h2>
               </div>
-              <button className="btn-close" onClick={() => setActiveExercise(null)} title="Cancel Workout">&times;</button>
+
+              <button
+                className="btn-close text-zinc-400 hover:text-white"
+                onClick={() => setActiveExercise(null)}
+                title="Cancel Workout"
+              >
+                &times;
+              </button>
             </div>
 
-            <div className="workout-player">
+            {/* Minimalist Linear Progress Pipeline */}
+            <div className="mb-6">
+              <div className="flex justify-between text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1.5">
+                <span>PROGRESS PIPELINE</span>
+                <span className="text-lime-400 font-mono">
+                  {Math.round(((activeSetIndex + (isResting ? 0.5 : 0)) / activeExercise.recommendedSets) * 100)}%
+                </span>
+              </div>
+              <div className="oled-pipeline-bar">
+                <div
+                  className="oled-pipeline-fill"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      ((activeSetIndex + (isResting ? 0.5 : 0)) / activeExercise.recommendedSets) * 100
+                    )}%`
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Main Stage: Massive 72pt Digital Countdown Clock */}
+            <div className="workout-player text-center">
               {isResting ? (
-                <div className="rest-timer-box animate-pulse">
-                  <div className="rest-label">REST & RECOVER</div>
-                  <div className="rest-seconds">{restSecondsLeft}s</div>
+                <div className="py-6 flex flex-col items-center justify-center">
+                  <div className="text-xs font-extrabold tracking-widest text-zinc-500 uppercase mb-2">REST & RECOVER</div>
+                  <div className="oled-countdown-clock font-mono my-2">{restSecondsLeft}s</div>
+                  <div className="text-xs text-lime-400 font-bold uppercase tracking-wider mt-2">BREATHE DEEP & PREPARE NEXT SET</div>
                 </div>
               ) : (
-                <div className="active-set-box">
-                  <div className="set-indicator">
+                <div className="py-4">
+                  <div className="text-xs font-extrabold tracking-widest text-lime-400 uppercase mb-1">
                     SET {activeSetIndex + 1} OF {activeExercise.recommendedSets}
                   </div>
-                  <div className="set-target">Target: {activeExercise.recommendedReps}</div>
+                  <div className="text-3xl font-black text-white tracking-tight my-2 font-mono">
+                    TARGET: {activeExercise.recommendedReps}
+                  </div>
 
-                  <div className="rep-input-group">
-                    <label>Reps Completed This Set:</label>
-                    <div className="stepper">
-                      <button onClick={() => setCurrentRepsInput((r) => Math.max(1, r - 1))}>-</button>
+                  {/* Rep Stepper Input */}
+                  <div className="my-6 bg-zinc-950 p-4 rounded-xl border border-zinc-900 flex items-center justify-between">
+                    <span className="text-xs font-bold text-zinc-400 uppercase">Reps Done:</span>
+                    <div className="stepper flex items-center gap-3">
+                      <button
+                        className="w-10 h-10 rounded-full bg-zinc-900 text-white font-bold text-lg hover:bg-zinc-800 border border-zinc-800"
+                        onClick={() => setCurrentRepsInput((r) => Math.max(1, r - 1))}
+                      >
+                        -
+                      </button>
                       <input
                         type="number"
+                        className="w-16 text-center text-2xl font-black text-lime-400 bg-transparent border-none focus:outline-none font-mono"
                         value={currentRepsInput}
                         onChange={(e) => setCurrentRepsInput(Number(e.target.value))}
                       />
-                      <button onClick={() => setCurrentRepsInput((r) => r + 1)}>+</button>
+                      <button
+                        className="w-10 h-10 rounded-full bg-zinc-900 text-white font-bold text-lg hover:bg-zinc-800 border border-zinc-800"
+                        onClick={() => setCurrentRepsInput((r) => r + 1)}
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
-
-                  <button className="btn-primary btn-large mt-3" onClick={handleCompleteSet}>
-                    <Check className="icon-sm" />
-                    <span>
-                      {activeSetIndex + 1 < activeExercise.recommendedSets
-                        ? 'Complete Set & Start Rest'
-                        : 'Finish All Sets'}
-                    </span>
-                  </button>
                 </div>
               )}
 
-              <div className="modal-actions mt-4 flex gap-2">
-                <button className="btn-secondary flex-1" onClick={() => setActiveExercise(null)}>
-                  ← Back to Menu
+              {/* Media Controls: Oversized 80dp Touch Hit Target Center Button */}
+              <div className="flex items-center justify-center my-4">
+                <button
+                  className="oled-center-play-btn"
+                  onClick={handleCompleteSet}
+                  title="Complete Active Set"
+                >
+                  <Check size={42} strokeWidth={3.5} />
+                </button>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="modal-actions mt-6 flex gap-2 pt-4 border-t border-zinc-900">
+                <button
+                  className="btn-secondary flex-1 bg-zinc-900 text-zinc-300 border-zinc-800 hover:bg-zinc-800 text-xs font-bold"
+                  onClick={() => setActiveExercise(null)}
+                >
+                  ← Exit
                 </button>
                 <button
-                  className="btn-primary flex-1"
+                  className="btn-primary flex-1 bg-lime-400 text-black hover:bg-lime-300 text-xs font-black uppercase tracking-wider"
                   onClick={handleFinishAndSave}
                   disabled={repsDone.length === 0}
+                  style={{ backgroundColor: repsDone.length > 0 ? '#CCFF00' : '#333333', color: repsDone.length > 0 ? '#000000' : '#888888' }}
                 >
-                  <Sparkles className="icon-sm" />
-                  <span>Save Workout Session</span>
+                  <Sparkles className="icon-sm inline mr-1" />
+                  <span>Save Workout</span>
                 </button>
               </div>
             </div>
