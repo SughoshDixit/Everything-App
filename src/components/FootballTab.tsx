@@ -4,9 +4,10 @@ import { Zap, Compass, CheckCircle, Target, Activity, Clock } from 'lucide-react
 
 interface FootballTabProps {
   drills: FootballDrill[];
+  onOpenCreatePost?: () => void;
 }
 
-export const FootballTab: React.FC<FootballTabProps> = ({ drills }) => {
+export const FootballTab: React.FC<FootballTabProps> = ({ drills, onOpenCreatePost }) => {
   const [selectedDrill, setSelectedDrill] = useState<FootballDrill | null>(null);
   const [completedDrills, setCompletedDrills] = useState<string[]>([]);
 
@@ -80,11 +81,20 @@ export const FootballTab: React.FC<FootballTabProps> = ({ drills }) => {
                   </span>
                 </div>
 
-                <div className="drill-actions mt-2">
-                  <button className="btn-secondary w-full" onClick={() => setSelectedDrill(drill)} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="drill-actions mt-2 flex gap-2">
+                  <button className="btn-secondary flex-1" onClick={() => setSelectedDrill(drill)} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                     <Zap className="icon-xs text-amber" />
                     <span>Instructions</span>
                   </button>
+                  {onOpenCreatePost && (
+                    <button
+                      className="btn-google-tonal text-xs py-1.5 px-3"
+                      onClick={onOpenCreatePost}
+                      title="Add this drill to today's compiled post"
+                    >
+                      ➕ Post
+                    </button>
+                  )}
                 </div>
               </div>
             );

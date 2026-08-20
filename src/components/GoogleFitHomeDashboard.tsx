@@ -30,6 +30,8 @@ interface GoogleFitHomeDashboardProps {
   onOpenFootball: () => void;
   onOpenSocialShare: (data: SocialShareCardData) => void;
   onOpenFlyby: (activity: GpsActivityLog) => void;
+  onOpenCreatePost?: () => void;
+  onOpenFeed?: () => void;
 }
 
 export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
@@ -42,7 +44,9 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
   onOpenCalisthenics,
   onOpenFootball,
   onOpenSocialShare,
-  onOpenFlyby
+  onOpenFlyby,
+  onOpenCreatePost,
+  onOpenFeed
 }) => {
   // Calculate Daily Google Fit Ring Stats
   const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -402,9 +406,29 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       {/* 5. RECENT ACTIVITY TIMELINE WITH 1-TAP FLYBY & SOCIAL SHARING */}
       {/* ------------------------------------------------------------------- */}
       <div className="google-card p-5">
-        <h3 className="text-sm font-black text-main uppercase tracking-wider mb-3">
-          Recent Activities & Workouts
-        </h3>
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <h3 className="text-sm font-black text-main uppercase tracking-wider">
+            Recent Activities & Workouts
+          </h3>
+          <div className="flex items-center gap-2">
+            {onOpenCreatePost && (
+              <button
+                className="btn-google-primary text-xs py-1.5 px-3"
+                onClick={onOpenCreatePost}
+              >
+                <span>➕ Compile Today's Post</span>
+              </button>
+            )}
+            {onOpenFeed && (
+              <button
+                className="btn-google-outlined text-xs py-1.5 px-3"
+                onClick={onOpenFeed}
+              >
+                <span>Feed Timeline &rarr;</span>
+              </button>
+            )}
+          </div>
+        </div>
 
         {workoutLogs.length === 0 && gpsActivities.length === 0 ? (
           <p className="text-xs text-sub py-4 text-center font-medium">

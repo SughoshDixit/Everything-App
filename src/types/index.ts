@@ -261,10 +261,51 @@ export interface PersonalMilestones {
   lastUpdated: string;
 }
 
+export type PostBackgroundTheme =
+  | 'cyber_neon'
+  | 'strava_sunset'
+  | 'electric_aurora'
+  | 'monochrome_titanium'
+  | 'custom_image';
+
+export interface CompiledActivityItem {
+  id: string;
+  category: 'calisthenics' | 'gps_run' | 'gps_cycle' | 'gps_walk' | 'football';
+  title: string; // e.g. "Diamond Push-Ups", "5.2 km Morning Run", "1v1 Winger Cut-Inside"
+  details: string; // e.g. "3 Sets (15, 12, 10 reps)", "26:14 • Pace 5:02/km • +42m", "15 mins • High Intensity"
+  metrics?: { label: string; value: string }[];
+  gpsActivityId?: string;
+  workoutLogId?: string;
+  includedInPost: boolean;
+}
+
+export interface StravaActivityPost {
+  id: string;
+  date: string; // e.g. "Aug 20, 2026"
+  timestamp: number;
+  userId: 'men' | 'women' | 'couple';
+  title: string;
+  description?: string;
+  rpe?: number; // 1-10 Perceived Exertion
+  activities: CompiledActivityItem[];
+  gpsActivity?: GpsActivityLog;
+  backgroundTheme: PostBackgroundTheme;
+  customMediaUrl?: string; // base64 or object URL
+  motivationalQuote: string;
+  quoteAuthor: string;
+  totalHeartPoints: number;
+  totalMoveMinutes: number;
+  totalCalories: number;
+  totalDistanceKm: number;
+  likesCount: number;
+  isLiked?: boolean;
+}
+
 export interface SocialShareCardData {
   title: string;
   workoutType: string;
   stats: { label: string; value: string; unit?: string }[];
+  activityItems?: { title: string; details: string; icon?: string }[];
   motivationalQuote: string;
   quoteAuthor: string;
   streakDays: number;
@@ -272,4 +313,7 @@ export interface SocialShareCardData {
   persona: 'men' | 'women' | 'couple';
   accentColor?: string;
   routeSvgPath?: string;
+  backgroundTheme?: PostBackgroundTheme;
+  customMediaUrl?: string;
 }
+

@@ -24,7 +24,9 @@ const KEYS = {
   PERIOD_SETTINGS: 'everything_app_period_settings',
   GPS_ACTIVITIES: 'everything_app_gps_activities',
   PERSONAL_MILESTONES: 'everything_app_personal_milestones',
-  MAPS_API_KEY: 'everything_app_maps_api_key'
+  MAPS_API_KEY: 'everything_app_maps_api_key',
+  STRAVA_POSTS: 'everything_app_strava_posts',
+  COMPILED_BUFFER: 'everything_app_compiled_activities_buffer'
 };
 
 // Initial Pre-loaded Data

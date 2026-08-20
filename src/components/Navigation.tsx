@@ -10,7 +10,7 @@ import {
   Sliders
 } from 'lucide-react';
 
-export type TabType = 'fithub' | 'routine' | 'calisthenics' | 'football' | 'nutrition' | 'period' | 'music_veda' | 'settings';
+export type TabType = 'fithub' | 'feed' | 'calisthenics' | 'routine' | 'football' | 'nutrition' | 'period' | 'music_veda' | 'settings';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -20,7 +20,8 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'fithub', label: '📊 Fit Hub', icon: Activity },
-    { id: 'calisthenics', label: '💪 Calisthenics', icon: Dumbbell },
+    { id: 'feed', label: '🏃 Feed', icon: Activity },
+    { id: 'calisthenics', label: '💪 Workout', icon: Dumbbell },
     { id: 'routine', label: '📅 Routine', icon: CalendarDays },
     { id: 'football', label: '⚽ Football', icon: Trophy },
     { id: 'nutrition', label: '🥗 Nutrition', icon: Utensils },

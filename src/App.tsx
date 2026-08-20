@@ -3,6 +3,8 @@ import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import type { TabType } from './components/Navigation';
 import { GoogleFitHomeDashboard } from './components/GoogleFitHomeDashboard';
+import { StravaActivityFeed } from './components/StravaActivityFeed';
+import { CreateActivityPostModal } from './components/CreateActivityPostModal';
 import { DisciplineTab } from './components/DisciplineTab';
 import { CalisthenicsTab } from './components/CalisthenicsTab';
 import { FootballTab } from './components/FootballTab';
@@ -28,7 +30,8 @@ import type {
   CycleSettings,
   GpsActivityLog,
   PersonalMilestones,
-  SocialShareCardData
+  SocialShareCardData,
+  StravaActivityPost
 } from './types';
 
 import {
@@ -64,6 +67,9 @@ export function App() {
   const [gpsActivities, setGpsActivities] = useState<GpsActivityLog[]>(() =>
     loadFromStorage(KEYS.GPS_ACTIVITIES, [])
   );
+  const [stravaPosts, setStravaPosts] = useState<StravaActivityPost[]>(() =>
+    loadFromStorage(KEYS.STRAVA_POSTS, [])
+  );
   const [milestones, setMilestones] = useState<PersonalMilestones>(() =>
     loadFromStorage(KEYS.PERSONAL_MILESTONES, defaultMilestones)
   );
@@ -95,6 +101,7 @@ export function App() {
   const [gpsModalActivityType, setGpsModalActivityType] = useState<'run' | 'cycle' | 'walk' | null>(null);
   const [activeShareCardData, setActiveShareCardData] = useState<SocialShareCardData | null>(null);
   const [flybyActivity, setFlybyActivity] = useState<GpsActivityLog | null>(null);
+  const [editingPost, setEditingPost] = useState<StravaActivityPost | null | undefined>(undefined);
 
   // Sync state to local storage
   useEffect(() => {
@@ -112,6 +119,10 @@ export function App() {
   useEffect(() => {
     saveToStorage(KEYS.GPS_ACTIVITIES, gpsActivities);
   }, [gpsActivities]);
+
+  useEffect(() => {
+    saveToStorage(KEYS.STRAVA_POSTS, stravaPosts);
+  }, [stravaPosts]);
 
   useEffect(() => {
     saveToStorage(KEYS.PERSONAL_MILESTONES, milestones);
@@ -167,6 +178,30 @@ export function App() {
     setMilestones(updatedMilestones);
   };
 
+  const handleSaveStravaPost = (post: StravaActivityPost) => {
+    setStravaPosts((prev) => {
+      const exists = prev.some((p) => p.id === post.id);
+      if (exists) {
+        return prev.map((p) => (p.id === post.id ? post : p));
+      }
+      return [post, ...prev];
+    });
+  };
+
+  const handleDeletePost = (id: string) => {
+    setStravaPosts((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleLikePost = (id: string) => {
+    setStravaPosts((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? { ...p, isLiked: !p.isLiked, likesCount: (p.likesCount || 0) + (p.isLiked ? -1 : 1) }
+          : p
+      )
+    );
+  };
+
   const openShareFromGps = (act: GpsActivityLog) => {
     const quote = quotes[Math.floor(Math.random() * quotes.length)] || {
       text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.',
@@ -186,6 +221,31 @@ export function App() {
       streakDays: 14,
       date: act.date,
       persona: currentProfile
+    });
+  };
+
+  const openShareFromPost = (post: StravaActivityPost) => {
+    setActiveShareCardData({
+      title: post.title,
+      workoutType: post.activities.length > 1 ? 'Consolidated Daily Session' : post.activities[0]?.title || 'Workout',
+      stats: [
+        { label: 'Workouts', value: `${post.activities.length}`, unit: 'Done' },
+        { label: 'Distance', value: `${post.totalDistanceKm.toFixed(1)}`, unit: 'km' },
+        { label: 'Move Time', value: `${post.totalMoveMinutes}`, unit: 'min' },
+        { label: 'Heart Points', value: `+${post.totalHeartPoints}`, unit: 'pts' }
+      ],
+      activityItems: post.activities.map((i) => ({
+        title: i.title,
+        details: i.details,
+        icon: i.category === 'calisthenics' ? '⚡' : i.category.includes('run') ? '🏃' : '🚴'
+      })),
+      motivationalQuote: post.motivationalQuote,
+      quoteAuthor: post.quoteAuthor,
+      streakDays: 14,
+      date: post.date,
+      persona: currentProfile,
+      backgroundTheme: post.backgroundTheme,
+      customMediaUrl: post.customMediaUrl
     });
   };
 
@@ -215,6 +275,22 @@ export function App() {
             onOpenFootball={() => setActiveTab('football')}
             onOpenSocialShare={(data) => setActiveShareCardData(data)}
             onOpenFlyby={(act) => setFlybyActivity(act)}
+            onOpenCreatePost={() => setEditingPost(null)}
+            onOpenFeed={() => setActiveTab('feed')}
+          />
+        )}
+
+        {activeTab === 'feed' && (
+          <StravaActivityFeed
+            currentProfile={currentProfile}
+            posts={stravaPosts}
+            quotes={quotes}
+            onOpenCreatePost={() => setEditingPost(null)}
+            onEditPost={(post) => setEditingPost(post)}
+            onDeletePost={handleDeletePost}
+            onLikePost={handleLikePost}
+            onOpenFlyby={(act) => setFlybyActivity(act)}
+            onOpenSocialShare={(post) => openShareFromPost(post)}
           />
         )}
 
@@ -234,11 +310,15 @@ export function App() {
             logs={workoutLogs}
             currentProfile={currentProfile}
             onLogWorkout={handleLogWorkout}
+            onOpenCreatePost={() => setEditingPost(null)}
           />
         )}
 
         {activeTab === 'football' && (
-          <FootballTab drills={footballDrills} />
+          <FootballTab
+            drills={footballDrills}
+            onOpenCreatePost={() => setEditingPost(null)}
+          />
         )}
 
         {activeTab === 'nutrition' && (
@@ -295,6 +375,20 @@ export function App() {
             openShareFromGps(act);
           }}
           onClose={() => setFlybyActivity(null)}
+        />
+      )}
+
+      {/* STRAVA ACTIVITY POST CREATOR / COMPILER / EDITOR MODAL */}
+      {editingPost !== undefined && (
+        <CreateActivityPostModal
+          initialPost={editingPost}
+          todayGpsActivities={gpsActivities}
+          todayWorkoutLogs={workoutLogs}
+          todayFootballDrills={footballDrills}
+          currentProfile={currentProfile}
+          quotesList={quotes}
+          onSavePost={handleSaveStravaPost}
+          onClose={() => setEditingPost(undefined)}
         />
       )}
 

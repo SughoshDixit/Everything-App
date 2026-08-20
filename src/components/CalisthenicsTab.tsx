@@ -29,12 +29,14 @@ interface CalisthenicsTabProps {
   logs: WorkoutSessionLog[];
   currentProfile: UserProfile;
   onLogWorkout: (log: Omit<WorkoutSessionLog, 'id' | 'date'>) => void;
+  onOpenCreatePost?: () => void;
 }
 
 export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
   logs,
   currentProfile,
-  onLogWorkout
+  onLogWorkout,
+  onOpenCreatePost
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'combos' | 'calendar' | 'library' | 'history'>('combos');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -525,6 +527,7 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
               notes: log.notes
             });
             setActiveComboRoutine(null);
+            if (onOpenCreatePost) onOpenCreatePost();
           }}
           onClose={() => setActiveComboRoutine(null)}
         />
