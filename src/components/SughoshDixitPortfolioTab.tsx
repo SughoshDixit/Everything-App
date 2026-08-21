@@ -605,19 +605,19 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
       </header>
 
       {/* ------------------------------------------------------------------- */}
-      {/* 2. GREETING / HERO SECTION (EXACT REPLICA OF SCREENSHOT 1) */}
+      {/* 2. GREETING / HERO SECTION (STRICTLY EQUIDISTANT VERTICAL SPACING) */}
       {/* ------------------------------------------------------------------- */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-10 space-y-16">
-        <section id="greeting" className="text-center space-y-8">
-          {/* Main Title */}
-          <div className="pt-2 pb-1">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-16">
+        <section id="greeting" className="text-center flex flex-col items-center gap-7 sm:gap-8 pt-2 pb-2">
+          {/* 1. Main Title */}
+          <div>
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#161513] dark:text-white leading-tight">
               नमस्ते, Sughosh here <span className="wave-hand-emoji">👋</span>
             </h1>
           </div>
 
-          {/* Bio Subtitle with spacious, elegant line spacing */}
-          <div className="max-w-2xl mx-auto space-y-4 text-slate-700 dark:text-slate-300 py-1">
+          {/* 2. Bio Subtitle with spacious, elegant line spacing */}
+          <div className="max-w-2xl mx-auto space-y-3.5 text-slate-700 dark:text-slate-300">
             <p className="text-sm sm:text-base md:text-lg leading-relaxed font-medium">
               🧠 <strong className="text-[#161513] dark:text-white font-bold">Data Scientist</strong> at Oracle Financial Crime &amp; Compliance
             </p>
@@ -632,9 +632,9 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
             </p>
           </div>
 
-          {/* 7 Social Media Circular Buttons with Equidistant Breathing Room */}
-          <div className="py-2">
-            <div className="flex items-center justify-center flex-nowrap gap-3 sm:gap-4 max-w-full px-1 overflow-x-auto">
+          {/* 3. 7 Social Media Circular Buttons (Equidistant Row) */}
+          <div className="w-full flex items-center justify-center">
+            <div className="flex items-center justify-center flex-nowrap gap-3 sm:gap-4 max-w-full px-2 overflow-x-auto">
               {/* GitHub */}
               <a href="https://github.com/SughoshDixit9" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#333333]" title="GitHub">
                 <svg className="w-4 sm:w-5 h-4 sm:h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -666,28 +666,26 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
             </div>
           </div>
 
-          {/* Action Buttons: CONTACT ME & SEE MY RESUME Side-by-Side with plenty of space */}
-          <div className="py-2">
-            <div className="flex flex-wrap items-center justify-center gap-5">
-              <button
-                onClick={() => scrollToSection('contact')}
-                className="hero-purple-action-btn text-sm font-bold tracking-wider px-8 py-3.5"
-              >
-                CONTACT ME
-              </button>
-              <a
-                href="https://drive.google.com/file/d/1Do_Aj8ruhq64P7Enq4giaJhtXpRcsHG2/view?usp=drive_link"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hero-purple-action-btn text-sm font-bold tracking-wider px-8 py-3.5"
-              >
-                SEE MY RESUME
-              </a>
-            </div>
+          {/* 4. Action Buttons: CONTACT ME & SEE MY RESUME */}
+          <div className="w-full flex flex-wrap items-center justify-center gap-4 sm:gap-5">
+            <button
+              onClick={() => scrollToSection('contact')}
+              className="hero-purple-action-btn text-sm font-bold tracking-wider px-8 py-3.5"
+            >
+              CONTACT ME
+            </button>
+            <a
+              href="https://drive.google.com/file/d/1Do_Aj8ruhq64P7Enq4giaJhtXpRcsHG2/view?usp=drive_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hero-purple-action-btn text-sm font-bold tracking-wider px-8 py-3.5"
+            >
+              SEE MY RESUME
+            </a>
           </div>
 
-          {/* Centered Illustration Below Buttons */}
-          <div className="flex justify-center pt-2">
+          {/* 5. Centered Developer Illustration */}
+          <div className="w-full flex justify-center pt-2">
             <div className="w-72 sm:w-96 h-auto">
               <img
                 src="/portfolio-assets/manOnTable.svg"
