@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   ExternalLink,
   Mail,
-  GraduationCap,
   Trophy,
   BookOpen,
   Phone,
@@ -314,7 +313,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         /* EXACT Agustina Signature Logo */
         .signature-logo {
           font-family: "Agustina Regular", cursive, sans-serif;
-          font-size: 2.2rem;
+          font-size: 1.55rem;
           font-weight: bold;
           color: #007ACC;
           text-decoration: none;
@@ -325,7 +324,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         .signature-close {
           font-family: monospace;
           color: #55198B;
-          font-size: 1.8rem;
+          font-size: 1.3rem;
           font-weight: bold;
         }
 
@@ -609,7 +608,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
       {/* 2. GREETING / HERO SECTION (EXACT REPLICA OF SCREENSHOT 1) */}
       {/* ------------------------------------------------------------------- */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-10 space-y-16">
-        <section id="greeting" className="text-center space-y-6">
+        <section id="greeting" className="text-center space-y-8">
           {/* Main Title */}
           <div className="pt-2 pb-1">
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#161513] dark:text-white leading-tight">
@@ -618,7 +617,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
           </div>
 
           {/* Bio Subtitle with spacious, elegant line spacing */}
-          <div className="max-w-2xl mx-auto py-2 space-y-3.5 text-slate-700 dark:text-slate-300">
+          <div className="max-w-2xl mx-auto space-y-4 text-slate-700 dark:text-slate-300 py-1">
             <p className="text-sm sm:text-base md:text-lg leading-relaxed font-medium">
               🧠 <strong className="text-[#161513] dark:text-white font-bold">Data Scientist</strong> at Oracle Financial Crime &amp; Compliance
             </p>
@@ -633,9 +632,9 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
             </p>
           </div>
 
-          {/* 7 Social Media Circular Buttons with Generous Breathing Room */}
-          <div className="pt-6 pb-6">
-            <div className="flex items-center justify-center flex-nowrap gap-2.5 sm:gap-3.5 max-w-full px-1 overflow-x-auto">
+          {/* 7 Social Media Circular Buttons with Equidistant Breathing Room */}
+          <div className="py-2">
+            <div className="flex items-center justify-center flex-nowrap gap-3 sm:gap-4 max-w-full px-1 overflow-x-auto">
               {/* GitHub */}
               <a href="https://github.com/SughoshDixit9" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#333333]" title="GitHub">
                 <svg className="w-4 sm:w-5 h-4 sm:h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -668,7 +667,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
           </div>
 
           {/* Action Buttons: CONTACT ME & SEE MY RESUME Side-by-Side with plenty of space */}
-          <div className="pt-2 pb-8">
+          <div className="py-2">
             <div className="flex flex-wrap items-center justify-center gap-5">
               <button
                 onClick={() => scrollToSection('contact')}
@@ -688,7 +687,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
           </div>
 
           {/* Centered Illustration Below Buttons */}
-          <div className="flex justify-center pt-6">
+          <div className="flex justify-center pt-2">
             <div className="w-72 sm:w-96 h-auto">
               <img
                 src="/portfolio-assets/manOnTable.svg"
@@ -767,16 +766,16 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
                       </div>
                     </div>
 
-                    {/* Tags */}
+                    {/* Tags (Clean borderless pills as requested) */}
                     <div className="flex flex-wrap gap-1.5 justify-center py-2">
                       {item.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="px-2.5 py-1 rounded-lg text-xs font-semibold border"
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold"
                           style={{
                             color: item.color,
-                            backgroundColor: `rgba(${item.colorRgb}, 0.08)`,
-                            borderColor: `rgba(${item.colorRgb}, 0.2)`
+                            backgroundColor: `rgba(${item.colorRgb}, 0.1)`,
+                            border: 'none'
                           }}
                         >
                           {tag}
@@ -805,16 +804,21 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
             })}
           </div>
 
-          {/* Active Card Expanded Details */}
+          {/* Active Card Expanded Details (Clean Standalone Card with Equal Distance) */}
           {identities[activeIdentityIndex] && (
-            <div className="mt-8 p-6 rounded-2xl bg-white dark:bg-[#1a1d24] border border-black/5 dark:border-white/10 shadow-lg animate-fade-in">
-              <div className="flex items-center gap-3 pb-4 border-b border-black/5 dark:border-white/10">
-                <span className="text-3xl">{identities[activeIdentityIndex].icon}</span>
+            <div
+              className="mt-6 p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#1a1d24] border-2 shadow-lg animate-fade-in"
+              style={{
+                borderColor: identities[activeIdentityIndex].color
+              }}
+            >
+              <div className="flex items-center gap-3.5 pb-4 border-b border-black/5 dark:border-white/10">
+                <span className="text-3xl sm:text-4xl">{identities[activeIdentityIndex].icon}</span>
                 <div>
-                  <h3 className="text-xl font-black text-[#1a1a1a] dark:text-white">
+                  <h3 className="text-xl sm:text-2xl font-black text-[#1a1a1a] dark:text-white">
                     {identities[activeIdentityIndex].title} Details
                   </h3>
-                  <span className="text-xs text-[#7f8c8d] dark:text-slate-400">
+                  <span className="text-xs sm:text-sm font-bold" style={{ color: identities[activeIdentityIndex].color }}>
                     {identities[activeIdentityIndex].level} &bull; {identities[activeIdentityIndex].progress}% Mastery
                   </span>
                 </div>
@@ -825,7 +829,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
                     Key Achievements
                   </h4>
-                  <ul className="space-y-1.5 text-xs text-[#2c3e50] dark:text-slate-200">
+                  <ul className="space-y-2 text-xs sm:text-sm text-[#2c3e50] dark:text-slate-200">
                     {identities[activeIdentityIndex].achievements.map((ach, i) => (
                       <li key={i} className="flex items-start gap-1.5">
                         <span style={{ color: identities[activeIdentityIndex].color }}>▶</span>
@@ -839,7 +843,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
                     Current Focus
                   </h4>
-                  <p className="text-xs text-[#2c3e50] dark:text-slate-200 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[#2c3e50] dark:text-slate-200 leading-relaxed">
                     {identities[activeIdentityIndex].currentFocus}
                   </p>
                 </div>
@@ -849,9 +853,9 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
                     Guiding Philosophy
                   </h4>
                   <div
-                    className="p-3 rounded-xl italic text-xs leading-relaxed"
+                    className="p-3.5 rounded-2xl italic text-xs sm:text-sm leading-relaxed"
                     style={{
-                      backgroundColor: `rgba(${identities[activeIdentityIndex].colorRgb}, 0.06)`,
+                      backgroundColor: `rgba(${identities[activeIdentityIndex].colorRgb}, 0.08)`,
                       borderLeft: `4px solid ${identities[activeIdentityIndex].color}`,
                       color: identities[activeIdentityIndex].color
                     }}
@@ -894,54 +898,83 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         </section>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 5. EDUCATION & WORK EXPERIENCE */}
+        {/* 5. WORK EXPERIENCE (FULL-SIZE PROMINENT SECTION) */}
         {/* ------------------------------------------------------------------- */}
-        <section id="experience" className="grid gap-8 md:grid-cols-2">
-          {/* Education */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="text-[#007ACC]" size={20} />
-              <h2 className="text-xl font-black text-[#1a1a1a] dark:text-white">Education</h2>
-            </div>
-
-            <div className="space-y-3">
-              {education.map((edu) => (
-                <div key={edu.schoolName} className="p-4 rounded-2xl bg-white dark:bg-[#1f232b] border border-black/5 dark:border-white/10 shadow-xs space-y-1.5">
-                  <span className="text-[10px] font-bold text-[#007ACC] uppercase tracking-wider">{edu.duration}</span>
-                  <h3 className="text-sm font-black text-[#1a1a1a] dark:text-white">{edu.schoolName}</h3>
-                  <p className="text-xs font-bold text-[#5a6c7d] dark:text-slate-300">{edu.degree}</p>
-                  <p className="text-[11px] text-[#7f8c8d] leading-relaxed">{edu.desc}</p>
-                </div>
-              ))}
-            </div>
+        <section id="experience" className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#1a1a1a] dark:text-white">
+              Work Experience 💼
+            </h2>
+            <p className="text-xs text-[#7f8c8d] mt-1">Professional track record at Oracle & Siemens across Data Science, AI & Enterprise Cloud</p>
           </div>
 
-          {/* Work Experience */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Trophy className="text-[#FFD700]" size={20} />
-              <h2 className="text-xl font-black text-[#1a1a1a] dark:text-white">Experience</h2>
-            </div>
-
-            <div className="space-y-3">
-              {experiences.map((exp) => (
-                <div
-                  key={exp.role + exp.company}
-                  className="p-4 rounded-2xl bg-white dark:bg-[#1f232b] border border-black/5 dark:border-white/10 shadow-xs space-y-1.5 border-l-4"
-                  style={{ borderLeftColor: exp.color }}
-                >
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">{exp.date}</span>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-black/5 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {experiences.map((exp) => (
+              <div
+                key={exp.role + exp.company}
+                className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#1f232b] border border-black/5 dark:border-white/10 shadow-xs flex flex-col justify-between hover:border-[#007ACC] transition-all border-l-4"
+                style={{ borderLeftColor: exp.color }}
+              >
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start flex-wrap gap-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{exp.date}</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/5 dark:bg-white/10 text-slate-600 dark:text-slate-300">
                       {exp.tag}
                     </span>
                   </div>
-                  <h3 className="text-sm font-black text-[#1a1a1a] dark:text-white">{exp.role}</h3>
-                  <p className="text-xs font-bold text-[#007ACC]">{exp.company}</p>
-                  <p className="text-[11px] text-[#7f8c8d] dark:text-slate-400 leading-relaxed">{exp.desc}</p>
+                  <h3 className="text-base sm:text-lg font-black text-[#1a1a1a] dark:text-white">{exp.role}</h3>
+                  <p className="text-xs sm:text-sm font-bold text-[#007ACC]">{exp.company}</p>
+                  <p className="text-xs text-[#7f8c8d] dark:text-slate-300 leading-relaxed">{exp.desc}</p>
                 </div>
-              ))}
-            </div>
+
+                <div className="pt-3 border-t border-black/5 dark:border-white/10 mt-3">
+                  <ul className="space-y-1.5 text-xs text-[#5a6c7d] dark:text-slate-300">
+                    {exp.bullets.map((b, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span style={{ color: exp.color }}>&bull;</span>
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------------------- */}
+        {/* 5B. EDUCATION & ACADEMIC HONORS */}
+        {/* ------------------------------------------------------------------- */}
+        <section id="education" className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#1a1a1a] dark:text-white">
+              Education &amp; Academic Honors 🎓
+            </h2>
+            <p className="text-xs text-[#7f8c8d] mt-1">Master of Technology from BITS Pilani &amp; B.Tech in Information Science</p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {education.map((edu) => (
+              <div key={edu.schoolName} className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#1f232b] border border-black/5 dark:border-white/10 shadow-xs flex flex-col justify-between hover:border-[#007ACC] transition-all border-l-4 border-l-[#007ACC]">
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-[#007ACC] uppercase tracking-wider">{edu.duration}</span>
+                  <h3 className="text-base sm:text-lg font-black text-[#1a1a1a] dark:text-white">{edu.schoolName}</h3>
+                  <p className="text-xs sm:text-sm font-bold text-[#5a6c7d] dark:text-slate-300">{edu.degree}</p>
+                  <p className="text-xs text-[#7f8c8d] leading-relaxed">{edu.desc}</p>
+                </div>
+
+                <div className="pt-3 border-t border-black/5 dark:border-white/10 mt-3">
+                  <ul className="space-y-1.5 text-xs text-[#5a6c7d] dark:text-slate-300">
+                    {edu.bullets.map((b, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-[#007ACC]">&bull;</span>
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
