@@ -10,21 +10,30 @@ import {
   Share2,
   Edit3,
   Trash2,
-  Heart,
-  Film,
-  Sparkles
+  Trophy,
+  Flame,
+  Zap,
+  TrendingUp,
+  MessageSquare,
+  BarChart3,
+  Play,
+  Send
 } from 'lucide-react';
 
 interface StravaActivityFeedProps {
   currentProfile: UserProfile;
   posts: StravaActivityPost[];
-  quotes: MotivationalQuote[];
+  quotes?: MotivationalQuote[];
   onOpenCreatePost: () => void;
   onEditPost: (post: StravaActivityPost) => void;
   onDeletePost: (id: string) => void;
   onLikePost: (id: string) => void;
-  onOpenFlyby: (activity: GpsActivityLog) => void;
+  onOpenFlyby?: (activity: GpsActivityLog) => void;
   onOpenSocialShare: (post: StravaActivityPost) => void;
+  onSelectActivityDetail?: (post: StravaActivityPost) => void;
+  onOpenAthleteProfile?: () => void;
+  onStartTracking?: () => void;
+  onAddComment?: (activityId: string, text: string) => void;
 }
 
 export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
@@ -34,66 +43,102 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
   onEditPost,
   onDeletePost,
   onLikePost,
-  onOpenFlyby,
-  onOpenSocialShare
+  onOpenSocialShare,
+  onSelectActivityDetail,
+  onOpenAthleteProfile,
+  onStartTracking,
+  onAddComment
 }) => {
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string>('all');
+  const [sportFilter, setSportFilter] = useState<'all' | 'run' | 'cycle' | 'calisthenics' | 'football'>('all');
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [floatingKudosId, setFloatingKudosId] = useState<string | null>(null);
 
-  // Filter posts by user and date if applicable
+  // Filter posts by athlete and sport
   const athletePosts = posts.filter(
     (p) => currentProfile === 'couple' || p.userId === currentProfile || p.userId === 'couple'
   );
 
-  // Unique dates for filter pills
-  const availableDates = Array.from(new Set(athletePosts.map((p) => p.date)));
+  const filteredPosts = athletePosts.filter((p) => {
+    if (sportFilter === 'all') return true;
+    return p.sportType === sportFilter;
+  });
 
-  const filteredPosts = selectedDateFilter === 'all'
-    ? athletePosts
-    : athletePosts.filter((p) => p.date === selectedDateFilter);
+  // Athlete Totals
+  const totalDistanceKm = athletePosts.reduce((acc, p) => acc + (p.totalDistanceKm || 0), 0);
+  const totalHeartPoints = athletePosts.reduce((acc, p) => acc + (p.totalHeartPoints || 0), 0);
 
-  // Total Athlete Stats
-  const totalDistanceKm = athletePosts.reduce((acc, p) => acc + p.totalDistanceKm, 0);
-  const totalHeartPoints = athletePosts.reduce((acc, p) => acc + p.totalHeartPoints, 0);
+  const handleKudosClick = (postId: string) => {
+    onLikePost(postId);
+    setFloatingKudosId(postId);
+    setTimeout(() => {
+      setFloatingKudosId(null);
+    }, 1000);
+  };
+
+  const handleCommentSubmit = (postId: string, e: React.FormEvent) => {
+    e.preventDefault();
+    const text = commentInputs[postId]?.trim();
+    if (!text || !onAddComment) return;
+    onAddComment(postId, text);
+    setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
+  };
 
   return (
-    <div className="tab-container animate-fade-in flex flex-col gap-4">
+    <div className="tab-container animate-fade-in flex flex-col gap-5">
       {/* ------------------------------------------------------------------- */}
-      {/* 1. STRAVA ATHLETE PROFILE HEADER */}
+      {/* 1. STRAVA ATHLETE PROFILE & TRACKING ACTION HUB */}
       {/* ------------------------------------------------------------------- */}
-      <div className="google-card p-5">
+      <div className="google-card p-5 border-l-4 border-[#55198B]">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-xl text-white font-black shadow-md">
+          <div
+            onClick={onOpenAthleteProfile}
+            className="flex items-center gap-3 cursor-pointer group"
+            title="View Athlete Profile, PR Board & Heatmap"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#55198B] to-[#7b29be] flex items-center justify-center text-2xl text-white font-black shadow-md group-hover:scale-105 transition-transform">
               {currentProfile === 'women' ? '👩' : '👨'}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base md:text-lg font-black text-main leading-tight">
+                <h2 className="text-base sm:text-lg font-black text-main group-hover:text-[#55198B] dark:group-hover:text-[#c084fc] transition-colors leading-tight">
                   {currentProfile === 'women' ? 'Shreya Dixit' : 'Sughosh Dixit'}
                 </h2>
-                <span className="oled-badge-lime text-[10px] uppercase">
-                  {currentProfile === 'women' ? 'Athlete Profile' : 'Pro Athlete'}
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] uppercase tracking-wider">
+                  Pro Athlete
                 </span>
               </div>
-              <p className="text-[11px] text-sub font-medium mt-0.5">
-                Everything App &bull; Performance & Discipline Suite
+              <p className="text-[11px] text-sub font-medium flex items-center gap-1 mt-0.5">
+                <span>View PRs &amp; Training Heatmap</span>
+                <span>&rarr;</span>
               </p>
             </div>
           </div>
 
-          <button
-            className="btn-google-primary text-xs py-2.5 px-4 shadow-md"
-            onClick={onOpenCreatePost}
-          >
-            <Plus size={16} />
-            <span>Create Activity Post</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {onStartTracking && (
+              <button
+                onClick={onStartTracking}
+                className="btn-google-primary text-xs py-2 px-3.5 shadow-md flex items-center gap-1.5"
+              >
+                <Play size={14} fill="#fff" />
+                <span>Record Live</span>
+              </button>
+            )}
+            <button
+              onClick={onOpenCreatePost}
+              className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5"
+            >
+              <Plus size={14} />
+              <span>Log Post</span>
+            </button>
+          </div>
         </div>
 
-        {/* Athlete Overview Stats */}
+        {/* Athlete Overview Stats Grid */}
         <div className="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-glass">
           <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
-            <div className="text-[10px] text-sub font-bold uppercase">POSTS LOGGED</div>
+            <div className="text-[10px] text-sub font-bold uppercase">ACTIVITIES</div>
             <div className="text-base font-black text-main font-mono mt-0.5">
               {athletePosts.length} <span className="text-xs text-sub font-normal">posts</span>
             </div>
@@ -101,14 +146,14 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
 
           <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
             <div className="text-[10px] text-sub font-bold uppercase">TOTAL DISTANCE</div>
-            <div className="text-base font-black text-cyan-600 dark:text-cyan-400 font-mono mt-0.5">
+            <div className="text-base font-black text-[#55198B] dark:text-[#c084fc] font-mono mt-0.5">
               {totalDistanceKm.toFixed(1)} <span className="text-xs text-sub font-normal">km</span>
             </div>
           </div>
 
           <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
             <div className="text-[10px] text-sub font-bold uppercase">HEART POINTS</div>
-            <div className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+            <div className="text-base font-black text-amber-500 font-mono mt-0.5">
               {totalHeartPoints} <span className="text-xs text-sub font-normal">pts</span>
             </div>
           </div>
@@ -116,175 +161,322 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* 2. DATE FILTER PILLS (SUPPORTING MULTIPLE POSTS PER DAY) */}
+      {/* 2. SPORT FILTER PILLS */}
       {/* ------------------------------------------------------------------- */}
-      {availableDates.length > 1 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          <button
-            className={selectedDateFilter === 'all' ? 'btn-google-primary text-xs py-1 px-3' : 'btn-google-outlined text-xs py-1 px-3'}
-            onClick={() => setSelectedDateFilter('all')}
-          >
-            All Dates ({athletePosts.length})
-          </button>
-          {availableDates.map((d) => (
-            <button
-              key={d}
-              className={selectedDateFilter === d ? 'btn-google-primary text-xs py-1 px-3' : 'btn-google-outlined text-xs py-1 px-3'}
-              onClick={() => setSelectedDateFilter(d)}
-            >
-              📅 {d}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => setSportFilter('all')}
+          className={`cat-pill ${sportFilter === 'all' ? 'active' : ''}`}
+        >
+          All Sports ({athletePosts.length})
+        </button>
+        <button
+          onClick={() => setSportFilter('run')}
+          className={`cat-pill ${sportFilter === 'run' ? 'active' : ''}`}
+        >
+          🏃 Running
+        </button>
+        <button
+          onClick={() => setSportFilter('cycle')}
+          className={`cat-pill ${sportFilter === 'cycle' ? 'active' : ''}`}
+        >
+          🚴 Cycling
+        </button>
+        <button
+          onClick={() => setSportFilter('calisthenics')}
+          className={`cat-pill ${sportFilter === 'calisthenics' ? 'active' : ''}`}
+        >
+          💪 Calisthenics
+        </button>
+        <button
+          onClick={() => setSportFilter('football')}
+          className={`cat-pill ${sportFilter === 'football' ? 'active' : ''}`}
+        >
+          ⚽ Football
+        </button>
+      </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* 3. ACTIVITY POSTS TIMELINE */}
+      {/* 3. STRAVA ACTIVITY FEED CARDS */}
       {/* ------------------------------------------------------------------- */}
       {filteredPosts.length === 0 ? (
-        <div className="google-card p-8 text-center flex flex-col items-center justify-center">
-          <Sparkles className="icon-lg text-cyan-500 mb-2" />
-          <h3 className="text-base font-black text-main">No Activity Posts Yet</h3>
-          <p className="text-xs text-sub max-w-sm my-2">
-            Complete your daily run, ride, calisthenics combo, or football drills and tap "Create Activity Post" to share and log your progress!
+        <div className="google-card p-8 text-center flex flex-col items-center justify-center gap-3">
+          <div className="w-14 h-14 rounded-full bg-purple-500/10 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center text-2xl font-black">
+            🏃
+          </div>
+          <h3 className="text-base font-black text-main">No activities found in this filter</h3>
+          <p className="text-xs text-sub max-w-sm">
+            Record a GPS workout, log a calisthenics routine, or compile your session into a Strava-style post.
           </p>
-          <button
-            className="btn-google-primary text-xs py-2.5 px-5 mt-2"
-            onClick={onOpenCreatePost}
-          >
-            <Plus size={16} />
-            <span>Create Today's First Post</span>
-          </button>
+          <div className="flex gap-2 mt-2">
+            {onStartTracking && (
+              <button onClick={onStartTracking} className="btn-google-primary text-xs py-2 px-4">
+                Record GPS Session
+              </button>
+            )}
+            <button onClick={onOpenCreatePost} className="btn-secondary text-xs py-2 px-4">
+              Create Manual Post
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {filteredPosts.map((post) => (
-            <div key={post.id} className="google-card p-5 flex flex-col gap-3 shadow-md">
-              {/* Post Header */}
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center text-sm font-black shadow-sm">
-                    {post.userId === 'women' ? '👩' : '👨'}
+        <div className="flex flex-col gap-5">
+          {filteredPosts.map((post) => {
+            const isWomen = post.userId === 'women';
+            const athleteName = isWomen ? 'Shreya Dixit' : 'Sughosh Dixit';
+            const athleteAvatar = isWomen ? '👩' : '👨';
+
+            const sportIcon =
+              post.sportType === 'run'
+                ? '🏃'
+                : post.sportType === 'cycle'
+                ? '🚴'
+                : post.sportType === 'calisthenics'
+                ? '💪'
+                : post.sportType === 'football'
+                ? '⚽'
+                : '⚡';
+
+            return (
+              <div
+                key={post.id}
+                className="google-card p-4 sm:p-5 flex flex-col gap-3.5 shadow-md relative overflow-hidden"
+              >
+                {/* Floating Kudos Animation */}
+                {floatingKudosId === post.id && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-scale-up">
+                    <span className="text-5xl drop-shadow-lg">👏</span>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-black text-main">{post.title}</h4>
-                    <div className="text-[11px] text-sub font-medium flex items-center gap-1.5">
-                      <span>{post.date}</span>
-                      <span>&bull;</span>
-                      <span className="text-amber-500 font-bold">RPE {post.rpe || 8}/10</span>
+                )}
+
+                {/* Card Header: Athlete Info + Actions */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-2xl bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center text-lg font-black shadow-sm">
+                      {athleteAvatar}
                     </div>
-                  </div>
-                </div>
-
-                {/* Edit & Delete Controls */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    className="btn-google-icon"
-                    onClick={() => onEditPost(post)}
-                    title="Edit Activity Post"
-                  >
-                    <Edit3 size={15} />
-                  </button>
-
-                  <button
-                    className="btn-google-icon text-rose-500"
-                    onClick={() => onDeletePost(post.id)}
-                    title="Delete Post"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Description / Notes */}
-              {post.description && (
-                <p className="text-xs text-sub font-normal leading-relaxed bg-card p-3 rounded-2xl border border-glass">
-                  {post.description}
-                </p>
-              )}
-
-              {/* Compiled Workouts List (Strictly Sets & Reps, No Warm-Up) */}
-              <div className="flex flex-col gap-2">
-                <div className="text-[10px] font-bold text-sub uppercase tracking-wider">
-                  Logged Activities ({post.activities.length})
-                </div>
-                {post.activities.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-2.5 rounded-2xl bg-card border border-glass flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">
-                        {item.category === 'calisthenics' ? '⚡' : item.category.includes('run') ? '🏃' : '🚴'}
-                      </span>
-                      <div>
-                        <div className="text-xs font-bold text-main">{item.title}</div>
-                        <div className="text-[11px] text-cyan-600 dark:text-cyan-400 font-medium">
-                          {item.details}
-                        </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="text-xs sm:text-sm font-black text-main">{athleteName}</h4>
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#55198B] text-white">
+                          {sportIcon}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-sub font-medium flex items-center gap-1.5 mt-0.5">
+                        <span>{post.date}</span>
+                        <span>&bull;</span>
+                        <span className="text-amber-500 font-bold">RPE {post.rpe || 8}/10 Effort</span>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              {/* Attached Custom Media or Glowing Route Preview */}
-              {post.customMediaUrl && (
-                <div className="relative rounded-2xl overflow-hidden border border-glass max-h-56">
-                  <img
-                    src={post.customMediaUrl}
-                    alt="Workout Attached Photo"
-                    className="w-full h-auto object-cover max-h-56"
-                  />
-                  <div className="absolute bottom-2 left-2 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white font-bold flex items-center gap-1">
-                    <span>❤️ Made with Love on The Everything App</span>
+                  {/* Actions: Share, Edit, Delete */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onOpenSocialShare(post)}
+                      className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-sub hover:text-main transition-colors"
+                      title="Share to Instagram / Stories"
+                    >
+                      <Share2 size={15} />
+                    </button>
+                    <button
+                      onClick={() => onEditPost(post)}
+                      className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-sub hover:text-main transition-colors"
+                      title="Edit Post"
+                    >
+                      <Edit3 size={15} />
+                    </button>
+                    <button
+                      onClick={() => onDeletePost(post.id)}
+                      className="p-1.5 rounded-full hover:bg-rose-500/10 text-sub hover:text-rose-500 transition-colors"
+                      title="Delete Post"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {/* Motivational Quote Watermark */}
-              <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-2xl flex items-center justify-between gap-2">
-                <p className="text-[11px] italic font-medium text-main">
-                  "{post.motivationalQuote}" &mdash; <span className="font-bold text-amber-500">{post.quoteAuthor}</span>
-                </p>
-              </div>
-
-              {/* Bottom Post Actions Bar */}
-              <div className="flex items-center justify-between pt-2 border-t border-glass flex-wrap gap-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    className={`btn-google-tonal text-xs py-1.5 px-3 flex items-center gap-1 ${
-                      post.isLiked ? 'bg-rose-500/20 text-rose-500 border-rose-500/40' : ''
-                    }`}
-                    onClick={() => onLikePost(post.id)}
-                  >
-                    <Heart size={14} className={post.isLiked ? 'fill-rose-500 text-rose-500' : ''} />
-                    <span>{post.likesCount || 0} Kudos</span>
-                  </button>
-
-                  {post.gpsActivity && (
-                    <button
-                      className="btn-google-tonal text-xs py-1.5 px-3 flex items-center gap-1"
-                      onClick={() => onOpenFlyby(post.gpsActivity!)}
-                      title="Play Animated Route Flyby"
-                    >
-                      <Film size={14} />
-                      <span>Route Flyby</span>
-                    </button>
+                {/* Activity Title & Description */}
+                <div
+                  onClick={() => onSelectActivityDetail?.(post)}
+                  className="cursor-pointer space-y-1 group"
+                >
+                  <h3 className="text-base sm:text-lg font-black text-main group-hover:text-[#55198B] dark:group-hover:text-[#c084fc] transition-colors leading-snug">
+                    {post.title}
+                  </h3>
+                  {post.description && (
+                    <p className="text-xs text-sub leading-relaxed line-clamp-2">
+                      {post.description}
+                    </p>
                   )}
                 </div>
 
-                <button
-                  className="btn-google-primary text-xs py-1.5 px-4 flex items-center gap-1.5"
-                  onClick={() => onOpenSocialShare(post)}
-                  title="Generate & Share High-Resolution Poster"
+                {/* Telemetry Stage Preview (Map / Calisthenics Visual Graphic) */}
+                <div
+                  onClick={() => onSelectActivityDetail?.(post)}
+                  className="w-full rounded-2xl bg-slate-100 dark:bg-[#181c26] border border-glass p-3 cursor-pointer hover:border-[#55198B] transition-all"
                 >
-                  <Share2 size={14} />
-                  <span>Share Story (WhatsApp / Insta)</span>
-                </button>
+                  {post.sportType === 'calisthenics' ? (
+                    <div className="flex items-center justify-between py-2 px-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">💪</span>
+                        <div>
+                          <div className="text-xs font-bold text-main">Calisthenics Strength Protocol</div>
+                          <div className="text-[11px] text-sub">Chest, Back, Core &amp; Explosive Power</div>
+                        </div>
+                      </div>
+                      <div className="text-right font-mono font-bold text-xs text-[#55198B] dark:text-[#c084fc]">
+                        {post.totalSets || 12} Sets &bull; {post.totalReps || 160} Reps
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between py-2 px-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{post.sportType === 'cycle' ? '🚴' : '🏃'}</span>
+                        <div>
+                          <div className="text-xs font-bold text-main">GPS Route Tracked &bull; Outdoor</div>
+                          <div className="text-[11px] text-sub flex items-center gap-1">
+                            <TrendingUp size={11} className="text-emerald-500" />
+                            <span>+{post.elevationGainMeters || 65}m Elevation</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right font-mono font-bold text-xs text-[#55198B] dark:text-[#c084fc]">
+                        {post.totalDistanceKm.toFixed(2)} km &bull; {post.avgPaceMinKm || '5:04 /km'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Big 3 Strava Stats Grid */}
+                <div
+                  onClick={() => onSelectActivityDetail?.(post)}
+                  className="grid grid-cols-3 gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-[#181c26] border border-glass text-center cursor-pointer"
+                >
+                  <div>
+                    <div className="text-[9px] font-bold text-sub uppercase">
+                      {post.sportType === 'calisthenics' ? 'TOTAL SETS' : 'DISTANCE'}
+                    </div>
+                    <div className="text-base sm:text-lg font-black text-main font-mono mt-0.5">
+                      {post.sportType === 'calisthenics'
+                        ? `${post.totalSets || 12}`
+                        : `${post.totalDistanceKm.toFixed(2)} km`}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[9px] font-bold text-sub uppercase">
+                      {post.sportType === 'calisthenics' ? 'TOTAL REPS' : 'AVG PACE'}
+                    </div>
+                    <div className="text-base sm:text-lg font-black text-main font-mono mt-0.5">
+                      {post.sportType === 'calisthenics'
+                        ? `${post.totalReps || 160}`
+                        : (post.avgPaceMinKm || '5:04 /km')}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[9px] font-bold text-sub uppercase">TIME</div>
+                    <div className="text-base sm:text-lg font-black text-main font-mono mt-0.5">
+                      {post.totalMoveMinutes}m
+                    </div>
+                  </div>
+                </div>
+
+                {/* Secondary Stats & PR Achievements Ribbon */}
+                <div className="flex items-center justify-between text-[11px] text-sub px-1">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <Flame size={12} className="text-amber-500" /> {post.totalCalories || 480} kcal
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Zap size={12} className="text-[#55198B] dark:text-[#c084fc]" /> {post.totalHeartPoints || 32} pts
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 font-bold text-amber-500">
+                    <Trophy size={13} />
+                    <span>1 PR Achievement</span>
+                  </div>
+                </div>
+
+                {/* Card Footer: Kudos & Comments Action Bar */}
+                <div className="pt-2 border-t border-glass flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleKudosClick(post.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+                        post.isLiked
+                          ? 'bg-[#55198B] text-white shadow-sm'
+                          : 'bg-slate-100 dark:bg-slate-800 text-sub hover:text-main'
+                      }`}
+                    >
+                      <span>👏</span>
+                      <span>{post.likesCount || 0} Kudos</span>
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        setActiveCommentPostId(activeCommentPostId === post.id ? null : post.id)
+                      }
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-sub hover:text-main bg-slate-100 dark:bg-slate-800 transition-all"
+                    >
+                      <MessageSquare size={13} />
+                      <span>{post.comments?.length || 0}</span>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => onSelectActivityDetail?.(post)}
+                    className="btn-google-tonal text-xs py-1.5 px-3 flex items-center gap-1"
+                  >
+                    <BarChart3 size={13} />
+                    <span>Analysis &amp; Splits</span>
+                  </button>
+                </div>
+
+                {/* Collapsible Comments Drawer */}
+                {activeCommentPostId === post.id && (
+                  <div className="pt-3 border-t border-glass space-y-2.5 animate-fade-in">
+                    {post.comments && post.comments.length > 0 ? (
+                      <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                        {post.comments.map((c) => (
+                          <div key={c.id} className="text-xs bg-slate-50 dark:bg-[#181c26] p-2 rounded-xl border border-glass">
+                            <span className="font-bold text-main mr-1.5">{c.userName}:</span>
+                            <span className="text-sub">{c.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-sub italic">No comments yet. Cheer the athlete!</p>
+                    )}
+
+                    <form
+                      onSubmit={(e) => handleCommentSubmit(post.id, e)}
+                      className="flex gap-2"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Leave kudos comment..."
+                        value={commentInputs[post.id] || ''}
+                        onChange={(e) =>
+                          setCommentInputs((prev) => ({ ...prev, [post.id]: e.target.value }))
+                        }
+                        className="flex-1 px-3 py-1.5 rounded-xl bg-card border border-glass text-xs text-main focus:outline-none focus:border-[#55198B]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!commentInputs[post.id]?.trim()}
+                        className="btn-google-primary text-xs px-3 py-1.5 disabled:opacity-50"
+                      >
+                        <Send size={12} />
+                      </button>
+                    </form>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -6,6 +6,8 @@ import { SughoshDixitPortfolioTab } from './components/SughoshDixitPortfolioTab'
 import { GoogleFitHomeDashboard } from './components/GoogleFitHomeDashboard';
 import { StravaActivityFeed } from './components/StravaActivityFeed';
 import { CreateActivityPostModal } from './components/CreateActivityPostModal';
+import { StravaActivityDetailModal } from './components/StravaActivityDetailModal';
+import { StravaAthleteProfileModal } from './components/StravaAthleteProfileModal';
 import { DisciplineTab } from './components/DisciplineTab';
 import { CalisthenicsTab } from './components/CalisthenicsTab';
 import { FootballTab } from './components/FootballTab';
@@ -32,7 +34,8 @@ import type {
   GpsActivityLog,
   PersonalMilestones,
   SocialShareCardData,
-  StravaActivityPost
+  StravaActivityPost,
+  StravaComment
 } from './types';
 
 import {
@@ -45,6 +48,7 @@ import {
   initialCarnaticItems,
   initialInstrumentSongs,
   initialVedaSuktas,
+  initialStravaPosts,
   initialStats
 } from './utils/storage';
 
@@ -69,7 +73,7 @@ export function App() {
     loadFromStorage(KEYS.GPS_ACTIVITIES, [])
   );
   const [stravaPosts, setStravaPosts] = useState<StravaActivityPost[]>(() =>
-    loadFromStorage(KEYS.STRAVA_POSTS, [])
+    loadFromStorage(KEYS.STRAVA_POSTS, initialStravaPosts)
   );
   const [milestones, setMilestones] = useState<PersonalMilestones>(() =>
     loadFromStorage(KEYS.PERSONAL_MILESTONES, defaultMilestones)
@@ -103,6 +107,8 @@ export function App() {
   const [activeShareCardData, setActiveShareCardData] = useState<SocialShareCardData | null>(null);
   const [flybyActivity, setFlybyActivity] = useState<GpsActivityLog | null>(null);
   const [editingPost, setEditingPost] = useState<StravaActivityPost | null | undefined>(undefined);
+  const [selectedStravaActivityDetail, setSelectedStravaActivityDetail] = useState<StravaActivityPost | null>(null);
+  const [showAthleteProfileModal, setShowAthleteProfileModal] = useState<boolean>(false);
 
   // Sync state to local storage
   useEffect(() => {
@@ -201,6 +207,40 @@ export function App() {
           : p
       )
     );
+    if (selectedStravaActivityDetail && selectedStravaActivityDetail.id === id) {
+      setSelectedStravaActivityDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              isLiked: !prev.isLiked,
+              likesCount: (prev.likesCount || 0) + (prev.isLiked ? -1 : 1)
+            }
+          : null
+      );
+    }
+  };
+
+  const handleAddComment = (activityId: string, text: string) => {
+    const newComment: StravaComment = {
+      id: 'c_' + Date.now(),
+      userId: currentProfile,
+      userName: currentProfile === 'women' ? 'Shreya Dixit' : 'Sughosh Dixit',
+      avatar: currentProfile === 'women' ? '👩' : '👨',
+      text,
+      timestamp: Date.now()
+    };
+    setStravaPosts((prev) =>
+      prev.map((p) =>
+        p.id === activityId
+          ? { ...p, comments: [...(p.comments || []), newComment] }
+          : p
+      )
+    );
+    if (selectedStravaActivityDetail && selectedStravaActivityDetail.id === activityId) {
+      setSelectedStravaActivityDetail((prev) =>
+        prev ? { ...prev, comments: [...(prev.comments || []), newComment] } : null
+      );
+    }
   };
 
   const openShareFromGps = (act: GpsActivityLog) => {
@@ -293,6 +333,10 @@ export function App() {
             onLikePost={handleLikePost}
             onOpenFlyby={(act) => setFlybyActivity(act)}
             onOpenSocialShare={(post) => openShareFromPost(post)}
+            onSelectActivityDetail={(post) => setSelectedStravaActivityDetail(post)}
+            onOpenAthleteProfile={() => setShowAthleteProfileModal(true)}
+            onStartTracking={() => setGpsModalActivityType('run')}
+            onAddComment={handleAddComment}
           />
         )}
 
@@ -353,6 +397,33 @@ export function App() {
           <SettingsVaultTab quotes={quotes} onAddQuote={handleAddQuote} />
         )}
       </main>
+
+      {/* STRAVA ACTIVITY DETAIL & SPLITS ANALYSIS MODAL */}
+      {selectedStravaActivityDetail && (
+        <StravaActivityDetailModal
+          activity={selectedStravaActivityDetail}
+          currentProfile={currentProfile}
+          onClose={() => setSelectedStravaActivityDetail(null)}
+          onKudos={handleLikePost}
+          onAddComment={handleAddComment}
+          onOpenSocialShare={(act) => openShareFromPost(act)}
+          onOpenFlyby={(act) => {
+            if (act.gpsActivity) {
+              setSelectedStravaActivityDetail(null);
+              setFlybyActivity(act.gpsActivity);
+            }
+          }}
+        />
+      )}
+
+      {/* STRAVA ATHLETE PROFILE & TRAINING HEATMAP MODAL */}
+      {showAthleteProfileModal && (
+        <StravaAthleteProfileModal
+          currentProfile={currentProfile}
+          milestones={milestones}
+          onClose={() => setShowAthleteProfileModal(false)}
+        />
+      )}
 
       {/* GPS LIVE TRACKER MODAL */}
       {gpsModalActivityType && (

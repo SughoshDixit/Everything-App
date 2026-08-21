@@ -172,6 +172,12 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   };
 
   const handleSave = () => {
+    let sportType: 'run' | 'cycle' | 'calisthenics' | 'football' | 'walk' | 'workout' = 'workout';
+    if (includedItems.some((i) => i.category === 'gps_run')) sportType = 'run';
+    else if (includedItems.some((i) => i.category === 'gps_cycle')) sportType = 'cycle';
+    else if (includedItems.some((i) => i.category === 'calisthenics')) sportType = 'calisthenics';
+    else if (includedItems.some((i) => i.category === 'football')) sportType = 'football';
+
     const postToSave: StravaActivityPost = {
       id: initialPost?.id || `post_${Date.now()}`,
       date: initialPost?.date || todayStr,
@@ -179,6 +185,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
       userId: currentProfile,
       title: postTitle,
       description,
+      sportType: initialPost?.sportType || sportType,
       rpe,
       activities: includedItems,
       gpsActivity: todayGpsActivities[0],
@@ -190,8 +197,13 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
       totalMoveMinutes: totalMoveMins,
       totalCalories: totalMoveMins * 6,
       totalDistanceKm: totalDistance,
+      totalSets: todayWorkoutLogs.reduce((acc, w) => acc + w.setsCompleted, 0) || 12,
+      totalReps: todayWorkoutLogs.reduce((acc, w) => acc + w.repsCompleted.reduce((a, b) => a + b, 0), 0) || 160,
+      elevationGainMeters: todayGpsActivities.reduce((acc, g) => acc + (g.elevationGainMeters || 0), 0),
+      avgPaceMinKm: todayGpsActivities[0]?.avgPaceMinKm || '5:04 /km',
       likesCount: initialPost?.likesCount || 1,
-      isLiked: initialPost?.isLiked || false
+      isLiked: initialPost?.isLiked || false,
+      comments: initialPost?.comments || []
     };
 
     onSavePost(postToSave);

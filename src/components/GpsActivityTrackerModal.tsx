@@ -284,7 +284,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
           <div className="text-xs font-bold tracking-widest text-sub uppercase mb-0.5">DISTANCE COVERED</div>
           <div className="text-5xl md:text-6xl font-black text-main font-mono leading-none tracking-tight">
             {distanceKm.toFixed(2)}
-            <span className="text-2xl text-cyan-600 dark:text-cyan-400 font-normal ml-1">km</span>
+            <span className="text-2xl text-[#55198B] dark:text-[#c084fc] font-normal ml-1">km</span>
           </div>
 
           {/* Time & Pace Sub-Grid */}
@@ -298,7 +298,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
 
             <div>
               <div className="text-[8px] text-sub font-bold uppercase">PACE</div>
-              <div className="text-xs md:text-sm font-black text-cyan-600 dark:text-cyan-400 font-mono mt-0.5">
+              <div className="text-xs md:text-sm font-black text-[#55198B] dark:text-[#c084fc] font-mono mt-0.5">
                 {formatPace(distanceKm, durationSeconds)}
               </div>
             </div>
@@ -337,7 +337,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
               <path
                 d={routeSvgPath}
                 fill="none"
-                stroke="rgba(6, 182, 212, 0.3)"
+                stroke="rgba(85, 25, 139, 0.4)"
                 strokeWidth="8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -345,7 +345,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
               <path
                 d={routeSvgPath}
                 fill="none"
-                stroke="#CCFF00"
+                stroke="#c084fc"
                 strokeWidth="4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -353,7 +353,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
             </svg>
           ) : (
             <div className="text-center py-4">
-              <Compass className="icon-md text-cyan-400 mx-auto animate-spin-slow mb-1" />
+              <Compass className="icon-md text-[#55198B] dark:text-[#c084fc] mx-auto animate-spin-slow mb-1" />
               <p className="text-xs text-slate-400 font-semibold">
                 {isTracking ? 'Acquiring GPS Route coordinates...' : 'Press Start to begin tracking your live route.'}
               </p>

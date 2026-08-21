@@ -279,6 +279,46 @@ export interface CompiledActivityItem {
   includedInPost: boolean;
 }
 
+export interface StravaComment {
+  id: string;
+  userId: 'men' | 'women' | 'couple';
+  userName: string;
+  avatar: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface StravaAchievement {
+  id: string;
+  type: 'pr' | 'gold' | 'silver' | 'bronze' | 'challenge';
+  title: string;
+  subtitle: string;
+}
+
+export interface StravaGearItem {
+  id: string;
+  name: string;
+  type: 'shoes' | 'bike';
+  brand: string;
+  model: string;
+  totalDistanceKm: number;
+  maxDistanceKm: number;
+  isDefault?: boolean;
+}
+
+export interface StravaMonthlyChallenge {
+  id: string;
+  title: string;
+  sport: 'run' | 'cycle' | 'calisthenics' | 'all';
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  month: string;
+  isCompleted: boolean;
+  badgeIcon: string;
+  color: string;
+}
+
 export interface StravaActivityPost {
   id: string;
   date: string; // e.g. "Aug 20, 2026"
@@ -286,6 +326,7 @@ export interface StravaActivityPost {
   userId: 'men' | 'women' | 'couple';
   title: string;
   description?: string;
+  sportType: 'run' | 'cycle' | 'calisthenics' | 'football' | 'walk' | 'workout';
   rpe?: number; // 1-10 Perceived Exertion
   activities: CompiledActivityItem[];
   gpsActivity?: GpsActivityLog;
@@ -297,8 +338,23 @@ export interface StravaActivityPost {
   totalMoveMinutes: number;
   totalCalories: number;
   totalDistanceKm: number;
+  totalSets?: number;
+  totalReps?: number;
+  elevationGainMeters?: number;
+  avgPaceMinKm?: string;
+  avgSpeedKmh?: number;
+  maxSpeedKmh?: number;
+  avgHeartRate?: number;
+  maxHeartRate?: number;
+  sufferScore?: number;
   likesCount: number;
   isLiked?: boolean;
+  kudosUsers?: { userId: 'men' | 'women'; userName: string }[];
+  comments?: StravaComment[];
+  achievements?: StravaAchievement[];
+  gearId?: string;
+  gearName?: string;
+  splits?: ActivitySplit[];
 }
 
 export interface SocialShareCardData {
