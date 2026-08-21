@@ -190,8 +190,8 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
         {/* 4 Google Material 3 Stat Tiles Grid (Centered Horizontally & Vertically) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full mt-4 pt-4 border-t border-glass">
           {/* Tile 1: Heart Points */}
-          <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex flex-col items-center justify-center text-center">
-            <div className="flex items-center justify-center gap-1 text-cyan-600 dark:text-cyan-400 text-xs font-bold uppercase mb-0.5">
+          <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex flex-col items-center justify-center text-center">
+            <div className="flex items-center justify-center gap-1 text-[#55198B] dark:text-[#c084fc] text-xs font-bold uppercase mb-0.5">
               <Heart size={14} />
               <span>Heart Points</span>
             </div>
@@ -238,11 +238,11 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       {/* ------------------------------------------------------------------- */}
       {/* 2. GOOGLE FIT MANDATORY 150 WEEKLY HEART POINTS MILESTONE */}
       {/* ------------------------------------------------------------------- */}
-      <div className="google-card p-5 border-l-4 border-cyan-500">
+      <div className="google-card p-5 border-l-4 border-[#55198B]">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-black text-base shadow-sm">
-              💙
+            <div className="w-9 h-9 rounded-2xl bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center font-black text-base shadow-sm">
+              💜
             </div>
             <div>
               <h3 className="text-sm font-black text-main uppercase tracking-wide">
@@ -260,7 +260,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
                 <CheckCircle2 size={15} /> Goal Smashed!
               </span>
             ) : (
-              <span className="text-cyan-600 dark:text-cyan-400">{pointsRemaining} pts needed</span>
+              <span className="text-[#55198B] dark:text-[#c084fc]">{pointsRemaining} pts needed</span>
             )}
           </div>
         </div>
@@ -268,7 +268,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
         {/* Progress Bar */}
         <div className="w-full bg-slate-200 dark:bg-slate-800 h-3 rounded-full overflow-hidden border border-glass mb-4">
           <div
-            className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 transition-all duration-700 rounded-full"
+            className="h-full bg-gradient-to-r from-[#55198B] to-[#7b29be] transition-all duration-700 rounded-full"
             style={{ width: `${weeklyProgress}%` }}
           />
         </div>
@@ -282,14 +282,14 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
                 key={d.day}
                 className={`p-2 rounded-2xl border flex flex-col items-center justify-center text-center ${
                   d.isToday
-                    ? 'bg-cyan-500/15 border-cyan-500 text-main shadow-sm'
+                    ? 'bg-purple-500/15 border-[#55198B] text-main shadow-sm'
                     : 'bg-card border-glass text-sub'
                 }`}
               >
                 <span className="text-[10px] font-bold uppercase">{d.day}</span>
                 <div className="w-3 bg-slate-200 dark:bg-slate-800 h-11 rounded-full my-1.5 relative flex items-end overflow-hidden">
                   <div
-                    className="w-full bg-cyan-500 rounded-full transition-all duration-500"
+                    className="w-full bg-[#55198B] rounded-full transition-all duration-500"
                     style={{ height: `${barHeight}%` }}
                   />
                 </div>
@@ -458,7 +458,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
                 className="bg-card p-3.5 rounded-2xl border border-glass flex items-center justify-between flex-wrap gap-2.5 shadow-sm"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-lg shadow-sm">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center text-lg shadow-sm">
                     {act.activityType === 'run' ? '🏃' : '🚴'}
                   </div>
                   <div>

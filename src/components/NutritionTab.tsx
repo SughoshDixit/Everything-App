@@ -50,8 +50,8 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({ currentProfile }) =>
             />
           </div>
           <div className="stepper-buttons" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <button className="btn-icon bg-dark text-white rounded-full p-2" onClick={() => setWater((w) => Math.max(0, w - 0.5))}><Minus className="icon-sm" /></button>
-            <button className="btn-icon bg-cyan text-black rounded-full p-2" onClick={() => setWater((w) => w + 0.5)}><Plus className="icon-sm" /></button>
+            <button className="btn-icon bg-dark text-white rounded-full p-2 border border-glass" onClick={() => setWater((w) => Math.max(0, w - 0.5))}><Minus className="icon-sm" /></button>
+            <button className="btn-icon bg-[#55198B] text-white rounded-full p-2 shadow-sm" onClick={() => setWater((w) => w + 0.5)}><Plus className="icon-sm" /></button>
           </div>
         </div>
 

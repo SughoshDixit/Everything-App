@@ -163,7 +163,7 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
               {/* Post Header */}
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 flex items-center justify-center text-sm font-black shadow-sm">
+                  <div className="w-9 h-9 rounded-2xl bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center text-sm font-black shadow-sm">
                     {post.userId === 'women' ? '👩' : '👨'}
                   </div>
                   <div>

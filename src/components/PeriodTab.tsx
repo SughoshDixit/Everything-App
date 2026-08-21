@@ -375,7 +375,7 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
                 <button className="btn-secondary text-xs px-2 py-1" onClick={handlePrevMonth}>
                   &lt; Prev
                 </button>
-                <button className="btn-primary text-xs px-3 py-1 bg-cyan" onClick={handleTodayClick}>
+                <button className="btn-primary text-xs px-3 py-1" onClick={handleTodayClick}>
                   Today
                 </button>
                 <button className="btn-secondary text-xs px-2 py-1" onClick={handleNextMonth}>

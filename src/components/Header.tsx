@@ -53,14 +53,14 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => onNavigateTab?.('sughoshdixit')}
           className="flex items-center gap-2.5 text-left group cursor-pointer hover:opacity-90 transition-all"
         >
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#55198b] to-[#007acc] text-white flex items-center justify-center font-bold text-sm tracking-tight shadow-md group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#55198B] to-[#7b29be] text-white flex items-center justify-center font-bold text-sm tracking-tight shadow-md group-hover:scale-105 transition-transform">
             SD
           </div>
           <div>
-            <h1 className="text-base md:text-lg font-bold tracking-tight leading-tight text-main group-hover:text-[#00e5ff] transition-colors">
+            <h1 className="text-base md:text-lg font-bold tracking-tight leading-tight text-main group-hover:text-[#55198B] dark:group-hover:text-[#c084fc] transition-colors">
               Sughosh Dixit
             </h1>
-            <span className="text-[10px] font-bold text-cyan-400 tracking-wider uppercase block">
+            <span className="text-[10px] font-bold text-[#55198B] dark:text-[#c084fc] tracking-wider uppercase block">
               Everything App &bull; Ecosystem
             </span>
           </div>

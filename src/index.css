@@ -18,37 +18,39 @@
 
 :root,
 :root[data-theme="dark"] {
-  --bg-dark: #0c1017;
-  --bg-card: #131924;
-  --bg-card-hover: #1b2333;
+  --bg-dark: #0f1218;
+  --bg-card: #171b24;
+  --bg-card-hover: #1f2533;
   --border-glass: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(0, 229, 255, 0.3);
+  --border-glow: rgba(139, 92, 246, 0.35);
 
   --text-main: #f8fafc;
   --text-sub: #94a3b8;
   --text-muted: #64748b;
 
-  --accent-cyan: #00e5ff;
-  --accent-emerald: #00e676;
-  --accent-amber: #ffab00;
-  --accent-rose: #ff1744;
-  --accent-violet: #7c4dff;
-  --accent-indigo: #448aff;
-  --accent-lime: #76ff03;
-  --bg-oled: #05070a;
+  --accent-purple: #55198B;
+  --accent-purple-light: #7b29be;
+  --accent-cyan: #007ACC;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-violet: #8b5cf6;
+  --accent-indigo: #6366f1;
+  --accent-lime: #84cc16;
+  --bg-oled: #090c10;
 
-  /* Google Fit Material 3 Ring Colors (Dark) */
-  --ring-heart-track: rgba(0, 229, 255, 0.15);
-  --ring-heart-fill: #00e5ff;
-  --ring-move-track: rgba(0, 230, 118, 0.15);
-  --ring-move-fill: #00e676;
+  /* Google Fit & Metric Ring Colors (Dark) */
+  --ring-heart-track: rgba(85, 25, 139, 0.2);
+  --ring-heart-fill: #8b5cf6;
+  --ring-move-track: rgba(16, 185, 129, 0.2);
+  --ring-move-fill: #10b981;
 
-  --font-heading: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --radius-sm: 12px;
-  --radius-md: 20px;
-  --radius-lg: 28px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
   --radius-full: 9999px;
 }
 
@@ -56,34 +58,36 @@
   --bg-dark: #f8fafc;
   --bg-card: #ffffff;
   --bg-card-hover: #f1f5f9;
-  --border-glass: rgba(0, 0, 0, 0.08);
-  --border-glow: rgba(26, 115, 232, 0.3);
+  --border-glass: rgba(0, 0, 0, 0.07);
+  --border-glow: rgba(85, 25, 139, 0.25);
 
-  --text-main: #0f172a;
-  --text-sub: #475569;
-  --text-muted: #94a3b8;
+  --text-main: #161513;
+  --text-sub: #5a6c7d;
+  --text-muted: #8c9ba5;
 
-  --accent-cyan: #0284c7;
-  --accent-emerald: #16a34a;
-  --accent-amber: #d97706;
-  --accent-rose: #dc2626;
-  --accent-violet: #6d28d9;
-  --accent-indigo: #2563eb;
+  --accent-purple: #55198B;
+  --accent-purple-light: #7b29be;
+  --accent-cyan: #007ACC;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #e11d48;
+  --accent-violet: #55198B;
+  --accent-indigo: #4338ca;
   --accent-lime: #65a30d;
   --bg-oled: #ffffff;
 
-  /* Google Fit Material 3 Ring Colors (Light) */
-  --ring-heart-track: rgba(2, 132, 199, 0.15);
-  --ring-heart-fill: #0284c7;
-  --ring-move-track: rgba(22, 163, 74, 0.15);
-  --ring-move-fill: #16a34a;
+  /* Google Fit & Metric Ring Colors (Light) */
+  --ring-heart-track: rgba(85, 25, 139, 0.15);
+  --ring-heart-fill: #55198B;
+  --ring-move-track: rgba(16, 185, 129, 0.15);
+  --ring-move-fill: #10b981;
 
-  --font-heading: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --radius-sm: 12px;
-  --radius-md: 20px;
-  --radius-lg: 28px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
   --radius-full: 9999px;
 }
 
@@ -510,8 +514,9 @@ h1 {
 }
 
 .persona-btn.active {
-  background: var(--accent-cyan);
-  color: #0f172a;
+  background-color: #55198B !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(85, 25, 139, 0.35);
 }
 
 /* Navigation Bar */
@@ -533,10 +538,11 @@ h1 {
   padding: 0.65rem 1.1rem;
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
-  border-radius: var(--radius-full);
+  border-radius: 8px;
   color: var(--text-sub);
+  font-family: 'Montserrat', sans-serif;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
@@ -548,10 +554,10 @@ h1 {
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+  background-color: #55198B !important;
+  color: #fff !important;
+  border-color: #55198B !important;
+  box-shadow: 0 4px 15px rgba(85, 25, 139, 0.35) !important;
 }
 
 .nav-icon {
@@ -814,8 +820,8 @@ h1 {
 
 /* Calisthenics Tab Styling */
 .calisthenics-hero, .football-hero, .nutrition-hero, .music-hero, .settings-hero {
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(15, 23, 42, 0.8));
-  border-left: 4px solid var(--accent-cyan);
+  background: linear-gradient(135deg, rgba(85, 25, 139, 0.15), rgba(15, 23, 42, 0.8));
+  border-left: 4px solid #55198B;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -855,22 +861,24 @@ h1 {
 }
 
 .cat-pill {
-  padding: 0.4rem 0.9rem;
-  border-radius: var(--radius-full);
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
   border: 1px solid var(--border-glass);
   background: var(--bg-card);
   color: var(--text-sub);
+  font-family: 'Montserrat', sans-serif;
   font-size: 0.82rem;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.2s ease;
 }
 
 .cat-pill.active {
-  background: var(--accent-cyan);
-  color: #0f172a;
-  border-color: transparent;
-  font-weight: 700;
+  background-color: #55198B !important;
+  color: #ffffff !important;
+  border-color: #55198B !important;
+  box-shadow: 0 4px 12px rgba(85, 25, 139, 0.35);
 }
 
 .exercises-grid {
@@ -1210,20 +1218,27 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.65rem 1.25rem;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
-  color: #fff;
-  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  background-color: #55198B !important;
+  color: #ffffff !important;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
   font-size: 0.88rem;
-  border: none;
-  border-radius: var(--radius-sm);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border: 1px solid #55198B;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(85, 25, 139, 0.35);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
 }
 
 .btn-primary:hover {
-  opacity: 0.92;
-  transform: translateY(-1px);
+  background-color: #7b29be !important;
+  border-color: #7b29be !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(85, 25, 139, 0.45);
 }
 
 .btn-secondary {
@@ -1232,21 +1247,36 @@ h1 {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.65rem 1.25rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-weight: 500;
-  font-size: 0.88rem;
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-sm);
+  background: rgba(85, 25, 139, 0.1);
+  color: #55198B;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border: 1px solid rgba(85, 25, 139, 0.25);
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+:root[data-theme="dark"] .btn-secondary {
+  background: rgba(140, 67, 206, 0.15);
+  color: #c084fc;
+  border-color: rgba(140, 67, 206, 0.35);
+}
+
+.btn-secondary:hover {
+  background: rgba(85, 25, 139, 0.2);
 }
 
 .btn-text {
   background: none;
   border: none;
-  color: var(--accent-cyan);
-  font-size: 0.8rem;
-  font-weight: 600;
+  color: #55198B;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -1258,7 +1288,7 @@ h1 {
 .btn-check {
   width: 42px;
   height: 42px;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-glass);
   color: var(--text-muted);
@@ -1277,20 +1307,19 @@ h1 {
   font-weight: 700;
   padding: 0.2rem 0.6rem;
   border-radius: var(--radius-full);
-
 }
 
-.bg-cyan { background: rgba(6, 182, 212, 0.2); color: var(--accent-cyan); }
-.bg-amber { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
-.bg-emerald { background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald); }
-.bg-violet { background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); }
-.bg-rose { background: rgba(244, 63, 94, 0.2); color: var(--accent-rose); }
+.bg-cyan { background: rgba(0, 122, 204, 0.15); color: #007ACC; }
+.bg-amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+.bg-emerald { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+.bg-violet { background: rgba(85, 25, 139, 0.15); color: #55198B; }
+.bg-rose { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
 
 /* Utilities */
-.text-cyan { color: var(--accent-cyan); }
+.text-cyan { color: #007ACC; }
 .text-amber { color: var(--accent-amber); }
 .text-emerald { color: var(--accent-emerald); }
-.text-violet { color: var(--accent-violet); }
+.text-violet { color: #55198B; }
 .text-indigo { color: var(--accent-indigo); }
 .text-rose { color: var(--accent-rose); }
 .text-muted { color: var(--text-muted); }
@@ -1320,15 +1349,19 @@ h1 {
   padding: 0.5rem 1rem;
   background: none;
   border: none;
+  border-radius: 8px;
   color: var(--text-sub);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .subtab-btn.active {
-  color: var(--accent-violet);
-  border-bottom: 2px solid var(--accent-violet);
+  background-color: #55198B !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(85, 25, 139, 0.35);
 }
 
 .practice-timer-card {
@@ -1890,21 +1923,16 @@ h1 {
   transition: all 0.2s ease;
 }
 
-.gender-card.active-male {
-  border-color: var(--accent-cyan);
-  background: rgba(6, 182, 212, 0.15);
-  box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
-}
-
+.gender-card.active-male,
 .gender-card.active-female {
-  border-color: var(--accent-violet);
-  background: rgba(139, 92, 246, 0.15);
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.25);
+  border-color: #55198B;
+  background: rgba(85, 25, 139, 0.15);
+  box-shadow: 0 0 15px rgba(85, 25, 139, 0.3);
 }
 
 .bmi-badge {
-  background: rgba(6, 182, 212, 0.1);
-  border: 1px solid rgba(6, 182, 212, 0.3);
+  background: rgba(85, 25, 139, 0.1);
+  border: 1px solid rgba(85, 25, 139, 0.3);
   padding: 0.75rem;
 }
 
@@ -1937,7 +1965,7 @@ h1 {
 }
 
 .leap-human-stage {
-  background: radial-gradient(circle at center, rgba(6, 182, 212, 0.12) 0%, rgba(15, 23, 42, 0.95) 75%);
+  background: radial-gradient(circle at center, rgba(85, 25, 139, 0.15) 0%, rgba(15, 23, 42, 0.95) 75%);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
   padding: 0.5rem;
@@ -1984,6 +2012,7 @@ h1 {
   border: none;
   background: none;
   color: var(--text-sub);
+  font-family: 'Montserrat', sans-serif;
   font-weight: 700;
   font-size: 0.85rem;
   cursor: pointer;
@@ -1991,9 +2020,9 @@ h1 {
 }
 
 .leap-tab-btn.active {
-  background: #2563eb;
+  background: #55198B;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 4px 12px rgba(85, 25, 139, 0.4);
 }
 
 .video-player-frame {

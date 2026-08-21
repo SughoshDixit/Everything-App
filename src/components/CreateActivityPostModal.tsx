@@ -266,7 +266,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
                   onClick={() => handleToggleActivity(act.id)}
                   className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
                     act.includedInPost
-                      ? 'bg-cyan-500/10 border-cyan-500/50 text-main shadow-sm'
+                      ? 'bg-purple-500/10 border-[#55198B]/50 text-main shadow-sm'
                       : 'bg-card border-glass text-sub opacity-50'
                   }`}
                 >
@@ -276,13 +276,13 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
                     </span>
                     <div>
                       <h4 className="text-xs font-bold text-main">{act.title}</h4>
-                      <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-medium mt-0.5">{act.details}</p>
+                      <p className="text-[11px] text-[#55198B] dark:text-[#c084fc] font-medium mt-0.5">{act.details}</p>
                     </div>
                   </div>
 
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                      act.includedInPost ? 'bg-cyan-500 border-cyan-400 text-black shadow-sm' : 'border-slate-600'
+                      act.includedInPost ? 'bg-[#55198B] border-[#7b29be] text-white shadow-sm' : 'border-slate-600'
                     }`}
                   >
                     {act.includedInPost && <Check size={14} strokeWidth={3} />}

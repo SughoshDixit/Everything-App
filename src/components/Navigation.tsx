@@ -46,15 +46,18 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     <>
       <style>{`
         @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 5px rgba(6,182,212,0.3); } 50% { box-shadow: 0 0 20px rgba(6,182,212,0.6); } }
+        @keyframes pulsePurpleGlow { 0%, 100% { box-shadow: 0 0 8px rgba(85,25,139,0.3); } 50% { box-shadow: 0 0 22px rgba(123,41,190,0.6); } }
         .nav-item-animated {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          letter-spacing: 0.3px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .nav-item-animated:hover {
           transform: translateY(-2px) scale(1.03);
         }
         .nav-active-animated {
-          animation: slideInRight 0.3s ease-out, pulseGlow 2s infinite;
+          animation: slideInRight 0.3s ease-out, pulsePurpleGlow 2.5s infinite;
         }
       `}</style>
       <nav className="app-nav">

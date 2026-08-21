@@ -391,10 +391,10 @@ export const ComboWorkoutPlayer: React.FC<ComboWorkoutPlayerProps> = ({
             </div>
 
             <button
-              className="btn-primary w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase tracking-wider text-xs py-2.5"
+              className="btn-primary w-full text-white font-black uppercase tracking-wider text-xs py-2.5"
               onClick={handleSkipTransition}
             >
-              <Play size={14} fill="#000" className="inline mr-1" />
+              <Play size={14} fill="#fff" className="inline mr-1" />
               <span>Start Workout Now &rarr;</span>
             </button>
           </div>

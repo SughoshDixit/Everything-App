@@ -166,8 +166,8 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
       <div className="routine-section mt-4">
         <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 className="section-title m-0">Checklist</h2>
-          <button className="btn-icon bg-cyan rounded-full p-2" onClick={() => setShowAddModal(true)}>
-            <Plus className="icon-sm text-black" />
+          <button className="btn-icon bg-[#55198B] rounded-full p-2 text-white shadow-sm hover:bg-[#7b29be] transition-all" onClick={() => setShowAddModal(true)}>
+            <Plus className="icon-sm text-white" />
           </button>
         </div>
 
