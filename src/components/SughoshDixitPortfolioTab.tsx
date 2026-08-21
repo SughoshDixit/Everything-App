@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ExternalLink,
   Mail,
@@ -16,6 +16,29 @@ interface SughoshDixitPortfolioTabProps {
 export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> = () => {
   const [activeIdentityIndex, setActiveIdentityIndex] = useState<number>(0);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState<boolean>(false);
+  const [isKickAnimating, setIsKickAnimating] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkScroll = () => {
+      if (window.scrollY > 150) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', checkScroll);
+    return () => window.removeEventListener('scroll', checkScroll);
+  }, []);
+
+  const handleScrollToTop = () => {
+    setIsKickAnimating(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      setIsKickAnimating(false);
+    }, 600);
+  };
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -286,14 +309,108 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
   ];
 
   return (
-    <div className="portfolio-app-root bg-[#FAF8F6] dark:bg-[#161513] text-[#161513] dark:text-[#F5F4F2] min-h-screen font-sans -mx-4 sm:-mx-8 -my-6 pb-20 transition-colors duration-300">
+    <div className="portfolio-app-root bg-[#FAF8F6] dark:bg-[#161513] text-[#161513] dark:text-[#F5F4F2] min-h-screen font-['Montserrat',sans-serif] -mx-4 sm:-mx-8 -my-6 pb-24 transition-colors duration-300">
       <style>{`
-        /* EXACT STYLING FROM SughoshDixit.github.io */
+        /* EXACT Agustina Signature Logo */
+        .signature-logo {
+          font-family: "Agustina Regular", cursive, sans-serif;
+          font-size: 2.2rem;
+          font-weight: bold;
+          color: #007ACC;
+          text-decoration: none;
+          letter-spacing: 0.5px;
+          line-height: 1;
+        }
+
+        .signature-close {
+          font-family: monospace;
+          color: #55198B;
+          font-size: 1.8rem;
+          font-weight: bold;
+        }
+
+        .dark-mode .signature-logo,
+        :root[data-theme="dark"] .signature-logo {
+          color: #00e5ff;
+        }
+
+        .dark-mode .signature-close,
+        :root[data-theme="dark"] .signature-close {
+          color: #8C43CE;
+        }
+
+        /* 7 Social Media Icon Circles */
+        .social-circle-btn {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          cursor: pointer;
+        }
+        .social-circle-btn:hover {
+          transform: translateY(-4px) scale(1.12);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Hero Action Buttons (Exact Purple Buttons from Screenshot 1) */
+        .hero-purple-action-btn {
+          background-color: #55198B;
+          border: 1px solid #55198B;
+          color: #ffffff;
+          font-weight: 700;
+          padding: 13px 22px;
+          text-transform: uppercase;
+          border-radius: 6px;
+          text-align: center;
+          font-size: 0.92rem;
+          letter-spacing: 0.5px;
+          cursor: pointer;
+          transition: all 0.3s ease-in-out;
+          box-shadow: 0 4px 15px rgba(85, 25, 139, 0.3);
+          display: inline-block;
+          text-decoration: none;
+        }
+        .hero-purple-action-btn:hover {
+          background-color: #7b29be;
+          border-color: #7b29be;
+          transform: translateY(-3px);
+          box-shadow: 0 8px 22px rgba(85, 25, 139, 0.45);
+        }
+
+        /* Multi-Identity Rotating Orb */
+        .orb-rotating-container {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .orb-rotating-ring {
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: conic-gradient(from 0deg, #007ACC 0deg, #55198B 90deg, #FFD700 180deg, #228B22 270deg, #007ACC 360deg);
+          animation: spinOrb 8s linear infinite;
+        }
+        @keyframes spinOrb {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        /* My Four Pillars Exact Styling */
         .identity-cards-wrapper {
-          padding: 30px 12px;
-          margin: 20px 0;
+          padding: 36px 16px;
+          margin: 30px 0;
           background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 50%, rgba(255, 255, 255, 0.95) 100%);
-          border-radius: 24px;
+          border-radius: 28px;
         }
         .dark-mode .identity-cards-wrapper,
         :root[data-theme="dark"] .identity-cards-wrapper {
@@ -301,29 +418,28 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         }
 
         .cards-title-heading {
-          font-size: 1.8rem;
+          font-size: 2rem;
           font-weight: 800;
           background: linear-gradient(135deg, #55198B 0%, #007ACC 50%, #FFD700 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           text-align: center;
-          margin-bottom: 8px;
-          position: relative;
+          margin-bottom: 6px;
           display: inline-block;
         }
 
         .title-underline-bar {
-          width: 70px;
+          width: 80px;
           height: 4px;
           background: linear-gradient(90deg, #55198B 0%, #007ACC 50%, #FFD700 100%);
           border-radius: 2px;
-          margin: 6px auto 14px;
+          margin: 6px auto 16px;
         }
 
         .identity-card-item {
           background: #ffffff;
           border-radius: 24px;
-          padding: 24px 18px 20px;
+          padding: 26px 18px 22px;
           cursor: pointer;
           transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
           border: 2px solid transparent;
@@ -341,13 +457,13 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         .identity-card-item.active {
           transform: translateY(-8px) scale(1.02);
           border-color: var(--card-color);
-          box-shadow: 0 18px 36px rgba(0, 0, 0, 0.14);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.16);
         }
 
         .card-icon-circle {
           position: relative;
-          width: 64px;
-          height: 64px;
+          width: 68px;
+          height: 68px;
           margin: 0 auto 16px;
           display: flex;
           align-items: center;
@@ -399,104 +515,161 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
           100% { transform: translateX(100%); }
         }
 
-        .purple-btn-master {
-          background-color: #55198B;
-          color: #ffffff;
-          box-shadow: 0 4px 14px rgba(85, 25, 139, 0.35);
-          transition: all 0.2s ease;
+        /* Floating Football Scroll to Top Button */
+        .football-scroll-btn {
+          position: fixed;
+          bottom: 30px;
+          right: 25px;
+          z-index: 999;
+          border: none;
+          outline: none;
+          background: transparent;
+          cursor: pointer;
+          padding: 0;
+          width: 52px;
+          height: 52px;
+          visibility: hidden;
+          opacity: 0;
+          transform: scale(0.8);
+          transition: all 0.3s ease;
         }
-        .purple-btn-master:hover {
-          background-color: #8C43CE;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 18px rgba(140, 67, 206, 0.5);
+        .football-scroll-btn.visible {
+          visibility: visible;
+          opacity: 1;
+          transform: scale(1);
+        }
+        .football-scroll-btn:hover {
+          transform: scale(1.15);
+        }
+        .football-scroll-btn.animating {
+          animation: footballKick 0.6s ease-out;
+        }
+        @keyframes footballKick {
+          0% { transform: scale(1) rotate(0deg); }
+          50% { transform: scale(1.25) rotate(-20deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .football-ball-icon {
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), inset 0 2px 5px rgba(255, 255, 255, 0.9);
+          border: 2px solid #333333;
+          font-size: 24px;
+        }
+        .football-ball-icon span {
+          animation: spinBall 3s linear infinite;
+        }
+        @keyframes spinBall {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}</style>
 
       {/* ------------------------------------------------------------------- */}
-      {/* 1. PORTFOLIO TOP NAVIGATION (PIXEL-PERFECT MOBILE) */}
+      {/* 1. TOP HEADER WITH AGUSTINA SIGNATURE LOGO & ROTATING ORB */}
       {/* ------------------------------------------------------------------- */}
-      <nav className="sticky top-0 z-40 bg-white/95 dark:bg-[#1f232b]/95 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 py-3 shadow-xs">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#1f232b]/95 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 sm:px-8 py-3.5 shadow-xs">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <button
             onClick={() => scrollToSection('greeting')}
-            className="text-lg sm:text-xl font-bold font-mono tracking-tight text-[#161513] dark:text-white"
+            className="flex items-center text-left hover:opacity-85 transition-opacity"
           >
-            <span className="text-[#55198B] dark:text-[#8C43CE]">&lt;</span>
-            <span className="px-1 text-[#007ACC]">Sughosh Dixit</span>
-            <span className="text-[#55198B] dark:text-[#8C43CE]">/&gt;</span>
+            <span className="signature-logo">Sughosh Dixit</span>
+            <span className="signature-close">/&gt;</span>
           </button>
 
-          {/* Direct Resume Button */}
-          <a
-            href="https://drive.google.com/file/d/1Do_Aj8ruhq64P7Enq4giaJhtXpRcsHG2/view?usp=drive_link"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="purple-btn-master px-3.5 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider"
+          {/* Rotating Multi-Identity Orb Button */}
+          <div
+            onClick={() => scrollToSection('identity-pillars')}
+            className="orb-rotating-container shadow-md"
+            title="Explore 4 Pillars of Identity"
           >
-            Resume 📄
-          </a>
-        </div>
-      </nav>
-
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-12 pt-6">
-        {/* ------------------------------------------------------------------- */}
-        {/* 2. GREETING SECTION */}
-        {/* ------------------------------------------------------------------- */}
-        <section id="greeting" className="pt-4 text-center sm:text-left grid gap-8 sm:grid-cols-[1.2fr_1fr] items-center">
-          <div className="space-y-4">
-            <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight text-[#161513] dark:text-white">
-              नमस्ते, Sughosh here <span className="wave-hand-emoji">👋</span>
-            </h1>
-
-            <p className="text-xs sm:text-sm text-[#5a6c7d] dark:text-slate-300 leading-relaxed font-medium">
-              🧠 <strong>Data Scientist</strong> at Oracle Financial Crime &amp; Compliance &bull; 
-              🎵 <strong className="text-amber-500">Bhajan Singer</strong> &amp; Patriotic Music Enthusiast &bull; 
-              ⚽ <strong className="text-emerald-600 dark:text-emerald-400">Passionate Footballer</strong> &amp; Liverpool FC Devotee &bull; 
-              🇮🇳 <strong className="text-purple-600 dark:text-purple-400">Proud Indian Nationalist</strong> &bull; 
-              🎓 <strong className="text-blue-600 dark:text-blue-400">M.Tech Data Science</strong> from BITS Pilani.
-            </p>
-
-            {/* Social Media Link Row */}
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-2">
-              <a href="https://github.com/SughoshDixit9" target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-[#333] hover:text-white text-slate-700 dark:text-slate-200 transition-all shadow-xs" title="GitHub">
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-              </a>
-              <a href="https://www.linkedin.com/in/sughosh-dixit/" target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-[#0077b5] hover:text-white text-slate-700 dark:text-slate-200 transition-all shadow-xs" title="LinkedIn">
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-              </a>
-              <a href="mailto:sughoshpdixit@gmail.com" className="p-2.5 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-[#ea4335] hover:text-white text-slate-700 dark:text-slate-200 transition-all shadow-xs" title="Gmail">
-                <Mail size={16} />
-              </a>
-              <a href="https://www.instagram.com/sughoshdixit/" target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-[#e4405f] hover:text-white text-slate-700 dark:text-slate-200 transition-all shadow-xs" title="Instagram">
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-              </a>
-              <a href="https://medium.com/@sughoshpdixit" target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-black hover:text-white text-slate-700 dark:text-slate-200 transition-all shadow-xs font-bold text-xs" title="Medium">
-                M
-              </a>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-3">
-              <button
-                onClick={() => scrollToSection('contact')}
-                className="purple-btn-master px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider"
-              >
-                Contact Me ☎️
-              </button>
-              <button
-                onClick={() => scrollToSection('identity-pillars')}
-                className="px-5 py-2.5 rounded-2xl bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white transition-all"
-              >
-                Explore 4 Pillars 🏛️
-              </button>
+            <div className="orb-rotating-ring"></div>
+            <div className="relative w-8 h-8 rounded-full bg-white dark:bg-[#1a1d24] flex items-center justify-center text-sm z-10 font-bold shadow-xs">
+              ⚡
             </div>
           </div>
+        </div>
+      </header>
 
-          <div className="flex justify-center">
-            <div className="w-56 h-56 sm:w-64 sm:h-64 rounded-full bg-gradient-to-tr from-[#55198B]/20 via-[#007ACC]/20 to-[#FFD700]/20 p-3 shadow-xl border border-white/20 flex items-center justify-center">
+      {/* ------------------------------------------------------------------- */}
+      {/* 2. GREETING / HERO SECTION (EXACT REPLICA OF SCREENSHOT 1) */}
+      {/* ------------------------------------------------------------------- */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-12">
+        <section id="greeting" className="text-center space-y-6">
+          {/* Main Title */}
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#161513] dark:text-white leading-tight">
+            नमस्ते, Sughosh here <span className="wave-hand-emoji">👋</span>
+          </h1>
+
+          {/* Bio Subtitle */}
+          <p className="text-xs sm:text-sm text-[#5a6c7d] dark:text-slate-300 leading-relaxed max-w-2xl mx-auto font-medium">
+            🧠 Data Scientist at Oracle Financial Crime &amp; Compliance | 🎵 Bhajan Singer &amp; Patriotic Music Enthusiast | ⚽ Passionate Footballer &amp; Liverpool FC Devotee | 🇮🇳 Proud Indian Nationalist &amp; Civilizational Heritage Advocate | 🎓 Masters in Data Science from BITS Pilani. Building AI-driven solutions while preserving Bharatiya culture &amp; values 🌍🏆
+          </p>
+
+          {/* 7 Social Media Circular Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {/* GitHub */}
+            <a href="https://github.com/SughoshDixit9" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#333333]" title="GitHub">
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            </a>
+            {/* LinkedIn */}
+            <a href="https://www.linkedin.com/in/sughosh-dixit/" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#0077B5]" title="LinkedIn">
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+            </a>
+            {/* Email / Gmail */}
+            <a href="mailto:sughoshpdixit@gmail.com" className="social-circle-btn bg-[#EA4335]" title="Gmail">
+              <Mail size={18} />
+            </a>
+            {/* GitLab */}
+            <a href="https://gitlab.com" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#FCA326]" title="GitLab">
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M23.955 13.587l-1.342-4.135-2.664-8.189a.455.455 0 0 0-.867 0L16.418 9.45H7.582L4.918 1.263a.455.455 0 0 0-.867 0L1.387 9.452.045 13.587a.924.924 0 0 0 .331 1.023L12 23.054l11.624-8.444a.92.92 0 0 0 .331-1.023z"/></svg>
+            </a>
+            {/* Instagram */}
+            <a href="https://www.instagram.com/sughoshdixit/" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#E4405F]" title="Instagram">
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            </a>
+            {/* Medium */}
+            <a href="https://medium.com/@sughoshpdixit" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#000000]" title="Medium">
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"/></svg>
+            </a>
+            {/* Stack Overflow / Substack */}
+            <a href="https://stackoverflow.com" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#F48024]" title="Stack Overflow">
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18.986 21.865v-6.404h2.134V24H1.844v-8.539h2.13v6.404h15.012zM6.111 19.731H16.85v-2.137H6.111v2.137zm.259-4.852l10.48 2.189.451-2.07-10.478-2.187-.453 2.068zm1.359-5.056l9.659 4.66.935-1.927-9.655-4.66-.939 1.927zm3.177-4.996l8.038 7.203 1.41-1.615-8.04-7.202-1.408 1.614zm5.729-4.827l-1.745 1.233 6.077 8.603 1.743-1.233-6.075-8.603z"/></svg>
+            </a>
+          </div>
+
+          {/* Action Buttons: CONTACT ME & SEE MY RESUME Side-by-Side */}
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+            <button
+              onClick={() => scrollToSection('contact')}
+              className="hero-purple-action-btn"
+            >
+              CONTACT ME
+            </button>
+            <a
+              href="https://drive.google.com/file/d/1Do_Aj8ruhq64P7Enq4giaJhtXpRcsHG2/view?usp=drive_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hero-purple-action-btn"
+            >
+              SEE MY RESUME
+            </a>
+          </div>
+
+          {/* Centered Illustration Below Buttons */}
+          <div className="flex justify-center pt-6">
+            <div className="w-64 sm:w-80 h-auto">
               <img
                 src="/portfolio-assets/manOnTable.svg"
-                alt="Sughosh Dixit Developer"
-                className="w-full h-full object-contain"
+                alt="Developer Illustration"
+                className="w-full h-auto object-contain mx-auto"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
@@ -506,7 +679,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         </section>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 3. MY FOUR PILLARS OF IDENTITY (EXACT CLONE OF SCREENSHOT 2) */}
+        {/* 3. MY FOUR PILLARS OF IDENTITY (EXACT SCREENSHOT 2) */}
         {/* ------------------------------------------------------------------- */}
         <section id="identity-pillars" className="identity-cards-wrapper border border-black/5 dark:border-white/10 shadow-sm">
           <div className="text-center mb-8">
@@ -749,7 +922,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         </section>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 6. FEATURED PROJECTS & ACHIEVEMENTS */}
+        {/* 6. FEATURED PROJECTS */}
         {/* ------------------------------------------------------------------- */}
         <section id="projects" className="space-y-6">
           <div className="text-center">
@@ -876,7 +1049,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         </section>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 8. YOUTUBE & AI GALLERY */}
+        {/* 9. YOUTUBE & AI GALLERY */}
         {/* ------------------------------------------------------------------- */}
         <section id="youtube" className="space-y-6">
           <div className="text-center">
@@ -931,7 +1104,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         </section>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 9. CONTACT & FOOTER */}
+        {/* 10. CONTACT & FOOTER */}
         {/* ------------------------------------------------------------------- */}
         <section id="contact" className="p-6 rounded-3xl bg-white dark:bg-[#1f232b] border border-black/5 dark:border-white/10 text-center space-y-4 shadow-sm">
           <h2 className="text-2xl font-black text-[#1a1a1a] dark:text-white">Contact Me ☎️</h2>
@@ -964,7 +1137,20 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
             Made with ❤️ by Sughosh Dixit &bull; All Rights Reserved
           </p>
         </section>
-      </div>
+      </main>
+
+      {/* ------------------------------------------------------------------- */}
+      {/* 11. FLOATING FOOTBALL SCROLL-TO-TOP BUTTON (KICK ANIMATION) */}
+      {/* ------------------------------------------------------------------- */}
+      <button
+        onClick={handleScrollToTop}
+        className={`football-scroll-btn ${showScrollTop ? 'visible' : ''} ${isKickAnimating ? 'animating' : ''}`}
+        title="Scroll to Top ⚽"
+      >
+        <div className="football-ball-icon">
+          <span>⚽</span>
+        </div>
+      </button>
 
       {/* Image Preview Modal */}
       {previewImage && (
