@@ -111,13 +111,13 @@ export const ZoomableImageModal: React.FC<ZoomableImageModalProps> = ({
     <div className="modal-backdrop" style={{ zIndex: 10000, backgroundColor: 'rgba(0, 0, 0, 0.95)' }}>
       <div className="w-full h-full max-w-4xl max-h-[96vh] flex flex-col justify-between p-2 md:p-4 animate-scale-up">
         {/* Header Bar */}
-        <div className="flex items-center justify-between bg-zinc-950/90 backdrop-blur-md p-2.5 rounded-2xl border border-zinc-800 z-10">
+        <div className="flex items-center justify-between bg-zinc-950/95 backdrop-blur-md p-3 rounded-2xl border border-zinc-700 z-10">
           <button
-            className="btn-google-outlined text-xs py-1.5 px-3 flex items-center gap-1"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-black text-xs border border-white/30 transition-all cursor-pointer shadow-md"
             onClick={onClose}
           >
-            <ChevronLeft size={16} />
-            <span>Back</span>
+            <ChevronLeft size={18} strokeWidth={2.5} />
+            <span className="text-white">Back</span>
           </button>
 
           <div className="text-center px-2">
@@ -130,11 +130,11 @@ export const ZoomableImageModal: React.FC<ZoomableImageModalProps> = ({
           </div>
 
           <button
-            className="btn-google-icon"
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 hover:bg-white/30 text-white border border-white/30 transition-all cursor-pointer"
             onClick={onClose}
             aria-label="Close Viewer"
           >
-            <X size={16} />
+            <X size={18} strokeWidth={2.5} />
           </button>
         </div>
 

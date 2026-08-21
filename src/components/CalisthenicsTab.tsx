@@ -173,7 +173,7 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
                   </button>
                 </div>
 
-                <h3 className="text-base md:text-lg font-bold text-white mt-1">{routine.title}</h3>
+                <h3 className="text-base md:text-lg font-black text-main mt-1.5 mb-1">{routine.title}</h3>
                 
                 {/* Short Clean Metrics Tag */}
                 <div className="flex items-center gap-2 mt-1 mb-3">

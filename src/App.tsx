@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import type { TabType } from './components/Navigation';
+import { SughoshDixitHomePortal } from './components/SughoshDixitHomePortal';
 import { GoogleFitHomeDashboard } from './components/GoogleFitHomeDashboard';
 import { StravaActivityFeed } from './components/StravaActivityFeed';
 import { CreateActivityPostModal } from './components/CreateActivityPostModal';
@@ -52,7 +53,7 @@ import { defaultMilestones } from './utils/milestonesTracker';
 
 export function App() {
   const [currentProfile, setCurrentProfile] = useState<UserProfile>('men');
-  const [activeTab, setActiveTab] = useState<TabType>('fithub');
+  const [activeTab, setActiveTab] = useState<TabType>('home');
 
   // App Data State
   const [routines, setRoutines] = useState<RoutineItem[]>(() =>
@@ -263,6 +264,15 @@ export function App() {
 
       {/* View Content */}
       <main className="app-main">
+        {activeTab === 'home' && (
+          <SughoshDixitHomePortal
+            currentProfile={currentProfile}
+            stats={stats}
+            onNavigateTab={setActiveTab}
+            onOpenCreatePost={() => setEditingPost(null)}
+          />
+        )}
+
         {activeTab === 'fithub' && (
           <GoogleFitHomeDashboard
             currentProfile={currentProfile}
@@ -402,7 +412,7 @@ export function App() {
       )}
 
       <footer className="app-footer">
-        <p>&copy; {new Date().getFullYear()} Everything App &bull; Performance & Discipline Suite</p>
+        <p>&copy; {new Date().getFullYear()} Sughosh Dixit &bull; Everything App &bull; Performance & Discipline Suite</p>
       </footer>
     </div>
   );

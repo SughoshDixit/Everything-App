@@ -2,33 +2,37 @@
 
 :root,
 :root[data-theme="dark"] {
-  --bg-dark: #090d16;
-  --bg-card: rgba(19, 28, 46, 0.85);
-  --bg-card-hover: rgba(28, 41, 66, 0.95);
-  --border-glass: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(6, 182, 212, 0.3);
+  --bg-dark: #161513;
+  --bg-card: #201E1C;
+  --bg-card-hover: #2C2A27;
+  --border-glass: #3D3A36;
+  --border-glow: rgba(199, 70, 52, 0.35);
 
-  --text-main: #f8fafc;
-  --text-sub: #94a3b8;
-  --text-muted: #64748b;
+  --text-main: #F5F4F2;
+  --text-sub: #B8B4B0;
+  --text-muted: #6E6B68;
 
-  --accent-cyan: #06b6d4;
-  --accent-amber: #f59e0b;
+  --accent-cyan: #C74634; /* Redwood */
+  --accent-redwood: #C74634;
+  --accent-terracotta: #E8572A;
+  --accent-sage: #B8E0D8;
+  --accent-ivory: #F5E4D3;
+  --accent-amber: #E8572A;
   --accent-emerald: #10b981;
   --accent-violet: #8b5cf6;
   --accent-rose: #f43f5e;
-  --accent-indigo: #6366f1;
-  --accent-lime: #CCFF00;
-  --bg-oled: #000000;
+  --accent-indigo: #C74634;
+  --accent-lime: #10b981;
+  --bg-oled: #100f0e;
 
   /* Google Fit Material 3 Ring Colors (Dark) */
-  --ring-heart-track: rgba(6, 182, 212, 0.15);
-  --ring-heart-fill: #06b6d4;
-  --ring-move-track: rgba(16, 185, 129, 0.15);
-  --ring-move-fill: #10b981;
+  --ring-heart-track: rgba(199, 70, 52, 0.2);
+  --ring-heart-fill: #E8572A;
+  --ring-move-track: rgba(184, 224, 216, 0.2);
+  --ring-move-fill: #B8E0D8;
 
-  --font-heading: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Charter', 'Georgia', serif;
+  --font-body: 'DM Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   --radius-sm: 12px;
   --radius-md: 20px;
@@ -37,33 +41,37 @@
 }
 
 :root[data-theme="light"] {
-  --bg-dark: #f8f9fa;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f1f3f4;
-  --border-glass: #e8eaed;
-  --border-glow: rgba(26, 115, 232, 0.3);
+  --bg-dark: #FAF8F6;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FFFaf3;
+  --border-glass: #E0DDD9;
+  --border-glow: rgba(199, 70, 52, 0.25);
 
-  --text-main: #202124;
-  --text-sub: #5f6368;
-  --text-muted: #80868b;
+  --text-main: #161513;
+  --text-sub: #5E5645;
+  --text-muted: #9A8F75;
 
-  --accent-cyan: #1a73e8;
-  --accent-amber: #e37400;
+  --accent-cyan: #C74634;
+  --accent-redwood: #C74634;
+  --accent-terracotta: #E8572A;
+  --accent-sage: #4A7A71;
+  --accent-ivory: #FFFaf3;
+  --accent-amber: #E8572A;
   --accent-emerald: #1e8e3e;
   --accent-violet: #8430ce;
   --accent-rose: #d93025;
-  --accent-indigo: #1a73e8;
-  --accent-lime: #0d652d;
+  --accent-indigo: #C74634;
+  --accent-lime: #1e8e3e;
   --bg-oled: #ffffff;
 
   /* Google Fit Material 3 Ring Colors (Light) */
-  --ring-heart-track: #e8f0fe;
-  --ring-heart-fill: #1a73e8;
-  --ring-move-track: #e6f4ea;
-  --ring-move-fill: #1e8e3e;
+  --ring-heart-track: #F5E4D3;
+  --ring-heart-fill: #C74634;
+  --ring-move-track: #E2ECE9;
+  --ring-move-fill: #397A6E;
 
-  --font-heading: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Charter', 'Georgia', serif;
+  --font-body: 'DM Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 * {

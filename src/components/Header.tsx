@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { UserProfile, UserStats } from '../types';
-import { Flame, User, Users, ShieldCheck, Heart, Zap, Sun, Moon } from 'lucide-react';
+import { Flame, User, Users, Heart, Zap, Sun, Moon } from 'lucide-react';
 
 interface HeaderProps {
   currentProfile: UserProfile;
@@ -47,16 +47,17 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Top App Bar: Brand + Quick Actions */}
       <div className="flex items-center justify-between gap-3 pb-2.5">
         {/* Brand */}
+        {/* Brand: Sughosh Dixit Editorial & Everything App */}
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md">
-            <ShieldCheck size={20} />
+          <div className="w-9 h-9 rounded-full bg-[#C74634] text-white flex items-center justify-center font-bold text-sm tracking-tight shadow-md">
+            SD
           </div>
           <div>
-            <h1 className="text-base md:text-lg font-black tracking-wide leading-tight text-main">
-              EVERYTHING APP
+            <h1 className="text-base md:text-lg font-serif font-bold tracking-tight leading-tight text-main">
+              Sughosh Dixit
             </h1>
-            <span className="text-[10px] font-bold text-sub tracking-wider uppercase">
-              Performance & Fitness Hub
+            <span className="text-[10px] font-bold text-[#C74634] tracking-wider uppercase block">
+              Everything App &bull; Ecosystem
             </span>
           </div>
         </div>
