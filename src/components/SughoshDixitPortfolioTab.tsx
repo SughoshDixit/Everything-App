@@ -601,20 +601,20 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
       {/* ------------------------------------------------------------------- */}
       {/* 2. GREETING / HERO SECTION (EXACT REPLICA OF SCREENSHOT 1) */}
       {/* ------------------------------------------------------------------- */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-12">
-        <section id="greeting" className="text-center space-y-6">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-10 space-y-16">
+        <section id="greeting" className="text-center space-y-8">
           {/* Main Title */}
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#161513] dark:text-white leading-tight">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#161513] dark:text-white leading-tight">
             नमस्ते, Sughosh here <span className="wave-hand-emoji">👋</span>
           </h1>
 
-          {/* Bio Subtitle */}
-          <p className="text-xs sm:text-sm text-[#5a6c7d] dark:text-slate-300 leading-relaxed max-w-2xl mx-auto font-medium">
-            🧠 Data Scientist at Oracle Financial Crime &amp; Compliance | 🎵 Bhajan Singer &amp; Patriotic Music Enthusiast | ⚽ Passionate Footballer &amp; Liverpool FC Devotee | 🇮🇳 Proud Indian Nationalist &amp; Civilizational Heritage Advocate | 🎓 Masters in Data Science from BITS Pilani. Building AI-driven solutions while preserving Bharatiya culture &amp; values 🌍🏆
+          {/* Bio Subtitle with Increased Line Spacing */}
+          <p className="text-sm sm:text-base md:text-lg text-[#5a6c7d] dark:text-slate-300 leading-8 sm:leading-9 max-w-2xl mx-auto font-medium">
+            🧠 <strong className="text-[#161513] dark:text-white font-bold">Data Scientist</strong> at Oracle Financial Crime &amp; Compliance | 🎵 <strong className="text-amber-500 font-bold">Bhajan Singer</strong> &amp; Patriotic Music Enthusiast | ⚽ <strong className="text-emerald-600 dark:text-emerald-400 font-bold">Passionate Footballer</strong> &amp; Liverpool FC Devotee | 🇮🇳 <strong className="text-purple-600 dark:text-purple-400 font-bold">Proud Indian Nationalist</strong> &amp; Civilizational Heritage Advocate | 🎓 <strong className="text-blue-600 dark:text-blue-400 font-bold">Masters in Data Science</strong> from BITS Pilani. Building AI-driven solutions while preserving Bharatiya culture &amp; values 🌍🏆
           </p>
 
           {/* 7 Social Media Circular Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-3.5 pt-2">
             {/* GitHub */}
             <a href="https://github.com/SughoshDixit9" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#333333]" title="GitHub">
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -649,7 +649,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <button
               onClick={() => scrollToSection('contact')}
-              className="hero-purple-action-btn"
+              className="hero-purple-action-btn text-sm font-bold tracking-wider px-7 py-3.5"
             >
               CONTACT ME
             </button>
@@ -657,15 +657,15 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
               href="https://drive.google.com/file/d/1Do_Aj8ruhq64P7Enq4giaJhtXpRcsHG2/view?usp=drive_link"
               target="_blank"
               rel="noopener noreferrer"
-              className="hero-purple-action-btn"
+              className="hero-purple-action-btn text-sm font-bold tracking-wider px-7 py-3.5"
             >
               SEE MY RESUME
             </a>
           </div>
 
           {/* Centered Illustration Below Buttons */}
-          <div className="flex justify-center pt-6">
-            <div className="w-64 sm:w-80 h-auto">
+          <div className="flex justify-center pt-8">
+            <div className="w-72 sm:w-96 h-auto">
               <img
                 src="/portfolio-assets/manOnTable.svg"
                 alt="Developer Illustration"
@@ -682,18 +682,18 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         {/* 3. MY FOUR PILLARS OF IDENTITY (EXACT SCREENSHOT 2) */}
         {/* ------------------------------------------------------------------- */}
         <section id="identity-pillars" className="identity-cards-wrapper border border-black/5 dark:border-white/10 shadow-sm">
-          <div className="text-center mb-8">
-            <h2 className="cards-title-heading">
+          <div className="text-center mb-10">
+            <h2 className="cards-title-heading text-2xl sm:text-4xl">
               My Four Pillars of Identity
             </h2>
             <div className="title-underline-bar"></div>
-            <p className="text-xs sm:text-sm text-[#7f8c8d] dark:text-slate-400 font-medium">
+            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium mt-2">
               Click on any pillar to explore deeper
             </p>
           </div>
 
           {/* Cards Grid */}
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {identities.map((item, index) => {
               const isActive = activeIdentityIndex === index;
               return (
@@ -710,34 +710,34 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
                 >
                   {/* Card Icon with Pulsing Ring */}
                   <div className="card-icon-circle">
-                    <span className="text-3xl z-10">{item.icon}</span>
+                    <span className="text-3xl sm:text-4xl z-10">{item.icon}</span>
                     <div className="icon-ring-pulse"></div>
                   </div>
 
                   {/* Card Info */}
-                  <div className="text-center space-y-2">
-                    <h3 className="text-lg font-black text-[#1a1a1a] dark:text-white">
+                  <div className="text-center space-y-3">
+                    <h3 className="text-xl font-bold text-[#1a1a1a] dark:text-white leading-snug">
                       {item.title}
                     </h3>
-                    <p className="text-xs text-[#7f8c8d] dark:text-slate-300 leading-relaxed min-h-[3rem]">
+                    <p className="text-xs sm:text-sm text-[#7f8c8d] dark:text-slate-300 leading-6 min-h-[3.6rem]">
                       {item.description}
                     </p>
 
                     {/* Stats: Experience & Level */}
                     <div className="flex justify-center gap-6 py-2">
                       <div className="text-center">
-                        <span className="block text-xl font-black" style={{ color: item.color }}>
+                        <span className="block text-2xl font-black" style={{ color: item.color }}>
                           {item.experience}
                         </span>
-                        <span className="block text-[10px] text-[#7f8c8d] uppercase tracking-wider font-bold">
+                        <span className="block text-[11px] text-[#7f8c8d] uppercase tracking-wider font-bold mt-0.5">
                           Years
                         </span>
                       </div>
                       <div className="text-center">
-                        <span className="block text-xl font-black" style={{ color: item.color }}>
+                        <span className="block text-2xl font-black" style={{ color: item.color }}>
                           {item.level}
                         </span>
-                        <span className="block text-[10px] text-[#7f8c8d] uppercase tracking-wider font-bold">
+                        <span className="block text-[11px] text-[#7f8c8d] uppercase tracking-wider font-bold mt-0.5">
                           Level
                         </span>
                       </div>
@@ -748,7 +748,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
                       {item.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold border"
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold border"
                           style={{
                             color: item.color,
                             backgroundColor: `rgba(${item.colorRgb}, 0.08)`,
@@ -762,7 +762,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
 
                     {/* Shimmer Progress Bar */}
                     <div className="pt-2">
-                      <div className="w-full h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden shimmer-progress">
+                      <div className="w-full h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden shimmer-progress">
                         <div
                           className="h-full rounded-full transition-all duration-700"
                           style={{
@@ -771,7 +771,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
                           }}
                         ></div>
                       </div>
-                      <span className="block text-[10px] font-bold mt-1 text-center" style={{ color: item.color }}>
+                      <span className="block text-xs font-bold mt-1.5 text-center" style={{ color: item.color }}>
                         {item.progress}% Mastery
                       </span>
                     </div>
