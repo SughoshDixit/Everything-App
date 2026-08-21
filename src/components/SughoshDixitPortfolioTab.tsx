@@ -602,69 +602,86 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
       {/* 2. GREETING / HERO SECTION (EXACT REPLICA OF SCREENSHOT 1) */}
       {/* ------------------------------------------------------------------- */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-10 space-y-16">
-        <section id="greeting" className="text-center space-y-8">
+        <section id="greeting" className="text-center space-y-6">
           {/* Main Title */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#161513] dark:text-white leading-tight">
-            नमस्ते, Sughosh here <span className="wave-hand-emoji">👋</span>
-          </h1>
-
-          {/* Bio Subtitle with Increased Line Spacing */}
-          <p className="text-sm sm:text-base md:text-lg text-[#5a6c7d] dark:text-slate-300 leading-8 sm:leading-9 max-w-2xl mx-auto font-medium">
-            🧠 <strong className="text-[#161513] dark:text-white font-bold">Data Scientist</strong> at Oracle Financial Crime &amp; Compliance | 🎵 <strong className="text-amber-500 font-bold">Bhajan Singer</strong> &amp; Patriotic Music Enthusiast | ⚽ <strong className="text-emerald-600 dark:text-emerald-400 font-bold">Passionate Footballer</strong> &amp; Liverpool FC Devotee | 🇮🇳 <strong className="text-purple-600 dark:text-purple-400 font-bold">Proud Indian Nationalist</strong> &amp; Civilizational Heritage Advocate | 🎓 <strong className="text-blue-600 dark:text-blue-400 font-bold">Masters in Data Science</strong> from BITS Pilani. Building AI-driven solutions while preserving Bharatiya culture &amp; values 🌍🏆
-          </p>
-
-          {/* 7 Social Media Circular Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3.5 pt-2">
-            {/* GitHub */}
-            <a href="https://github.com/SughoshDixit9" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#333333]" title="GitHub">
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            </a>
-            {/* LinkedIn */}
-            <a href="https://www.linkedin.com/in/sughosh-dixit/" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#0077B5]" title="LinkedIn">
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-            </a>
-            {/* Email / Gmail */}
-            <a href="mailto:sughoshpdixit@gmail.com" className="social-circle-btn bg-[#EA4335]" title="Gmail">
-              <Mail size={18} />
-            </a>
-            {/* GitLab */}
-            <a href="https://gitlab.com" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#FCA326]" title="GitLab">
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M23.955 13.587l-1.342-4.135-2.664-8.189a.455.455 0 0 0-.867 0L16.418 9.45H7.582L4.918 1.263a.455.455 0 0 0-.867 0L1.387 9.452.045 13.587a.924.924 0 0 0 .331 1.023L12 23.054l11.624-8.444a.92.92 0 0 0 .331-1.023z"/></svg>
-            </a>
-            {/* Instagram */}
-            <a href="https://www.instagram.com/sughoshdixit/" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#E4405F]" title="Instagram">
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-            </a>
-            {/* Medium */}
-            <a href="https://medium.com/@sughoshpdixit" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#000000]" title="Medium">
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"/></svg>
-            </a>
-            {/* Stack Overflow / Substack */}
-            <a href="https://stackoverflow.com" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#F48024]" title="Stack Overflow">
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18.986 21.865v-6.404h2.134V24H1.844v-8.539h2.13v6.404h15.012zM6.111 19.731H16.85v-2.137H6.111v2.137zm.259-4.852l10.48 2.189.451-2.07-10.478-2.187-.453 2.068zm1.359-5.056l9.659 4.66.935-1.927-9.655-4.66-.939 1.927zm3.177-4.996l8.038 7.203 1.41-1.615-8.04-7.202-1.408 1.614zm5.729-4.827l-1.745 1.233 6.077 8.603 1.743-1.233-6.075-8.603z"/></svg>
-            </a>
+          <div className="pt-2 pb-1">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#161513] dark:text-white leading-tight">
+              नमस्ते, Sughosh here <span className="wave-hand-emoji">👋</span>
+            </h1>
           </div>
 
-          {/* Action Buttons: CONTACT ME & SEE MY RESUME Side-by-Side */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-            <button
-              onClick={() => scrollToSection('contact')}
-              className="hero-purple-action-btn text-sm font-bold tracking-wider px-7 py-3.5"
-            >
-              CONTACT ME
-            </button>
-            <a
-              href="https://drive.google.com/file/d/1Do_Aj8ruhq64P7Enq4giaJhtXpRcsHG2/view?usp=drive_link"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hero-purple-action-btn text-sm font-bold tracking-wider px-7 py-3.5"
-            >
-              SEE MY RESUME
-            </a>
+          {/* Bio Subtitle with spacious, elegant line spacing */}
+          <div className="max-w-2xl mx-auto py-2 space-y-3.5 text-slate-700 dark:text-slate-300">
+            <p className="text-sm sm:text-base md:text-lg leading-relaxed font-medium">
+              🧠 <strong className="text-[#161513] dark:text-white font-bold">Data Scientist</strong> at Oracle Financial Crime &amp; Compliance
+            </p>
+            <p className="text-sm sm:text-base md:text-lg leading-relaxed font-medium">
+              🎵 <strong className="text-amber-500 font-bold">Bhajan Singer</strong> &amp; Patriotic Music Enthusiast &bull; ⚽ <strong className="text-emerald-600 dark:text-emerald-400 font-bold">Passionate Footballer</strong> &amp; Liverpool FC Devotee
+            </p>
+            <p className="text-sm sm:text-base md:text-lg leading-relaxed font-medium">
+              🇮🇳 <strong className="text-purple-600 dark:text-purple-400 font-bold">Proud Indian Nationalist</strong> &amp; Civilizational Heritage Advocate
+            </p>
+            <p className="text-sm sm:text-base md:text-lg leading-relaxed font-medium">
+              🎓 <strong className="text-blue-600 dark:text-blue-400 font-bold">Masters in Data Science</strong> from BITS Pilani. Building AI-driven solutions while preserving Bharatiya culture &amp; values 🌍🏆
+            </p>
+          </div>
+
+          {/* 7 Social Media Circular Buttons with Generous Breathing Room */}
+          <div className="pt-6 pb-6">
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              {/* GitHub */}
+              <a href="https://github.com/SughoshDixit9" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#333333]" title="GitHub">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              </a>
+              {/* LinkedIn */}
+              <a href="https://www.linkedin.com/in/sughosh-dixit/" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#0077B5]" title="LinkedIn">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+              </a>
+              {/* Email / Gmail */}
+              <a href="mailto:sughoshpdixit@gmail.com" className="social-circle-btn bg-[#EA4335]" title="Gmail">
+                <Mail size={18} />
+              </a>
+              {/* GitLab */}
+              <a href="https://gitlab.com" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#FCA326]" title="GitLab">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M23.955 13.587l-1.342-4.135-2.664-8.189a.455.455 0 0 0-.867 0L16.418 9.45H7.582L4.918 1.263a.455.455 0 0 0-.867 0L1.387 9.452.045 13.587a.924.924 0 0 0 .331 1.023L12 23.054l11.624-8.444a.92.92 0 0 0 .331-1.023z"/></svg>
+              </a>
+              {/* Instagram */}
+              <a href="https://www.instagram.com/sughoshdixit/" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#E4405F]" title="Instagram">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              </a>
+              {/* Medium */}
+              <a href="https://medium.com/@sughoshpdixit" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#000000]" title="Medium">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z"/></svg>
+              </a>
+              {/* Stack Overflow / Substack */}
+              <a href="https://stackoverflow.com" target="_blank" rel="noopener noreferrer" className="social-circle-btn bg-[#F48024]" title="Stack Overflow">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18.986 21.865v-6.404h2.134V24H1.844v-8.539h2.13v6.404h15.012zM6.111 19.731H16.85v-2.137H6.111v2.137zm.259-4.852l10.48 2.189.451-2.07-10.478-2.187-.453 2.068zm1.359-5.056l9.659 4.66.935-1.927-9.655-4.66-.939 1.927zm3.177-4.996l8.038 7.203 1.41-1.615-8.04-7.202-1.408 1.614zm5.729-4.827l-1.745 1.233 6.077 8.603 1.743-1.233-6.075-8.603z"/></svg>
+              </a>
+            </div>
+          </div>
+
+          {/* Action Buttons: CONTACT ME & SEE MY RESUME Side-by-Side with plenty of space */}
+          <div className="pt-2 pb-8">
+            <div className="flex flex-wrap items-center justify-center gap-5">
+              <button
+                onClick={() => scrollToSection('contact')}
+                className="hero-purple-action-btn text-sm font-bold tracking-wider px-8 py-3.5"
+              >
+                CONTACT ME
+              </button>
+              <a
+                href="https://drive.google.com/file/d/1Do_Aj8ruhq64P7Enq4giaJhtXpRcsHG2/view?usp=drive_link"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hero-purple-action-btn text-sm font-bold tracking-wider px-8 py-3.5"
+              >
+                SEE MY RESUME
+              </a>
+            </div>
           </div>
 
           {/* Centered Illustration Below Buttons */}
-          <div className="flex justify-center pt-8">
+          <div className="flex justify-center pt-6">
             <div className="w-72 sm:w-96 h-auto">
               <img
                 src="/portfolio-assets/manOnTable.svg"
@@ -959,10 +976,10 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
                     href={p.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[#007ACC] hover:underline pt-1"
+                    className="btn-primary-purple text-xs py-2 px-4 rounded-lg font-bold inline-flex items-center justify-center gap-1.5 w-full mt-2"
                   >
-                    <span>View Details</span>
-                    <ExternalLink size={11} />
+                    <span>View Project</span>
+                    <ExternalLink size={12} />
                   </a>
                 </div>
               </div>
@@ -985,10 +1002,10 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
             {achievements.map((ach) => (
               <div
                 key={ach.title}
-                className="p-5 rounded-2xl bg-white dark:bg-[#1f232b] border border-black/5 dark:border-white/10 shadow-xs flex flex-col justify-between hover:border-amber-400 transition-all"
+                className="p-5 rounded-2xl bg-white dark:bg-[#1f232b] border border-black/5 dark:border-white/10 shadow-xs flex flex-col justify-between hover:border-[#55198B] transition-all"
               >
                 <div className="space-y-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-[#55198B] dark:text-purple-300 flex items-center justify-center">
                     <Trophy size={16} />
                   </div>
                   <h3 className="text-sm font-black text-[#1a1a1a] dark:text-white">{ach.title}</h3>
@@ -1000,10 +1017,10 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
                     href={ach.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-amber-500 hover:underline"
+                    className="btn-primary-purple text-xs py-2 px-4 rounded-lg font-bold inline-flex items-center justify-center gap-1.5 w-full"
                   >
-                    <span>View Certificate / Paper</span>
-                    <ExternalLink size={11} />
+                    <span>View Certificate</span>
+                    <ExternalLink size={12} />
                   </a>
                 </div>
               </div>

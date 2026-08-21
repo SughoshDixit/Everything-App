@@ -164,38 +164,51 @@ body {
   border-color: var(--border-glow);
 }
 
-/* Material 3 Buttons */
-.btn-google-primary {
+/* Universal Signature Purple Button (Matching SEE MY RESUME & CONTACT ME) */
+.btn-google-primary,
+.btn-primary-purple,
+button.btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.65rem 1.4rem;
-  border-radius: var(--radius-full);
-  font-family: var(--font-heading);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-family: 'Montserrat', sans-serif;
   font-weight: 700;
-  font-size: 0.85rem;
-  letter-spacing: 0.01em;
-  background: linear-gradient(135deg, #1a73e8, #00875a);
-  color: #ffffff;
-  border: none;
+  font-size: 0.88rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background-color: #55198B !important;
+  color: #ffffff !important;
+  border: 1px solid #55198B;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.25);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(85, 25, 139, 0.35);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
 }
 
-:root[data-theme="dark"] .btn-google-primary {
-  background: linear-gradient(135deg, #06b6d4, #10b981);
-  color: #000000;
-  box-shadow: 0 2px 12px rgba(6, 182, 212, 0.3);
+:root[data-theme="dark"] .btn-google-primary,
+:root[data-theme="dark"] .btn-primary-purple,
+:root[data-theme="dark"] button.btn-primary {
+  background-color: #55198B !important;
+  color: #ffffff !important;
+  border-color: #55198B;
+  box-shadow: 0 4px 16px rgba(85, 25, 139, 0.45);
 }
 
-.btn-google-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(26, 115, 232, 0.35);
+.btn-google-primary:hover,
+.btn-primary-purple:hover,
+button.btn-primary:hover {
+  background-color: #7b29be !important;
+  border-color: #7b29be !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(85, 25, 139, 0.45);
 }
 
-.btn-google-primary:active {
+.btn-google-primary:active,
+.btn-primary-purple:active,
+button.btn-primary:active {
   transform: translateY(0);
 }
 
@@ -204,26 +217,28 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  padding: 0.55rem 1.15rem;
-  border-radius: var(--radius-full);
-  font-family: var(--font-heading);
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-family: 'Montserrat', sans-serif;
   font-weight: 700;
   font-size: 0.82rem;
-  background: rgba(26, 115, 232, 0.1);
-  color: #1a73e8;
-  border: 1px solid rgba(26, 115, 232, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: rgba(85, 25, 139, 0.1);
+  color: #55198B;
+  border: 1px solid rgba(85, 25, 139, 0.25);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 :root[data-theme="dark"] .btn-google-tonal {
-  background: rgba(6, 182, 212, 0.12);
-  color: #06b6d4;
-  border-color: rgba(6, 182, 212, 0.25);
+  background: rgba(140, 67, 206, 0.15);
+  color: #c084fc;
+  border-color: rgba(140, 67, 206, 0.35);
 }
 
 .btn-google-tonal:hover {
-  background: rgba(26, 115, 232, 0.18);
+  background: rgba(85, 25, 139, 0.2);
 }
 
 .btn-google-outlined {
