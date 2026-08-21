@@ -313,21 +313,21 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         /* EXACT Agustina Signature Logo */
         .signature-logo {
           font-family: "Agustina Regular", cursive, sans-serif;
-          font-size: 1.4rem;
+          font-size: 1.22rem;
           font-weight: bold;
           color: #007ACC;
           text-decoration: none;
           letter-spacing: 0.5px;
           line-height: 1.2;
           display: inline-block;
-          padding-left: 6px;
+          padding-left: 10px;
           padding-right: 2px;
         }
 
         .signature-close {
           font-family: monospace;
           color: #55198B;
-          font-size: 1.2rem;
+          font-size: 1.1rem;
           font-weight: bold;
           display: inline-block;
           margin-left: 2px;
@@ -335,11 +335,11 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
 
         @media (min-width: 640px) {
           .signature-logo {
-            font-size: 1.6rem;
-            padding-left: 8px;
+            font-size: 1.45rem;
+            padding-left: 12px;
           }
           .signature-close {
-            font-size: 1.35rem;
+            font-size: 1.25rem;
           }
         }
 
@@ -595,11 +595,11 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
       {/* ------------------------------------------------------------------- */}
       {/* 1. TOP HEADER WITH AGUSTINA SIGNATURE LOGO & ROTATING ORB */}
       {/* ------------------------------------------------------------------- */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#1f232b]/95 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-5 sm:px-8 py-3.5 shadow-xs">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#1f232b]/95 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-6 sm:px-8 py-3.5 shadow-xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
           <button
             onClick={() => scrollToSection('greeting')}
-            className="flex items-center text-left hover:opacity-85 transition-opacity pl-1 sm:pl-2"
+            className="flex items-center text-left hover:opacity-85 transition-opacity pl-2 sm:pl-3"
           >
             <span className="signature-logo">Sughosh Dixit</span>
             <span className="signature-close">/&gt;</span>
@@ -622,12 +622,12 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
       {/* ------------------------------------------------------------------- */}
       {/* 2. GREETING / HERO SECTION (STRICTLY EQUIDISTANT VERTICAL & HORIZONTAL SPACING) */}
       {/* ------------------------------------------------------------------- */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-16">
+      <main className="max-w-4xl mx-auto px-5 sm:px-6 pt-7 space-y-14">
         <section id="greeting" className="text-center flex flex-col items-center justify-center gap-7 sm:gap-8 pt-2 pb-2 w-full">
           {/* 1. Main Title (Horizontally Symmetrical & Equidistant) */}
-          <div className="w-full flex items-center justify-center text-center">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-[#161513] dark:text-white leading-tight flex items-center justify-center flex-wrap gap-2 text-center mx-auto">
-              <span>नमस्ते, Sughosh here</span> <span className="wave-hand-emoji">👋</span>
+          <div className="w-full flex items-center justify-center text-center px-2">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#161513] dark:text-white leading-snug inline-flex items-center justify-center flex-wrap gap-2 text-center mx-auto">
+              <span>नमस्ते, Sughosh here</span> <span className="wave-hand-emoji text-2xl sm:text-3xl">👋</span>
             </h1>
           </div>
 
