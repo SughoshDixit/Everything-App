@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
 import type { TabType } from './components/Navigation';
-import { SughoshDixitHomePortal } from './components/SughoshDixitHomePortal';
+import { SughoshDixitPortfolioTab } from './components/SughoshDixitPortfolioTab';
 import { GoogleFitHomeDashboard } from './components/GoogleFitHomeDashboard';
 import { StravaActivityFeed } from './components/StravaActivityFeed';
 import { CreateActivityPostModal } from './components/CreateActivityPostModal';
@@ -53,7 +53,7 @@ import { defaultMilestones } from './utils/milestonesTracker';
 
 export function App() {
   const [currentProfile, setCurrentProfile] = useState<UserProfile>('men');
-  const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [activeTab, setActiveTab] = useState<TabType>('fithub');
 
   // App Data State
   const [routines, setRoutines] = useState<RoutineItem[]>(() =>
@@ -257,6 +257,7 @@ export function App() {
         currentProfile={currentProfile}
         onSelectProfile={setCurrentProfile}
         stats={stats}
+        onNavigateTab={(tab) => setActiveTab(tab)}
       />
 
       {/* Main Tab Navigation */}
@@ -264,15 +265,6 @@ export function App() {
 
       {/* View Content */}
       <main className="app-main">
-        {activeTab === 'home' && (
-          <SughoshDixitHomePortal
-            currentProfile={currentProfile}
-            stats={stats}
-            onNavigateTab={setActiveTab}
-            onOpenCreatePost={() => setEditingPost(null)}
-          />
-        )}
-
         {activeTab === 'fithub' && (
           <GoogleFitHomeDashboard
             currentProfile={currentProfile}
@@ -304,6 +296,15 @@ export function App() {
           />
         )}
 
+        {activeTab === 'calisthenics' && (
+          <CalisthenicsTab
+            logs={workoutLogs}
+            currentProfile={currentProfile}
+            onLogWorkout={handleLogWorkout}
+            onOpenCreatePost={() => setEditingPost(null)}
+          />
+        )}
+
         {activeTab === 'routine' && (
           <DisciplineTab
             currentProfile={currentProfile}
@@ -312,15 +313,6 @@ export function App() {
             stats={stats}
             onToggleRoutine={handleToggleRoutine}
             onAddRoutine={handleAddRoutine}
-          />
-        )}
-
-        {activeTab === 'calisthenics' && (
-          <CalisthenicsTab
-            logs={workoutLogs}
-            currentProfile={currentProfile}
-            onLogWorkout={handleLogWorkout}
-            onOpenCreatePost={() => setEditingPost(null)}
           />
         )}
 
@@ -333,6 +325,10 @@ export function App() {
 
         {activeTab === 'nutrition' && (
           <NutritionTab currentProfile={currentProfile} />
+        )}
+
+        {activeTab === 'sughoshdixit' && (
+          <SughoshDixitPortfolioTab onOpenCreatePost={() => setEditingPost(null)} />
         )}
 
         {activeTab === 'period' && (

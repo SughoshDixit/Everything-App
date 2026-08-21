@@ -6,12 +6,14 @@ interface HeaderProps {
   currentProfile: UserProfile;
   onSelectProfile: (profile: UserProfile) => void;
   stats: UserStats;
+  onNavigateTab?: (tab: 'sughoshdixit') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentProfile,
   onSelectProfile,
-  stats
+  stats,
+  onNavigateTab
 }) => {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try {
@@ -46,21 +48,23 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="app-header pb-2 mb-1">
       {/* Top App Bar: Brand + Quick Actions */}
       <div className="flex items-center justify-between gap-3 pb-2.5">
-        {/* Brand */}
-        {/* Brand: Sughosh Dixit Editorial & Everything App */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-[#C74634] text-white flex items-center justify-center font-bold text-sm tracking-tight shadow-md">
+        {/* Brand: Sughosh Dixit & Everything App */}
+        <button
+          onClick={() => onNavigateTab?.('sughoshdixit')}
+          className="flex items-center gap-2.5 text-left group cursor-pointer hover:opacity-90 transition-all"
+        >
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#55198b] to-[#007acc] text-white flex items-center justify-center font-bold text-sm tracking-tight shadow-md group-hover:scale-105 transition-transform">
             SD
           </div>
           <div>
-            <h1 className="text-base md:text-lg font-serif font-bold tracking-tight leading-tight text-main">
+            <h1 className="text-base md:text-lg font-bold tracking-tight leading-tight text-main group-hover:text-[#00e5ff] transition-colors">
               Sughosh Dixit
             </h1>
-            <span className="text-[10px] font-bold text-[#C74634] tracking-wider uppercase block">
+            <span className="text-[10px] font-bold text-cyan-400 tracking-wider uppercase block">
               Everything App &bull; Ecosystem
             </span>
           </div>
-        </div>
+        </button>
 
         {/* Right Actions: Theme Toggle Circle & Streak Pill */}
         <div className="flex items-center gap-2">

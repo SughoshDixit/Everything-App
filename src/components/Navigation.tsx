@@ -7,10 +7,21 @@ import {
   Utensils,
   Heart,
   Music,
-  Sliders
+  Sliders,
+  User
 } from 'lucide-react';
 
-export type TabType = 'home' | 'fithub' | 'feed' | 'calisthenics' | 'routine' | 'football' | 'nutrition' | 'period' | 'music_veda' | 'settings';
+export type TabType =
+  | 'fithub'
+  | 'feed'
+  | 'calisthenics'
+  | 'routine'
+  | 'football'
+  | 'nutrition'
+  | 'sughoshdixit'
+  | 'period'
+  | 'music_veda'
+  | 'settings';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -19,13 +30,13 @@ interface NavigationProps {
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const tabs = [
-    { id: 'home', label: '🏠 Home', icon: Activity },
     { id: 'fithub', label: '📊 Fit Hub', icon: Activity },
-    { id: 'feed', label: '🏃 Feed', icon: Activity },
+    { id: 'feed', label: '🏃 Activity Feed', icon: Activity },
     { id: 'calisthenics', label: '💪 Workout', icon: Dumbbell },
     { id: 'routine', label: '📅 Routine', icon: CalendarDays },
     { id: 'football', label: '⚽ Football', icon: Trophy },
     { id: 'nutrition', label: '🥗 Nutrition', icon: Utensils },
+    { id: 'sughoshdixit', label: '👤 Sughosh Dixit', icon: User },
     { id: 'period', label: '🌸 Cycle', icon: Heart },
     { id: 'music_veda', label: '🎵 Music', icon: Music },
     { id: 'settings', label: '⚙️ Settings', icon: Sliders }
@@ -58,8 +69,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
                 style={{ animationDelay: `${index * 0.05}s` }}
                 onClick={() => onTabChange(t.id as TabType)}
               >
-                <Icon className="nav-icon" />
-                <span className="nav-label">{t.label}</span>
+                <Icon size={16} />
+                <span>{t.label}</span>
               </button>
             );
           })}
