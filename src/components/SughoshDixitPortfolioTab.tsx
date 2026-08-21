@@ -313,21 +313,21 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         /* EXACT Agustina Signature Logo */
         .signature-logo {
           font-family: "Agustina Regular", cursive, sans-serif;
-          font-size: 1.22rem;
+          font-size: 1.05rem;
           font-weight: bold;
           color: #007ACC;
           text-decoration: none;
           letter-spacing: 0.5px;
           line-height: 1.2;
           display: inline-block;
-          padding-left: 10px;
+          padding-left: 12px;
           padding-right: 2px;
         }
 
         .signature-close {
           font-family: monospace;
           color: #55198B;
-          font-size: 1.1rem;
+          font-size: 0.95rem;
           font-weight: bold;
           display: inline-block;
           margin-left: 2px;
@@ -335,11 +335,11 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
 
         @media (min-width: 640px) {
           .signature-logo {
-            font-size: 1.45rem;
-            padding-left: 12px;
+            font-size: 1.3rem;
+            padding-left: 14px;
           }
           .signature-close {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
           }
         }
 
@@ -622,12 +622,12 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
       {/* ------------------------------------------------------------------- */}
       {/* 2. GREETING / HERO SECTION (STRICTLY EQUIDISTANT VERTICAL & HORIZONTAL SPACING) */}
       {/* ------------------------------------------------------------------- */}
-      <main className="max-w-4xl mx-auto px-5 sm:px-6 pt-7 space-y-14">
-        <section id="greeting" className="text-center flex flex-col items-center justify-center gap-7 sm:gap-8 pt-2 pb-2 w-full">
-          {/* 1. Main Title (Horizontally Symmetrical & Equidistant) */}
+      <main className="max-w-4xl mx-auto px-5 sm:px-6 pt-12 sm:pt-16 space-y-14">
+        <section id="greeting" className="text-center flex flex-col items-center justify-center gap-7 sm:gap-8 pt-4 pb-2 w-full">
+          {/* 1. Main Title (Moved Down, Compact & Perfectly Centered) */}
           <div className="w-full flex items-center justify-center text-center px-2">
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#161513] dark:text-white leading-snug inline-flex items-center justify-center flex-wrap gap-2 text-center mx-auto">
-              <span>नमस्ते, Sughosh here</span> <span className="wave-hand-emoji text-2xl sm:text-3xl">👋</span>
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-black tracking-tight text-[#161513] dark:text-white leading-snug inline-flex items-center justify-center flex-wrap gap-2 text-center mx-auto">
+              <span>नमस्ते, Sughosh here</span> <span className="wave-hand-emoji text-xl sm:text-2xl">👋</span>
             </h1>
           </div>
 
