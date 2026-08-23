@@ -134,69 +134,99 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
 
   const education = [
     {
-      schoolName: "BITS PILANI",
-      degree: "Master of Technology in Data Science and Engineering",
-      duration: "September 2021 - September 2023",
-      desc: "Hustled through work and studies with a focus on AI-driven projects",
-      bullets: ["Collaborated on cutting-edge AI/ML models", "Specialization in Deep Learning & Financial Analytics"]
+      schoolName: "BITS Pilani",
+      degree: "Master of Technology in Data Science & Engineering",
+      icon: "🎓",
+      duration: "Sept 2021 – Sept 2023",
+      durationBadge: "Master's Degree",
+      desc: "Advanced specializations in Machine Learning, Statistical Modeling & Enterprise AI algorithms.",
+      bullets: [
+        "Graduated while working full-time at Oracle with top academic performance",
+        "Specialized in Deep Learning, NLP & Predictive Financial Modeling"
+      ],
+      color: "#007ACC",
+      colorRgb: "0, 122, 204",
+      tags: ["Deep Learning", "Financial Analytics", "AI Systems"]
     },
     {
       schoolName: "Bangalore Institute of Technology",
-      degree: "Bachelor of Technology in Information Science and Engineering",
-      duration: "September 2016 - April 2020",
-      desc: "Top 10% in program, developing deep foundations in engineering",
-      bullets: ["Worked on impactful internships and hackathons", "President of Cultural & Tech societies"]
+      degree: "Bachelor of Engineering in Information Science",
+      icon: "🏛️",
+      duration: "Sept 2016 – April 2020",
+      durationBadge: "Bachelor's Degree",
+      desc: "Comprehensive engineering foundation in data structures, algorithms, and cloud computing.",
+      bullets: [
+        "Graduated in top 10% of engineering cohort with distinction",
+        "Led university cultural & tech societies and published research papers"
+      ],
+      color: "#55198B",
+      colorRgb: "85, 25, 139",
+      tags: ["Data Structures", "Algorithms", "Software Engineering"]
     }
   ];
 
   const experiences = [
     {
       role: "Data Scientist",
-      company: "Oracle Financial Crime and Compliance Management",
+      company: "Oracle Financial Crime & Compliance Management",
+      icon: "🧠",
       date: "October 2024 – Present",
-      desc: "Building Machine Learning models to combat financial crimes and optimize Anti-Money Laundering efforts. 🌐💼",
-      bullets: [
-        "Analyzing financial data for fraud detection & suspicious patterns",
-        "Developing predictive models to detect suspicious transactions",
-        "Collaborating with cross-functional teams for risk mitigation"
-      ],
       tag: "Current Role",
-      color: "#007ACC"
+      desc: "Building Machine Learning models to combat financial crimes and optimize Anti-Money Laundering efforts.",
+      bullets: [
+        "Analyzing financial transaction data for fraud detection & suspicious activity patterns",
+        "Developing scalable predictive ML models to detect high-risk anomalies",
+        "Collaborating with global cross-functional teams for risk mitigation & compliance"
+      ],
+      color: "#007ACC",
+      colorRgb: "0, 122, 204",
+      tags: ["AI / ML", "Deep Learning", "Fraud Analytics", "AML"]
     },
     {
       role: "Senior Technical Cloud Analyst",
-      company: "Oracle",
+      company: "Oracle Cloud HCM",
+      icon: "☁️",
       date: "September 2020 – September 2024",
-      desc: "Led Data Extraction and SQL Reports for Oracle Cloud HCM projects",
-      bullets: [
-        "Developed custom SQL data extractors for enterprise cloud clients",
-        "Optimized database query performance across large-scale HCM datasets"
-      ],
       tag: "4 Years",
-      color: "#F80000"
+      desc: "Led Data Extraction pipelines and custom analytical SQL reporting across global enterprise cloud clients.",
+      bullets: [
+        "Architected custom SQL data extractors for Tier-1 enterprise cloud clients",
+        "Optimized database query execution across large-scale HCM datasets",
+        "Automated recurring client telemetry and enterprise migration workflows"
+      ],
+      color: "#F80000",
+      colorRgb: "248, 0, 0",
+      tags: ["Oracle Cloud", "SQL Extractor", "Enterprise HCM", "Data Pipelines"]
     },
     {
       role: "Full Stack Developer Intern",
       company: "Siemens",
+      icon: "⚡",
       date: "February 2020 – May 2020",
-      desc: "Worked on a Live Lead Gen Project - 'Project Chanakya'",
-      bullets: [
-        "Engineered full stack automation dashboards for enterprise lead conversion"
-      ],
       tag: "Internship",
-      color: "#28A745"
+      desc: "Developed end-to-end industrial automation and lead-generation dashboards in 'Project Chanakya'.",
+      bullets: [
+        "Engineered full stack automation dashboards for enterprise lead conversion",
+        "Integrated secure API workflows with backend database pipelines"
+      ],
+      color: "#28A745",
+      colorRgb: "40, 167, 69",
+      tags: ["Full Stack", "Spring Boot", "React", "Automation"]
     },
     {
       role: "Web Development Intern",
       company: "Printalytix",
+      icon: "🖨️",
       date: "July 2018 – September 2018",
-      desc: "Worked as a design intern, participated as a guide in a national innovation competition organized by Niti-Aayog at Workbench Projects, Bangalore.",
-      bullets: [
-        "Designed BPMN for industrial 3D manufacturing scenarios",
-        "Operated FDM 3D printers and produced functional prototypes"
-      ],
       tag: "Internship",
-      color: "#FF6B35"
+      desc: "Designed industrial 3D manufacturing scenarios and guided teams at national Niti-Aayog innovation competition.",
+      bullets: [
+        "Modeled BPMN architecture for industrial 3D manufacturing workflows",
+        "Operated precision FDM 3D printers and produced functional prototypes"
+      ],
+      color: "#FF6B35",
+      colorRgb: "255, 107, 53",
+      tags: ["3D Printing", "BPMN", "Rapid Prototyping", "Niti-Aayog"]
     }
   ];
 
@@ -911,40 +941,98 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         </section>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 5. WORK EXPERIENCE (FULL-SIZE PROMINENT SECTION) */}
+        {/* 5. WORK EXPERIENCE (MY FOUR PILLARS ELEGANT CARD ARCHITECTURE) */}
         {/* ------------------------------------------------------------------- */}
-        <section id="experience" className="space-y-6">
+        <section id="experience" className="space-y-8">
           <div className="text-center">
-            <h2 className="text-2xl sm:text-3xl font-black text-[#1a1a1a] dark:text-white">
+            <h2 className="cards-title-heading text-2xl sm:text-4xl">
               Work Experience 💼
             </h2>
-            <p className="text-xs text-[#7f8c8d] mt-1">Professional track record at Oracle & Siemens across Data Science, AI & Enterprise Cloud</p>
+            <div className="title-underline-bar"></div>
+            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium mt-1">
+              Professional track record at Oracle &amp; Siemens across Data Science, AI &amp; Enterprise Cloud
+            </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             {experiences.map((exp) => (
               <div
                 key={exp.role + exp.company}
-                className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#1f232b] border border-black/5 dark:border-white/10 shadow-xs flex flex-col justify-between hover:border-[#007ACC] transition-all border-l-4"
-                style={{ borderLeftColor: exp.color }}
+                className="identity-card-item flex flex-col justify-between"
+                style={
+                  {
+                    '--card-color': exp.color,
+                    '--card-color-rgb': exp.colorRgb
+                  } as React.CSSProperties
+                }
               >
-                <div className="space-y-2">
-                  <div className="flex justify-between items-start flex-wrap gap-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{exp.date}</span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/5 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                      {exp.tag}
-                    </span>
+                <div>
+                  {/* Card Icon with Pulsing Accent Ring */}
+                  <div className="card-icon-circle">
+                    <span className="text-3xl sm:text-4xl z-10">{exp.icon}</span>
+                    <div className="icon-ring-pulse"></div>
                   </div>
-                  <h3 className="text-base sm:text-lg font-black text-[#1a1a1a] dark:text-white">{exp.role}</h3>
-                  <p className="text-xs sm:text-sm font-bold text-[#007ACC]">{exp.company}</p>
-                  <p className="text-xs text-[#7f8c8d] dark:text-slate-300 leading-relaxed">{exp.desc}</p>
+
+                  {/* Role Title & Company */}
+                  <div className="text-center space-y-1.5">
+                    <h3 className="text-lg sm:text-xl font-black text-[#1a1a1a] dark:text-white leading-snug">
+                      {exp.role}
+                    </h3>
+                    <p className="text-xs sm:text-sm font-bold tracking-wide" style={{ color: exp.color }}>
+                      {exp.company}
+                    </p>
+
+                    {/* Timeline & Status Badges (Equidistant & Elegant) */}
+                    <div className="flex items-center justify-center gap-2 py-2 flex-wrap">
+                      <span
+                        className="px-3 py-1 rounded-full text-xs font-semibold"
+                        style={{
+                          color: exp.color,
+                          backgroundColor: `rgba(${exp.colorRgb}, 0.1)`
+                        }}
+                      >
+                        📅 {exp.date}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/5 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                        {exp.tag}
+                      </span>
+                    </div>
+
+                    {/* Clean Overview Description */}
+                    <p className="text-xs sm:text-sm text-[#7f8c8d] dark:text-slate-300 font-['Montserrat',sans-serif] leading-relaxed text-center font-normal px-2 pt-1">
+                      {exp.desc}
+                    </p>
+
+                    {/* Borderless Skill Tags */}
+                    <div className="flex flex-wrap gap-1.5 justify-center pt-2 pb-1">
+                      {exp.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="px-2.5 py-0.5 rounded-lg text-[11px] font-semibold"
+                          style={{
+                            color: exp.color,
+                            backgroundColor: `rgba(${exp.colorRgb}, 0.08)`
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="pt-3 border-t border-black/5 dark:border-white/10 mt-3">
-                  <ul className="space-y-1.5 text-xs text-[#5a6c7d] dark:text-slate-300">
+                {/* Key Contributions Breakdown */}
+                <div className="pt-4 border-t border-black/5 dark:border-white/10 mt-4 space-y-2">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#7f8c8d] text-center">
+                    Key Contributions
+                  </div>
+                  <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300 font-['Montserrat',sans-serif] leading-relaxed">
                     {exp.bullets.map((b, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <span style={{ color: exp.color }}>&bull;</span>
+                      <li key={i} className="flex items-start gap-2">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                          style={{ backgroundColor: exp.color }}
+                        ></span>
                         <span>{b}</span>
                       </li>
                     ))}
@@ -958,29 +1046,96 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         {/* ------------------------------------------------------------------- */}
         {/* 5B. EDUCATION & ACADEMIC HONORS */}
         {/* ------------------------------------------------------------------- */}
-        <section id="education" className="space-y-6">
+        <section id="education" className="space-y-8">
           <div className="text-center">
-            <h2 className="text-2xl sm:text-3xl font-black text-[#1a1a1a] dark:text-white">
+            <h2 className="cards-title-heading text-2xl sm:text-4xl">
               Education &amp; Academic Honors 🎓
             </h2>
-            <p className="text-xs text-[#7f8c8d] mt-1">Master of Technology from BITS Pilani &amp; B.Tech in Information Science</p>
+            <div className="title-underline-bar"></div>
+            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium mt-1">
+              Master of Technology from BITS Pilani &amp; B.E. in Information Science
+            </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             {education.map((edu) => (
-              <div key={edu.schoolName} className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#1f232b] border border-black/5 dark:border-white/10 shadow-xs flex flex-col justify-between hover:border-[#007ACC] transition-all border-l-4 border-l-[#007ACC]">
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-[#007ACC] uppercase tracking-wider">{edu.duration}</span>
-                  <h3 className="text-base sm:text-lg font-black text-[#1a1a1a] dark:text-white">{edu.schoolName}</h3>
-                  <p className="text-xs sm:text-sm font-bold text-[#5a6c7d] dark:text-slate-300">{edu.degree}</p>
-                  <p className="text-xs text-[#7f8c8d] leading-relaxed">{edu.desc}</p>
+              <div
+                key={edu.schoolName}
+                className="identity-card-item flex flex-col justify-between"
+                style={
+                  {
+                    '--card-color': edu.color,
+                    '--card-color-rgb': edu.colorRgb
+                  } as React.CSSProperties
+                }
+              >
+                <div>
+                  {/* Card Icon with Pulsing Accent Ring */}
+                  <div className="card-icon-circle">
+                    <span className="text-3xl sm:text-4xl z-10">{edu.icon}</span>
+                    <div className="icon-ring-pulse"></div>
+                  </div>
+
+                  {/* School & Degree */}
+                  <div className="text-center space-y-1.5">
+                    <h3 className="text-lg sm:text-xl font-black text-[#1a1a1a] dark:text-white leading-snug">
+                      {edu.schoolName}
+                    </h3>
+                    <p className="text-xs sm:text-sm font-bold tracking-wide" style={{ color: edu.color }}>
+                      {edu.degree}
+                    </p>
+
+                    {/* Timeline & Degree Badges */}
+                    <div className="flex items-center justify-center gap-2 py-2 flex-wrap">
+                      <span
+                        className="px-3 py-1 rounded-full text-xs font-semibold"
+                        style={{
+                          color: edu.color,
+                          backgroundColor: `rgba(${edu.colorRgb}, 0.1)`
+                        }}
+                      >
+                        📅 {edu.duration}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/5 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                        {edu.durationBadge}
+                      </span>
+                    </div>
+
+                    {/* Overview */}
+                    <p className="text-xs sm:text-sm text-[#7f8c8d] dark:text-slate-300 font-['Montserrat',sans-serif] leading-relaxed text-center font-normal px-2 pt-1">
+                      {edu.desc}
+                    </p>
+
+                    {/* Borderless Focus Tags */}
+                    <div className="flex flex-wrap gap-1.5 justify-center pt-2 pb-1">
+                      {edu.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="px-2.5 py-0.5 rounded-lg text-[11px] font-semibold"
+                          style={{
+                            color: edu.color,
+                            backgroundColor: `rgba(${edu.colorRgb}, 0.08)`
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="pt-3 border-t border-black/5 dark:border-white/10 mt-3">
-                  <ul className="space-y-1.5 text-xs text-[#5a6c7d] dark:text-slate-300">
+                {/* Key Highlights */}
+                <div className="pt-4 border-t border-black/5 dark:border-white/10 mt-4 space-y-2">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#7f8c8d] text-center">
+                    Academic Highlights
+                  </div>
+                  <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300 font-['Montserrat',sans-serif] leading-relaxed">
                     {edu.bullets.map((b, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-[#007ACC]">&bull;</span>
+                      <li key={i} className="flex items-start gap-2">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                          style={{ backgroundColor: edu.color }}
+                        ></span>
                         <span>{b}</span>
                       </li>
                     ))}
