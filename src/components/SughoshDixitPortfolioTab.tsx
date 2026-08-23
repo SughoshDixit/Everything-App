@@ -42,7 +42,13 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+      const headerOffset = 80;
+      const elementPosition = el.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
@@ -475,7 +481,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           text-align: center;
-          margin-bottom: 6px;
+          margin-bottom: 2px;
           display: inline-block;
         }
 
@@ -484,7 +490,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
           height: 4px;
           background: linear-gradient(90deg, #55198B 0%, #007ACC 50%, #FFD700 100%);
           border-radius: 2px;
-          margin: 6px auto 8px;
+          margin: 4px auto 6px;
         }
 
         .identity-card-item {
@@ -747,13 +753,13 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         {/* ------------------------------------------------------------------- */}
         {/* 3. MY FOUR PILLARS OF IDENTITY (EXACT SCREENSHOT 2) */}
         {/* ------------------------------------------------------------------- */}
-        <section id="identity-pillars" className="identity-cards-wrapper border border-black/5 dark:border-white/10 shadow-sm">
+        <section id="identity-pillars" className="identity-cards-wrapper border border-black/5 dark:border-white/10 shadow-sm scroll-mt-24">
           <div className="text-center mb-8 sm:mb-10">
             <h2 className="cards-title-heading text-2xl sm:text-4xl">
               My Four Pillars of Identity
             </h2>
             <div className="title-underline-bar"></div>
-            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium -mt-1">
+            <p className="text-xs sm:text-sm text-[#7f8c8d] dark:text-slate-400 font-medium -mt-1 tracking-wide">
               Click on any pillar to explore deeper
             </p>
           </div>
@@ -943,13 +949,13 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         {/* ------------------------------------------------------------------- */}
         {/* 5. WORK EXPERIENCE (MY FOUR PILLARS ELEGANT CARD ARCHITECTURE) */}
         {/* ------------------------------------------------------------------- */}
-        <section id="experience" className="space-y-8">
+        <section id="experience" className="space-y-8 scroll-mt-24">
           <div className="text-center mb-8 sm:mb-10">
             <h2 className="cards-title-heading text-2xl sm:text-4xl">
               Work Experience 💼
             </h2>
             <div className="title-underline-bar"></div>
-            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium -mt-1 max-w-xl mx-auto">
+            <p className="text-xs sm:text-sm text-[#7f8c8d] dark:text-slate-400 font-medium -mt-1 max-w-xl mx-auto tracking-wide">
               Professional track record at Oracle &amp; Siemens across Data Science, AI &amp; Enterprise Cloud
             </p>
           </div>
@@ -1046,13 +1052,13 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         {/* ------------------------------------------------------------------- */}
         {/* 5B. EDUCATION & ACADEMIC HONORS */}
         {/* ------------------------------------------------------------------- */}
-        <section id="education" className="space-y-8">
+        <section id="education" className="space-y-8 scroll-mt-24">
           <div className="text-center mb-8 sm:mb-10">
             <h2 className="cards-title-heading text-2xl sm:text-4xl">
               Education &amp; Academic Honors 🎓
             </h2>
             <div className="title-underline-bar"></div>
-            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium -mt-1 max-w-xl mx-auto">
+            <p className="text-xs sm:text-sm text-[#7f8c8d] dark:text-slate-400 font-medium -mt-1 max-w-xl mx-auto tracking-wide">
               Master of Technology from BITS Pilani &amp; B.E. in Information Science
             </p>
           </div>
