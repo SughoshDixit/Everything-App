@@ -6,10 +6,14 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.ViewGroup
+import android.webkit.ConsoleMessage
 import android.webkit.GeolocationPermissions
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -24,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.webkit.WebViewAssetLoader
 
 class MainActivity : ComponentActivity() {
 
@@ -81,6 +86,10 @@ fun AppWebView(
     AndroidView(
         modifier = modifier,
         factory = { context ->
+            val assetLoader = WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+                .build()
+
             WebView(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -91,7 +100,6 @@ fun AppWebView(
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
-                    databaseEnabled = true
                     allowFileAccess = true
                     allowContentAccess = true
                     loadWithOverviewMode = true
@@ -102,6 +110,7 @@ fun AppWebView(
                     cacheMode = WebSettings.LOAD_DEFAULT
                     mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                     setGeolocationEnabled(true)
+                    mediaPlaybackRequiresUserGesture = false
                 }
 
                 webChromeClient = object : WebChromeClient() {
@@ -111,22 +120,48 @@ fun AppWebView(
                     ) {
                         callback?.invoke(origin, true, false)
                     }
+
+                    override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                        Log.d(
+                            "EverythingAppWeb",
+                            "${consoleMessage?.message()} -- From line ${consoleMessage?.lineNumber()} of ${consoleMessage?.sourceId()}"
+                        )
+                        return true
+                    }
                 }
 
                 webViewClient = object : WebViewClient() {
+                    override fun shouldInterceptRequest(
+                        view: WebView?,
+                        request: WebResourceRequest?
+                    ): WebResourceResponse? {
+                        return request?.url?.let { assetLoader.shouldInterceptRequest(it) }
+                    }
+
                     override fun shouldOverrideUrlLoading(
                         view: WebView?,
                         request: WebResourceRequest?
                     ): Boolean {
                         val url = request?.url?.toString() ?: ""
-                        if (url.startsWith("file:///android_asset/")) {
+                        if (url.startsWith("https://appassets.androidplatform.net/")) {
                             return false
                         }
                         return false
                     }
+
+                    override fun onReceivedError(
+                        view: WebView?,
+                        request: WebResourceRequest?,
+                        error: WebResourceError?
+                    ) {
+                        Log.e(
+                            "EverythingAppWeb",
+                            "WebView Error: ${error?.description} for ${request?.url}"
+                        )
+                    }
                 }
 
-                loadUrl("file:///android_asset/web/index.html")
+                loadUrl("https://appassets.androidplatform.net/assets/web/index.html")
                 onWebViewCreated(this)
             }
         }

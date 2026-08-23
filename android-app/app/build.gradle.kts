@@ -77,6 +77,9 @@ dependencies {
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.espresso.core)
 
+  // WebKit Asset Loader for ES Modules & Offline Web
+  implementation("androidx.webkit:webkit:1.12.1")
+
   // Navigation
   implementation(libs.androidx.navigation3.ui)
   implementation(libs.androidx.navigation3.runtime)
