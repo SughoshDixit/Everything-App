@@ -484,7 +484,7 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
           height: 4px;
           background: linear-gradient(90deg, #55198B 0%, #007ACC 50%, #FFD700 100%);
           border-radius: 2px;
-          margin: 6px auto 16px;
+          margin: 6px auto 8px;
         }
 
         .identity-card-item {
@@ -748,12 +748,12 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         {/* 3. MY FOUR PILLARS OF IDENTITY (EXACT SCREENSHOT 2) */}
         {/* ------------------------------------------------------------------- */}
         <section id="identity-pillars" className="identity-cards-wrapper border border-black/5 dark:border-white/10 shadow-sm">
-          <div className="text-center mb-10">
+          <div className="text-center mb-8 sm:mb-10">
             <h2 className="cards-title-heading text-2xl sm:text-4xl">
               My Four Pillars of Identity
             </h2>
             <div className="title-underline-bar"></div>
-            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium mt-2">
+            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium -mt-1">
               Click on any pillar to explore deeper
             </p>
           </div>
@@ -944,12 +944,12 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         {/* 5. WORK EXPERIENCE (MY FOUR PILLARS ELEGANT CARD ARCHITECTURE) */}
         {/* ------------------------------------------------------------------- */}
         <section id="experience" className="space-y-8">
-          <div className="text-center">
+          <div className="text-center mb-8 sm:mb-10">
             <h2 className="cards-title-heading text-2xl sm:text-4xl">
               Work Experience 💼
             </h2>
             <div className="title-underline-bar"></div>
-            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium mt-1">
+            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium -mt-1 max-w-xl mx-auto">
               Professional track record at Oracle &amp; Siemens across Data Science, AI &amp; Enterprise Cloud
             </p>
           </div>
@@ -1047,12 +1047,12 @@ export const SughoshDixitPortfolioTab: React.FC<SughoshDixitPortfolioTabProps> =
         {/* 5B. EDUCATION & ACADEMIC HONORS */}
         {/* ------------------------------------------------------------------- */}
         <section id="education" className="space-y-8">
-          <div className="text-center">
+          <div className="text-center mb-8 sm:mb-10">
             <h2 className="cards-title-heading text-2xl sm:text-4xl">
               Education &amp; Academic Honors 🎓
             </h2>
             <div className="title-underline-bar"></div>
-            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium mt-1">
+            <p className="text-sm sm:text-base text-[#7f8c8d] dark:text-slate-400 font-medium -mt-1 max-w-xl mx-auto">
               Master of Technology from BITS Pilani &amp; B.E. in Information Science
             </p>
           </div>
