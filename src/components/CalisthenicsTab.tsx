@@ -177,9 +177,10 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
                 
                 {/* Short Clean Metrics Tag */}
                 <div className="flex items-center gap-2 mt-1 mb-3">
-                  <span className="text-xs font-bold text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/60">
-                    ⏱️ 3m Warmup + 60s Rest + {routine.exercises.length} Drills
-                  </span>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-['Montserrat',sans-serif] font-medium leading-relaxed tracking-normal flex items-center gap-1.5">
+                    <span className="opacity-90">⏱️</span>
+                    <span>3m Warmup + 60s Rest + {routine.exercises.length} Drills</span>
+                  </p>
                 </div>
               </div>
 
