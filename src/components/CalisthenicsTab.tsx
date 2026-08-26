@@ -278,19 +278,24 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
                 style={{ animationDelay: `${idx * 0.04}s` }}
               >
                 <div>
-                  {/* Clean Bounded Character Image Stage (100% Fit, Tap to Zoom & Read) */}
+                  {/* Clean Bounded Character Image Stage (100% Fit, Tap / Pinch to Zoom & Read) */}
                   <div
-                    className="playbook-img-card mb-2.5 group"
+                    className="playbook-img-card mb-2.5 group cursor-zoom-in relative"
                     onClick={() => setZoomImage({ src: ex.image, title: ex.name, page: ex.pageNumber })}
-                    title="Tap to Zoom & Read Full Page"
+                    onTouchStart={(e) => {
+                      if (e.touches.length >= 2) {
+                        setZoomImage({ src: ex.image, title: ex.name, page: ex.pageNumber });
+                      }
+                    }}
+                    title="Pinch with 2 fingers or Tap to Zoom & Read"
                   >
                     <img
                       src={ex.image}
                       alt={ex.name}
                     />
-                    <div className="absolute bottom-2 right-2 bg-black/75 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700 opacity-90 group-hover:opacity-100 transition-opacity">
-                      <ZoomIn size={11} className="text-cyan-400" />
-                      <span>Zoom</span>
+                    <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700 shadow-md opacity-95 group-hover:opacity-100 transition-opacity">
+                      <ZoomIn size={12} className="text-cyan-400" />
+                      <span>Pinch / Tap Zoom</span>
                     </div>
                   </div>
 

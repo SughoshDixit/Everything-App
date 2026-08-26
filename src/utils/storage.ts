@@ -313,138 +313,14 @@ export const initialVedaSuktas: VedaSukta[] = [
   }
 ];
 
-export const initialStravaPosts: StravaActivityPost[] = [
-  {
-    id: 'sp_1',
-    date: 'Aug 21, 2026',
-    timestamp: Date.now() - 3600000 * 3,
-    userId: 'men',
-    title: 'Morning 5.2 km Aerobic Tempo Run 🏃💨',
-    description: 'Crisp morning intervals through the park. Felt super light on the feet with Nike Pegasus 40s! Closed the last 1km in 4:40.',
-    sportType: 'run',
-    rpe: 8,
-    totalDistanceKm: 5.24,
-    totalMoveMinutes: 26,
-    avgPaceMinKm: '4:58 /km',
-    avgSpeedKmh: 12.1,
-    elevationGainMeters: 48,
-    totalCalories: 420,
-    totalHeartPoints: 34,
-    sufferScore: 78,
-    likesCount: 14,
-    isLiked: true,
-    backgroundTheme: 'strava_sunset',
-    motivationalQuote: 'Consistency beats intensity when intensity is only once a week.',
-    quoteAuthor: 'Self-Discipline Principles',
-    activities: [
-      {
-        id: 'a1',
-        category: 'gps_run',
-        title: '5.2 km Morning Tempo Run',
-        details: '26:14 • Avg Pace 4:58/km • +48m Elevation',
-        includedInPost: true
-      }
-    ],
-    splits: [
-      { splitNumber: 1, distanceLabel: '1.0 km', distanceMeters: 1000, durationSeconds: 305, paceMinKm: '5:05 /km', elevationDeltaMeters: +8, speedKmh: 11.8 },
-      { splitNumber: 2, distanceLabel: '2.0 km', distanceMeters: 1000, durationSeconds: 298, paceMinKm: '4:58 /km', elevationDeltaMeters: -4, speedKmh: 12.1 },
-      { splitNumber: 3, distanceLabel: '3.0 km', distanceMeters: 1000, durationSeconds: 292, paceMinKm: '4:52 /km', elevationDeltaMeters: +12, speedKmh: 12.3 },
-      { splitNumber: 4, distanceLabel: '4.0 km', distanceMeters: 1000, durationSeconds: 300, paceMinKm: '5:00 /km', elevationDeltaMeters: +5, speedKmh: 12.0 },
-      { splitNumber: 5, distanceLabel: '5.0 km', distanceMeters: 1000, durationSeconds: 280, paceMinKm: '4:40 /km', elevationDeltaMeters: -7, speedKmh: 12.9 }
-    ],
-    comments: [
-      {
-        id: 'c1',
-        userId: 'women',
-        userName: 'Shreya Dixit',
-        avatar: '👩',
-        text: 'Insane 5th split pace! Keep flying! 🔥',
-        timestamp: Date.now() - 3600000 * 2
-      }
-    ]
-  },
-  {
-    id: 'sp_2',
-    date: 'Aug 20, 2026',
-    timestamp: Date.now() - 3600000 * 26,
-    userId: 'men',
-    title: 'Explosive Upper Body Calisthenics Routine 💪⚡',
-    description: 'Diamond push-ups, weighted dips, and strict deadhang pull-ups. Total volume: 16 sets across 180 clean reps.',
-    sportType: 'calisthenics',
-    rpe: 9,
-    totalDistanceKm: 0,
-    totalMoveMinutes: 45,
-    totalSets: 16,
-    totalReps: 180,
-    elevationGainMeters: 0,
-    totalCalories: 510,
-    totalHeartPoints: 40,
-    sufferScore: 85,
-    likesCount: 19,
-    isLiked: false,
-    backgroundTheme: 'cyber_neon',
-    motivationalQuote: 'The body achieves what the mind believes.',
-    quoteAuthor: 'Napoleon Hill',
-    activities: [
-      {
-        id: 'a2',
-        category: 'calisthenics',
-        title: 'Calisthenics Power Circuit',
-        details: 'Diamond Push-ups (4x20) • Pull-ups (4x10) • Dips (4x15) • Plank (4x60s)',
-        includedInPost: true
-      }
-    ],
-    comments: [
-      {
-        id: 'c2',
-        userId: 'women',
-        userName: 'Shreya Dixit',
-        avatar: '👩',
-        text: 'Beast mode consistency! 👏',
-        timestamp: Date.now() - 3600000 * 24
-      }
-    ]
-  },
-  {
-    id: 'sp_3',
-    date: 'Aug 19, 2026',
-    timestamp: Date.now() - 3600000 * 50,
-    userId: 'men',
-    title: 'Football Winger Technical Drills & Sprints ⚽⚡',
-    description: '1v1 cut-inside agility cones and 30m maximum acceleration sprints. Winger sharpness is peaking.',
-    sportType: 'football',
-    rpe: 8,
-    totalDistanceKm: 4.1,
-    totalMoveMinutes: 40,
-    avgPaceMinKm: '5:20 /km',
-    avgSpeedKmh: 14.8,
-    elevationGainMeters: 22,
-    totalCalories: 460,
-    totalHeartPoints: 36,
-    sufferScore: 80,
-    likesCount: 11,
-    isLiked: false,
-    backgroundTheme: 'electric_aurora',
-    motivationalQuote: 'Football is played with the head. Your feet are just the tools.',
-    quoteAuthor: 'Andrea Pirlo',
-    activities: [
-      {
-        id: 'a3',
-        category: 'football',
-        title: 'Winger Speed & Cone Mastery',
-        details: 'Cone Slalom • 1v1 Cut-ins • 10x30m Acceleration Sprints',
-        includedInPost: true
-      }
-    ]
-  }
-];
+export const initialStravaPosts: StravaActivityPost[] = [];
 
 export const initialStats: UserStats = {
-  menStreak: 5,
-  womenStreak: 7,
-  coupleStreak: 5,
-  menDisciplineScore: 85,
-  womenDisciplineScore: 92
+  menStreak: 0,
+  womenStreak: 0,
+  coupleStreak: 0,
+  menDisciplineScore: 0,
+  womenDisciplineScore: 0
 };
 
 // Helper Storage Getters & Setters

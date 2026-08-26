@@ -82,13 +82,13 @@ export function calculateElevationGain(points: GpsLocationPoint[]): number {
 /**
  * Calculates step counts based on activity type and distance.
  */
-export function estimateSteps(activityType: 'run' | 'cycle' | 'walk', distanceKm: number): number {
+export function estimateSteps(activityType: 'run' | 'cycle' | 'walk' | 'drive', distanceKm: number): number {
   if (activityType === 'run') {
     return Math.round(distanceKm * 1250); // ~1250 steps/km
   } else if (activityType === 'walk') {
     return Math.round(distanceKm * 1350); // ~1350 steps/km
   }
-  return 0; // Cycling does not add walking steps
+  return 0; // Cycling and Driving do not add foot steps
 }
 
 /**
@@ -109,31 +109,21 @@ export function calculateSplits(points: GpsLocationPoint[], splitIntervalMeters 
       points[i].latitude,
       points[i].longitude
     );
-    const segDistMeters = segDistKm * 1000;
-    currentSplitDistMeters += segDistMeters;
+    currentSplitDistMeters += segDistKm * 1000;
 
     if (currentSplitDistMeters >= splitIntervalMeters || i === points.length - 1) {
-      const timeStart = points[splitStartIndex].timestamp;
-      const timeEnd = points[i].timestamp;
-      const durationSeconds = Math.max(1, Math.round((timeEnd - timeStart) / 1000));
-      const distKm = currentSplitDistMeters / 1000;
-      const speedKmh = distKm / (durationSeconds / 3600);
-
-      const altStart = points[splitStartIndex].altitude || 0;
-      const altEnd = points[i].altitude || 0;
-      const elevationDelta = Math.round(altEnd - altStart);
-
-      const fromM = (splitNumber - 1) * splitIntervalMeters;
-      const toM = fromM + Math.round(currentSplitDistMeters);
+      const splitDurationSec = (points[i].timestamp - points[splitStartIndex].timestamp) / 1000;
+      const splitDistKm = currentSplitDistMeters / 1000;
+      const elevationDelta = (points[i].altitude || 0) - (points[splitStartIndex].altitude || 0);
 
       splits.push({
         splitNumber,
-        distanceLabel: `${fromM}m - ${toM}m`,
+        distanceLabel: `${splitIntervalMeters >= 1000 ? (splitNumber * (splitIntervalMeters / 1000)).toFixed(1) + 'km' : (splitNumber * splitIntervalMeters) + 'm'}`,
         distanceMeters: Math.round(currentSplitDistMeters),
-        durationSeconds,
-        paceMinKm: formatPace(distKm, durationSeconds),
-        elevationDeltaMeters: elevationDelta,
-        speedKmh: Number(speedKmh.toFixed(1))
+        durationSeconds: Math.max(1, Math.round(splitDurationSec)),
+        paceMinKm: formatPace(splitDistKm, splitDurationSec),
+        elevationDeltaMeters: Math.round(elevationDelta),
+        speedKmh: splitDurationSec > 0 ? Number(((splitDistKm / (splitDurationSec / 3600))).toFixed(1)) : 0
       });
 
       splitNumber++;
@@ -149,7 +139,7 @@ export function calculateSplits(points: GpsLocationPoint[], splitIntervalMeters 
  * Calculates Google Fit Heart Points and Estimated Calories.
  */
 export function calculateFitMetrics(
-  activityType: 'run' | 'cycle' | 'walk',
+  activityType: 'run' | 'cycle' | 'walk' | 'drive',
   distanceKm: number,
   durationSeconds: number,
   avgSpeedKmh: number
@@ -164,6 +154,9 @@ export function calculateFitMetrics(
   } else if (activityType === 'cycle') {
     calories = Math.round(distanceKm * 32);
     heartPoints = avgSpeedKmh >= 20 ? Math.round(durationMin * 2) : Math.round(durationMin * 1);
+  } else if (activityType === 'drive') {
+    calories = Math.round(durationMin * 2.5); // passive driving calorie burn
+    heartPoints = Math.min(15, Math.round(durationMin * 0.2));
   } else {
     // Walk
     calories = Math.round(distanceKm * 50);
@@ -368,4 +361,203 @@ export function generateRouteSvgPath(points: GpsLocationPoint[], width = 280, he
   }
 
   return pathStr;
+}
+
+/**
+ * Generates rich, realistic sample outdoor activities with GPS tracks for instant flyby, video rendering and testing.
+ */
+export function generateSampleGpsActivity(type: 'marine_run' | 'coastal_cycle' | 'trail_run' | 'express_drive' = 'marine_run'): GpsActivityLog {
+  const now = Date.now();
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  if (type === 'coastal_cycle') {
+    // 22.5 km Cycling Tour
+    const startLat = 18.9220;
+    const startLng = 72.8347;
+    const numPoints = 220;
+    const points: GpsLocationPoint[] = [];
+
+    for (let i = 0; i < numPoints; i++) {
+      const progress = i / numPoints;
+      const angle = progress * Math.PI * 3.5;
+      const lat = startLat + Math.sin(angle) * 0.08 + progress * 0.12;
+      const lng = startLng + Math.cos(angle * 0.8) * 0.09 + progress * 0.06;
+      const alt = 15 + Math.sin(progress * Math.PI * 4) * 45 + progress * 80;
+      const speedKmh = 24 + Math.sin(progress * Math.PI * 8) * 9;
+      points.push({
+        latitude: lat,
+        longitude: lng,
+        altitude: Math.round(alt),
+        timestamp: now - (numPoints - i) * 12000,
+        speed: speedKmh / 3.6
+      });
+    }
+
+    const durationSec = 3120; // 52 mins
+    const distanceKm = 22.5;
+    const elevation = 165;
+    const splits = calculateSplits(points, 500);
+
+    return {
+      id: `sample_cycle_${now}`,
+      userId: 'men',
+      activityType: 'cycle',
+      date: dateStr,
+      startTime: now - durationSec * 1000,
+      endTime: now,
+      distanceKm,
+      durationSeconds: durationSec,
+      avgSpeedKmh: 26.0,
+      topSpeedKmh: 38.4,
+      avgPaceMinKm: formatPace(distanceKm, durationSec),
+      elevationGainMeters: elevation,
+      routePoints: points,
+      splits,
+      stepsCount: 0,
+      heartPointsEarned: 75,
+      caloriesBurned: 580,
+      milestonesReached: []
+    };
+  } else if (type === 'trail_run') {
+    // 7.8 km Mountain Ridge Trail
+    const startLat = 19.0176;
+    const startLng = 72.8561;
+    const numPoints = 160;
+    const points: GpsLocationPoint[] = [];
+
+    for (let i = 0; i < numPoints; i++) {
+      const progress = i / numPoints;
+      const lat = startLat + Math.sin(progress * Math.PI * 2.5) * 0.05 + progress * 0.07;
+      const lng = startLng + Math.cos(progress * Math.PI * 3) * 0.06 + Math.sin(progress * Math.PI * 5) * 0.02;
+      const alt = 40 + Math.sin(progress * Math.PI * 2) * 120 + progress * 90;
+      const speedKmh = 10.5 + Math.cos(progress * Math.PI * 6) * 3;
+      points.push({
+        latitude: lat,
+        longitude: lng,
+        altitude: Math.round(alt),
+        timestamp: now - (numPoints - i) * 15000,
+        speed: speedKmh / 3.6
+      });
+    }
+
+    const durationSec = 2580; // 43 mins
+    const distanceKm = 7.8;
+    const elevation = 240;
+    const splits = calculateSplits(points, 200);
+
+    return {
+      id: `sample_trail_${now}`,
+      userId: 'men',
+      activityType: 'run',
+      date: dateStr,
+      startTime: now - durationSec * 1000,
+      endTime: now,
+      distanceKm,
+      durationSeconds: durationSec,
+      avgSpeedKmh: 10.9,
+      topSpeedKmh: 15.2,
+      avgPaceMinKm: formatPace(distanceKm, durationSec),
+      elevationGainMeters: elevation,
+      routePoints: points,
+      splits,
+      stepsCount: 9750,
+      heartPointsEarned: 68,
+      caloriesBurned: 640,
+      milestonesReached: []
+    };
+  } else if (type === 'express_drive') {
+    // 48.2 km Coastal Highway Road Trip & Express Drive
+    const startLat = 18.9890;
+    const startLng = 72.8250;
+    const numPoints = 280;
+    const points: GpsLocationPoint[] = [];
+
+    for (let i = 0; i < numPoints; i++) {
+      const progress = i / numPoints;
+      const lat = startLat + progress * 0.28 + Math.sin(progress * Math.PI * 3) * 0.015;
+      const lng = startLng + progress * 0.16 + Math.cos(progress * Math.PI * 2) * 0.012;
+      const alt = 8 + Math.sin(progress * Math.PI * 4) * 35 + progress * 40;
+      const speedKmh = 72 + Math.sin(progress * Math.PI * 10) * 22; // 50 to 94 km/h cruising
+      points.push({
+        latitude: lat,
+        longitude: lng,
+        altitude: Math.round(alt),
+        timestamp: now - (numPoints - i) * 6000,
+        speed: speedKmh / 3.6
+      });
+    }
+
+    const durationSec = 2160; // 36 mins
+    const distanceKm = 48.2;
+    const elevation = 110;
+    const splits = calculateSplits(points, 2000);
+
+    return {
+      id: `sample_drive_${now}`,
+      userId: 'men',
+      activityType: 'drive',
+      date: dateStr,
+      startTime: now - durationSec * 1000,
+      endTime: now,
+      distanceKm,
+      durationSeconds: durationSec,
+      avgSpeedKmh: 80.3,
+      topSpeedKmh: 104.5,
+      avgPaceMinKm: '0:45 /km',
+      elevationGainMeters: elevation,
+      routePoints: points,
+      splits,
+      stepsCount: 0,
+      heartPointsEarned: 15,
+      caloriesBurned: 190,
+      milestonesReached: []
+    };
+  } else {
+    // 5.2 km Marine Drive Sunrise Tempo Run (Default)
+    const startLat = 18.9438;
+    const startLng = 72.8232;
+    const numPoints = 140;
+    const points: GpsLocationPoint[] = [];
+
+    for (let i = 0; i < numPoints; i++) {
+      const progress = i / numPoints;
+      const lat = startLat + progress * 0.045 + Math.sin(progress * Math.PI * 2) * 0.008;
+      const lng = startLng - progress * 0.015 + Math.cos(progress * Math.PI * 1.5) * 0.006;
+      const alt = 6 + Math.sin(progress * Math.PI * 3) * 12;
+      const speedKmh = 12.2 + Math.sin(progress * Math.PI * 6) * 2.8;
+      points.push({
+        latitude: lat,
+        longitude: lng,
+        altitude: Math.round(alt),
+        timestamp: now - (numPoints - i) * 11000,
+        speed: speedKmh / 3.6
+      });
+    }
+
+    const durationSec = 1540; // 25m 40s
+    const distanceKm = 5.2;
+    const elevation = 32;
+    const splits = calculateSplits(points, 100);
+
+    return {
+      id: `sample_marine_${now}`,
+      userId: 'men',
+      activityType: 'run',
+      date: dateStr,
+      startTime: now - durationSec * 1000,
+      endTime: now,
+      distanceKm,
+      durationSeconds: durationSec,
+      avgSpeedKmh: 12.1,
+      topSpeedKmh: 16.5,
+      avgPaceMinKm: '4:56 /km',
+      elevationGainMeters: elevation,
+      routePoints: points,
+      splits,
+      stepsCount: 6500,
+      heartPointsEarned: 48,
+      caloriesBurned: 420,
+      milestonesReached: []
+    };
+  }
 }

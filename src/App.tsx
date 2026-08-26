@@ -261,7 +261,10 @@ export function App() {
       quoteAuthor: quote.author,
       streakDays: 14,
       date: act.date,
-      persona: currentProfile
+      persona: currentProfile,
+      routePoints: act.routePoints,
+      showRouteOverlay: !!act.routePoints && act.routePoints.length > 1,
+      templateStyle: 'strava_classic'
     });
   };
 
@@ -286,7 +289,11 @@ export function App() {
       date: post.date,
       persona: currentProfile,
       backgroundTheme: post.backgroundTheme,
-      customMediaUrl: post.customMediaUrl
+      customMediaUrl: post.customMediaUrl,
+      photos: post.photos,
+      routePoints: post.gpsActivity?.routePoints,
+      showRouteOverlay: !!post.gpsActivity?.routePoints && post.gpsActivity.routePoints.length > 1,
+      templateStyle: 'strava_classic'
     });
   };
 
@@ -450,6 +457,10 @@ export function App() {
           activity={flybyActivity}
           onOpenSocialShare={(act) => {
             openShareFromGps(act);
+          }}
+          onCreatePostFromActivity={() => {
+            setFlybyActivity(null);
+            setEditingPost(null);
           }}
           onClose={() => setFlybyActivity(null)}
         />

@@ -309,19 +309,24 @@ export const ComboWorkoutPlayer: React.FC<ComboWorkoutPlayerProps> = ({
               <span className="text-white font-bold">{currentWarmup.title}</span>
             </div>
 
-            {/* Bounded Clean Image Stage (100% Fit, Tap to Zoom & Read) */}
+            {/* Bounded Clean Image Stage (100% Fit, Tap / Pinch to Zoom & Read) */}
             <div
-              className="playbook-img-card my-1 group cursor-zoom-in"
+              className="playbook-img-card my-1 group cursor-zoom-in relative"
               onClick={() => setZoomImage({ src: currentWarmup.image, title: currentWarmup.title })}
-              title="Tap to Zoom & Read Full Page"
+              onTouchStart={(e) => {
+                if (e.touches.length >= 2) {
+                  setZoomImage({ src: currentWarmup.image, title: currentWarmup.title });
+                }
+              }}
+              title="Pinch or Tap to Zoom"
             >
               <img
                 src={currentWarmup.image}
                 alt={currentWarmup.title}
               />
-              <div className="absolute bottom-2 right-2 bg-black/75 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700">
-                <ZoomIn size={11} className="text-cyan-400" />
-                <span>Zoom</span>
+              <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700 shadow-md">
+                <ZoomIn size={12} className="text-cyan-400" />
+                <span>Pinch / Tap Zoom</span>
               </div>
             </div>
 
@@ -413,19 +418,24 @@ export const ComboWorkoutPlayer: React.FC<ComboWorkoutPlayerProps> = ({
               <span className="text-white font-bold truncate max-w-[180px]">{currentExercise.name}</span>
             </div>
 
-            {/* Bounded Clean Image Stage (100% Fit, Tap to Zoom & Read) */}
+            {/* Bounded Clean Image Stage (100% Fit, Tap / Pinch to Zoom & Read) */}
             <div
-              className="playbook-img-card my-1 group cursor-zoom-in"
+              className="playbook-img-card my-1 group cursor-zoom-in relative"
               onClick={() => setZoomImage({ src: currentExercise.image, title: currentExercise.name, page: currentExercise.pageNumber })}
-              title="Tap to Zoom & Read Full Page"
+              onTouchStart={(e) => {
+                if (e.touches.length >= 2) {
+                  setZoomImage({ src: currentExercise.image, title: currentExercise.name, page: currentExercise.pageNumber });
+                }
+              }}
+              title="Pinch or Tap to Zoom"
             >
               <img
                 src={currentExercise.image}
                 alt={currentExercise.name}
               />
-              <div className="absolute bottom-2 right-2 bg-black/75 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700">
-                <ZoomIn size={11} className="text-cyan-400" />
-                <span>Zoom</span>
+              <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1 border border-zinc-700 shadow-md">
+                <ZoomIn size={12} className="text-cyan-400" />
+                <span>Pinch / Tap Zoom</span>
               </div>
             </div>
 

@@ -104,6 +104,12 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const [description, setDescription] = useState<string>(initialPost?.description || '');
   const [rpe, setRpe] = useState<number>(initialPost?.rpe || 8);
   const [theme, setTheme] = useState<PostBackgroundTheme>(initialPost?.backgroundTheme || 'cyber_neon');
+  const [photos, setPhotos] = useState<string[]>(() => {
+    if (initialPost?.photos && initialPost.photos.length > 0) return initialPost.photos;
+    if (initialPost?.customMediaUrl) return [initialPost.customMediaUrl];
+    return [];
+  });
+  const [selectedPhotoIdx, setSelectedPhotoIdx] = useState<number>(0);
   const [customMediaUrl, setCustomMediaUrl] = useState<string | undefined>(initialPost?.customMediaUrl);
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
   const [format, setFormat] = useState<'story' | 'square'>('story');
@@ -122,16 +128,28 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setCustomMediaUrl(dataUrl);
-      setTheme('custom_image');
-    };
-    reader.readAsDataURL(file);
+    const readers: Promise<string>[] = Array.from(files).map((file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          if (ev.target?.result) resolve(ev.target.result as string);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then((newPhotos) => {
+      setPhotos((prev) => {
+        const updated = [...prev, ...newPhotos];
+        setSelectedPhotoIdx(updated.length - 1);
+        setCustomMediaUrl(updated[updated.length - 1]);
+        setTheme('custom_image');
+        return updated;
+      });
+    });
   };
 
   // Build card data for generator
@@ -168,7 +186,9 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
     date: initialPost?.date || todayStr,
     persona: currentProfile,
     backgroundTheme: theme,
-    customMediaUrl
+    customMediaUrl: photos[selectedPhotoIdx] || customMediaUrl,
+    photos,
+    selectedPhotoIndex: selectedPhotoIdx
   };
 
   const handleSave = () => {
@@ -190,7 +210,8 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
       activities: includedItems,
       gpsActivity: todayGpsActivities[0],
       backgroundTheme: theme,
-      customMediaUrl,
+      customMediaUrl: photos[selectedPhotoIdx] || customMediaUrl,
+      photos,
       motivationalQuote: activeQuote.text,
       quoteAuthor: activeQuote.author,
       totalHeartPoints: totalHeartPts,
@@ -405,12 +426,33 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
             </button>
 
             {/* Custom Photo Upload */}
-            <label className="py-2.5 px-2 rounded-2xl border border-glass bg-card hover:bg-card-hover text-[11px] font-bold text-cyan-600 dark:text-cyan-400 flex flex-col items-center justify-center text-center cursor-pointer transition-all">
+            <label className="py-2.5 px-2 rounded-2xl border border-glass bg-card hover:bg-card-hover text-[11px] font-bold text-[#55198B] dark:text-[#c084fc] flex flex-col items-center justify-center text-center cursor-pointer transition-all">
               <ImageIcon size={18} />
-              <span className="mt-1">{customMediaUrl ? 'Photo ✓' : 'Custom'}</span>
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              <span className="mt-1">{photos.length > 0 ? `${photos.length} Photo${photos.length > 1 ? 's' : ''}` : 'Photos'}</span>
+              <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
             </label>
           </div>
+
+          {/* Photos thumbnail preview row */}
+          {photos.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-glass">
+              {photos.map((p, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    setSelectedPhotoIdx(idx);
+                    setCustomMediaUrl(p);
+                    setTheme('custom_image');
+                  }}
+                  className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 cursor-pointer transition-all ${
+                    selectedPhotoIdx === idx ? 'border-[#55198B] scale-105 shadow-md' : 'border-glass opacity-70'
+                  }`}
+                >
+                  <img src={p} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ------------------------------------------------------------------- */}

@@ -10,7 +10,8 @@ import {
   generateRouteSvgPath,
   calculateElevationGain,
   calculateSplits,
-  estimateSteps
+  estimateSteps,
+  generateSampleGpsActivity
 } from '../utils/milestonesTracker';
 import { playBeepTone } from '../utils/audioCoach';
 import {
@@ -26,7 +27,7 @@ import {
 } from 'lucide-react';
 
 interface GpsActivityTrackerModalProps {
-  initialActivityType?: 'run' | 'cycle' | 'walk';
+  initialActivityType?: 'run' | 'cycle' | 'walk' | 'drive';
   currentProfile: UserProfile;
   currentMilestones?: PersonalMilestones;
   onSaveActivity: (log: GpsActivityLog, updatedMilestones: PersonalMilestones) => void;
@@ -44,7 +45,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   onOpenFlyby,
   onClose
 }) => {
-  const [activityType, setActivityType] = useState<'run' | 'cycle' | 'walk'>(initialActivityType);
+  const [activityType, setActivityType] = useState<'run' | 'cycle' | 'walk' | 'drive'>(initialActivityType);
   const [isTracking, setIsTracking] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [durationSeconds, setDurationSeconds] = useState<number>(0);
@@ -119,7 +120,8 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
               const timeDiffHours = (newPoint.timestamp - lastPoint.timestamp) / (1000 * 3600);
               if (timeDiffHours > 0) {
                 const speed = segmentDist / timeDiffHours;
-                if (speed < 70) {
+                const maxAllowedSpeed = activityType === 'drive' ? 220 : 70;
+                if (speed < maxAllowedSpeed) {
                   setCurrentSpeedKmh(Number(speed.toFixed(1)));
                   setTopSpeedKmh((top) => Math.max(top, Number(speed.toFixed(1))));
                 }
@@ -229,7 +231,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
               GPS LIVE TRACKER
             </span>
             <h3 className="text-sm md:text-base font-black text-main mt-0.5 uppercase tracking-wide">
-              {activityType === 'run' ? '🏃 Outdoor Run' : activityType === 'cycle' ? '🚴 Outdoor Cycling' : '🚶 Fitness Walk'}
+              {activityType === 'run' ? '🏃 Outdoor Run' : activityType === 'cycle' ? '🚴 Outdoor Cycling' : activityType === 'drive' ? '🚗 Car Road Trip' : '🚶 Fitness Walk'}
             </h3>
           </div>
 
@@ -245,27 +247,75 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
           </button>
         </div>
 
-        {/* Activity Selector (when not yet started) */}
+        {/* Activity Selector & Sample Loader (when not yet started) */}
         {!isTracking && durationSeconds === 0 && (
-          <div className="flex items-center justify-center gap-2 my-3">
-            <button
-              className={activityType === 'run' ? 'btn-google-primary flex-1 text-xs py-2' : 'btn-google-outlined flex-1 text-xs py-2'}
-              onClick={() => setActivityType('run')}
-            >
-              🏃 Run
-            </button>
-            <button
-              className={activityType === 'cycle' ? 'btn-google-primary flex-1 text-xs py-2' : 'btn-google-outlined flex-1 text-xs py-2'}
-              onClick={() => setActivityType('cycle')}
-            >
-              🚴 Cycle
-            </button>
-            <button
-              className={activityType === 'walk' ? 'btn-google-primary flex-1 text-xs py-2' : 'btn-google-outlined flex-1 text-xs py-2'}
-              onClick={() => setActivityType('walk')}
-            >
-              🚶 Walk
-            </button>
+          <div className="my-2">
+            <div className="grid grid-cols-4 gap-1.5 mb-2">
+              <button
+                className={activityType === 'run' ? 'btn-google-primary text-xs py-2' : 'btn-google-outlined text-xs py-2'}
+                onClick={() => setActivityType('run')}
+              >
+                🏃 Run
+              </button>
+              <button
+                className={activityType === 'cycle' ? 'btn-google-primary text-xs py-2' : 'btn-google-outlined text-xs py-2'}
+                onClick={() => setActivityType('cycle')}
+              >
+                🚴 Cycle
+              </button>
+              <button
+                className={activityType === 'drive' ? 'btn-google-primary text-xs py-2' : 'btn-google-outlined text-xs py-2'}
+                onClick={() => setActivityType('drive')}
+              >
+                🚗 Drive
+              </button>
+              <button
+                className={activityType === 'walk' ? 'btn-google-primary text-xs py-2' : 'btn-google-outlined text-xs py-2'}
+                onClick={() => setActivityType('walk')}
+              >
+                🚶 Walk
+              </button>
+            </div>
+
+            {/* Quick Sample Route Simulator for instant testing */}
+            <div className="flex items-center justify-between p-2 rounded-xl bg-black/20 border border-glass text-xs flex-wrap gap-1">
+              <span className="text-sub text-[11px] font-semibold">Instant Sample Demo:</span>
+              <div className="flex gap-1 flex-wrap">
+                <button
+                  onClick={() => {
+                    const sample = generateSampleGpsActivity('marine_run');
+                    onSaveActivity(sample, currentMilestones);
+                    if (onOpenFlyby) onOpenFlyby(sample);
+                    else if (onOpenSocialShare) onOpenSocialShare(sample);
+                  }}
+                  className="text-[10px] font-bold py-1 px-2 rounded-full bg-[#55198B]/20 text-[#c084fc] hover:bg-[#55198B] hover:text-white transition-all cursor-pointer"
+                >
+                  🏃 5.2k Run
+                </button>
+                <button
+                  onClick={() => {
+                    const sample = generateSampleGpsActivity('coastal_cycle');
+                    onSaveActivity(sample, currentMilestones);
+                    if (onOpenFlyby) onOpenFlyby(sample);
+                    else if (onOpenSocialShare) onOpenSocialShare(sample);
+                  }}
+                  className="text-[10px] font-bold py-1 px-2 rounded-full bg-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all cursor-pointer"
+                >
+                  🚴 22.5k Ride
+                </button>
+                <button
+                  onClick={() => {
+                    const sample = generateSampleGpsActivity('express_drive');
+                    onSaveActivity(sample, currentMilestones);
+                    if (onOpenFlyby) onOpenFlyby(sample);
+                    else if (onOpenSocialShare) onOpenSocialShare(sample);
+                  }}
+                  className="text-[10px] font-bold py-1 px-2 rounded-full bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all cursor-pointer"
+                >
+                  🚗 48k Drive
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

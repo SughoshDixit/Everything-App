@@ -49,7 +49,7 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
   onStartTracking,
   onAddComment
 }) => {
-  const [sportFilter, setSportFilter] = useState<'all' | 'run' | 'cycle' | 'calisthenics' | 'football'>('all');
+  const [sportFilter, setSportFilter] = useState<'all' | 'run' | 'cycle' | 'drive' | 'calisthenics' | 'football'>('all');
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [floatingKudosId, setFloatingKudosId] = useState<string | null>(null);
@@ -183,6 +183,12 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
           🚴 Cycling
         </button>
         <button
+          onClick={() => setSportFilter('drive')}
+          className={`cat-pill ${sportFilter === 'drive' ? 'active' : ''}`}
+        >
+          🚗 Road Trips
+        </button>
+        <button
           onClick={() => setSportFilter('calisthenics')}
           className={`cat-pill ${sportFilter === 'calisthenics' ? 'active' : ''}`}
         >
@@ -231,6 +237,8 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                 ? '🏃'
                 : post.sportType === 'cycle'
                 ? '🚴'
+                : post.sportType === 'drive'
+                ? '🚗'
                 : post.sportType === 'calisthenics'
                 ? '💪'
                 : post.sportType === 'football'

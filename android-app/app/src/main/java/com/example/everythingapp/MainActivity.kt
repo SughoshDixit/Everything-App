@@ -87,7 +87,10 @@ fun AppWebView(
         modifier = modifier,
         factory = { context ->
             val assetLoader = WebViewAssetLoader.Builder()
+                .setDomain("appassets.androidplatform.net")
+                .addPathHandler("/assets/web/", WebViewAssetLoader.AssetsPathHandler(context))
                 .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+                .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(context))
                 .build()
 
             WebView(context).apply {
@@ -135,7 +138,64 @@ fun AppWebView(
                         view: WebView?,
                         request: WebResourceRequest?
                     ): WebResourceResponse? {
-                        return request?.url?.let { assetLoader.shouldInterceptRequest(it) }
+                        val uri = request?.url ?: return null
+                        val urlStr = uri.toString()
+
+                        // 1. Try standard WebViewAssetLoader
+                        val assetResponse = assetLoader.shouldInterceptRequest(uri)
+                        if (assetResponse != null) return assetResponse
+
+                        // 2. Custom asset streamer for appassets.androidplatform.net or localhost
+                        if (urlStr.startsWith("https://appassets.androidplatform.net/") || urlStr.startsWith("http://localhost/")) {
+                            val rawPath = uri.path?.trimStart('/') ?: return null
+                            val cleanPath = try {
+                                java.net.URLDecoder.decode(rawPath, "UTF-8")
+                            } catch (_: Exception) {
+                                rawPath
+                            }
+
+                            // Look across all asset mirrors: web/$path, $path, web/assets/$path, web/playbook/$path, web/ai-gallery/$path
+                            val candidatePaths = listOf(
+                                "web/$cleanPath",
+                                cleanPath,
+                                "web/assets/$cleanPath",
+                                "web/playbook/$cleanPath",
+                                "web/ai-gallery/$cleanPath",
+                                "web/Yellow Dude/$cleanPath"
+                            )
+
+                            for (candidate in candidatePaths) {
+                                try {
+                                    val stream = context.assets.open(candidate)
+                                    val mimeType = when {
+                                        candidate.endsWith(".html", ignoreCase = true) -> "text/html"
+                                        candidate.endsWith(".js", ignoreCase = true) -> "application/javascript"
+                                        candidate.endsWith(".css", ignoreCase = true) -> "text/css"
+                                        candidate.endsWith(".png", ignoreCase = true) -> "image/png"
+                                        candidate.endsWith(".jpg", ignoreCase = true) || candidate.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
+                                        candidate.endsWith(".webp", ignoreCase = true) -> "image/webp"
+                                        candidate.endsWith(".svg", ignoreCase = true) -> "image/svg+xml"
+                                        candidate.endsWith(".woff", ignoreCase = true) -> "font/woff"
+                                        candidate.endsWith(".woff2", ignoreCase = true) -> "font/woff2"
+                                        candidate.endsWith(".ttf", ignoreCase = true) -> "font/ttf"
+                                        candidate.endsWith(".mp4", ignoreCase = true) -> "video/mp4"
+                                        candidate.endsWith(".webm", ignoreCase = true) -> "video/webm"
+                                        candidate.endsWith(".json", ignoreCase = true) -> "application/json"
+                                        candidate.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
+                                        else -> "application/octet-stream"
+                                    }
+                                    val headers = mapOf(
+                                        "Access-Control-Allow-Origin" to "*",
+                                        "Access-Control-Allow-Methods" to "GET, POST, OPTIONS",
+                                        "Access-Control-Allow-Headers" to "*"
+                                    )
+                                    return WebResourceResponse(mimeType, "UTF-8", 200, "OK", headers, stream)
+                                } catch (_: Exception) {
+                                    // Try next candidate
+                                }
+                            }
+                        }
+                        return null
                     }
 
                     override fun shouldOverrideUrlLoading(

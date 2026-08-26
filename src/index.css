@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @font-face {
   font-family: "Agustina Regular";
@@ -18,76 +19,78 @@
 
 :root,
 :root[data-theme="dark"] {
-  --bg-dark: #0f1218;
-  --bg-card: #171b24;
-  --bg-card-hover: #1f2533;
-  --border-glass: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(139, 92, 246, 0.35);
+  --bg-dark: #1a1a1a;
+  --bg-card: #212529;
+  --bg-card-hover: #2b3035;
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --border-glow: rgba(140, 67, 206, 0.4);
 
-  --text-main: #f8fafc;
-  --text-sub: #94a3b8;
-  --text-muted: #64748b;
+  --text-main: #ffffff;
+  --text-sub: #adb5bd;
+  --text-muted: #6c757d;
 
   --accent-purple: #55198B;
-  --accent-purple-light: #7b29be;
+  --accent-purple-light: #8c43ce;
   --accent-cyan: #007ACC;
-  --accent-emerald: #10b981;
-  --accent-amber: #f59e0b;
-  --accent-rose: #f43f5e;
-  --accent-violet: #8b5cf6;
-  --accent-indigo: #6366f1;
-  --accent-lime: #84cc16;
-  --bg-oled: #090c10;
+  --accent-emerald: #228B22;
+  --accent-amber: #FFD700;
+  --accent-rose: #8B0000;
+  --accent-orange: #FF6B35;
+  --accent-violet: #8c43ce;
+  --accent-indigo: #007ACC;
+  --accent-lime: #228B22;
+  --bg-oled: #111417;
 
   /* Google Fit & Metric Ring Colors (Dark) */
-  --ring-heart-track: rgba(85, 25, 139, 0.2);
-  --ring-heart-fill: #8b5cf6;
-  --ring-move-track: rgba(16, 185, 129, 0.2);
-  --ring-move-fill: #10b981;
+  --ring-heart-track: rgba(85, 25, 139, 0.25);
+  --ring-heart-fill: #8c43ce;
+  --ring-move-track: rgba(34, 139, 34, 0.25);
+  --ring-move-fill: #228B22;
 
-  --font-heading: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Montserrat', sans-serif;
 
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --radius-full: 9999px;
 }
 
 :root[data-theme="light"] {
-  --bg-dark: #f8fafc;
+  --bg-dark: #f8f9fa;
   --bg-card: #ffffff;
-  --bg-card-hover: #f1f5f9;
-  --border-glass: rgba(0, 0, 0, 0.07);
-  --border-glow: rgba(85, 25, 139, 0.25);
+  --bg-card-hover: #f1f3f5;
+  --border-glass: rgba(108, 117, 125, 0.15);
+  --border-glow: rgba(85, 25, 139, 0.3);
 
-  --text-main: #161513;
+  --text-main: #1a1a1a;
   --text-sub: #5a6c7d;
-  --text-muted: #8c9ba5;
+  --text-muted: #7f8c8d;
 
   --accent-purple: #55198B;
-  --accent-purple-light: #7b29be;
+  --accent-purple-light: #8c43ce;
   --accent-cyan: #007ACC;
-  --accent-emerald: #10b981;
-  --accent-amber: #f59e0b;
-  --accent-rose: #e11d48;
+  --accent-emerald: #228B22;
+  --accent-amber: #FFD700;
+  --accent-rose: #8B0000;
+  --accent-orange: #FF6B35;
   --accent-violet: #55198B;
-  --accent-indigo: #4338ca;
-  --accent-lime: #65a30d;
+  --accent-indigo: #007ACC;
+  --accent-lime: #228B22;
   --bg-oled: #ffffff;
 
   /* Google Fit & Metric Ring Colors (Light) */
   --ring-heart-track: rgba(85, 25, 139, 0.15);
   --ring-heart-fill: #55198B;
-  --ring-move-track: rgba(16, 185, 129, 0.15);
-  --ring-move-fill: #10b981;
+  --ring-move-track: rgba(34, 139, 34, 0.15);
+  --ring-move-fill: #228B22;
 
-  --font-heading: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Montserrat', sans-serif;
 
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --radius-full: 9999px;
 }
 
@@ -95,6 +98,49 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Professional Scrollbar from Sughosh Dixit Theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(248, 249, 250, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(85, 25, 139, 0.4);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(85, 25, 139, 0.7);
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+@media (max-width: 768px) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Focus and Selection */
+*:focus-visible {
+  outline: 2px solid rgba(85, 25, 139, 0.4);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(85, 25, 139, 0.2);
+  color: inherit;
 }
 
 img, svg, video, canvas {
@@ -128,29 +174,46 @@ body {
   background-color: var(--bg-dark);
   color: var(--text-main);
   font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+:root,
 :root[data-theme="dark"] body {
+  background-color: #1a1a1a;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+    radial-gradient(circle at 15% 25%, rgba(85, 25, 139, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 85% 75%, rgba(0, 122, 204, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(34, 139, 34, 0.05) 0%, transparent 60%),
+    radial-gradient(circle at 25% 75%, rgba(255, 215, 0, 0.08) 0%, transparent 50%);
   background-attachment: fixed;
 }
 
 :root[data-theme="light"] body {
+  background-color: #f8f9fa;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(124, 58, 237, 0.06) 0px, transparent 50%);
+    linear-gradient(135deg,
+      rgba(85, 25, 139, 0.03) 0%,
+      rgba(0, 122, 204, 0.03) 25%,
+      rgba(34, 139, 34, 0.03) 50%,
+      rgba(255, 215, 0, 0.03) 75%,
+      rgba(255, 255, 255, 0.05) 100%
+    ),
+    radial-gradient(circle at 20% 30%, rgba(85, 25, 139, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(0, 122, 204, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 60% 20%, rgba(34, 139, 34, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(255, 215, 0, 0.02) 0%, transparent 50%);
   background-attachment: fixed;
 }
 
 :root[data-theme="light"] .glass-card {
   background: #ffffff;
-  border: 1px solid #e8eaed;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(108, 117, 125, 0.15);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
 }
 
 /* ---------------------------------------------------------------------------
@@ -423,20 +486,20 @@ h1 {
 .brand-logo {
   width: 44px;
   height: 44px;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-light));
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
+  box-shadow: 0 4px 12px rgba(85, 25, 139, 0.3);
 }
 
 .brand-title {
   font-size: 1.35rem;
   font-weight: 800;
-  background: linear-gradient(90deg, #fff, var(--accent-cyan));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
 }
 
 .brand-subtitle {
@@ -444,16 +507,18 @@ h1 {
   align-items: center;
   gap: 0.35rem;
   font-size: 0.8rem;
-  color: var(--accent-cyan);
+  color: var(--accent-purple);
+  font-weight: 700;
 }
 
 .global-discipline-ticker {
   padding: 0.45rem 0.85rem;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(85, 25, 139, 0.25);
+  background: rgba(85, 25, 139, 0.08);
   font-size: 0.78rem;
-  color: #f1f5f9;
+  color: var(--text-main);
+  font-weight: 600;
 }
 
 .header-right {
@@ -467,14 +532,14 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.35);
   padding: 0.4rem 0.85rem;
   border-radius: var(--radius-full);
 }
 
 .icon-flame {
-  color: var(--accent-amber);
+  color: #FFD700;
   width: 22px;
   height: 22px;
 }
@@ -482,7 +547,7 @@ h1 {
 .streak-num {
   font-weight: 700;
   font-size: 0.95rem;
-  color: var(--accent-amber);
+  color: #FFD700;
 }
 
 .streak-label {
@@ -492,7 +557,7 @@ h1 {
 
 .persona-selector {
   display: flex;
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--bg-card);
   padding: 0.25rem;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-glass);
@@ -506,6 +571,7 @@ h1 {
   border: none;
   background: transparent;
   color: var(--text-sub);
+  font-family: 'Montserrat', sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   border-radius: var(--radius-full);
@@ -2230,3 +2296,147 @@ h1 {
 .oled-center-play-btn:active {
   transform: scale(0.94);
 }
+
+/* ==========================================================================
+   Leaflet OpenStreetMap Realistic Activity Animation Styles
+   ========================================================================== */
+.leaflet-container {
+  font-family: 'Montserrat', sans-serif !important;
+  background: #0d1117 !important;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.leaflet-control-attribution {
+  background: rgba(13, 17, 23, 0.75) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 8px !important;
+  padding: 1px 6px !important;
+  border-radius: 6px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #c084fc !important;
+}
+
+.osm-athlete-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  transition: transform 0.15s linear;
+}
+
+.athlete-pulse-ring {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(85, 25, 139, 0.25);
+  border: 2px solid rgba(192, 132, 252, 0.8);
+  animation: athleteRadarPulse 1.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+  pointer-events: none;
+}
+
+.athlete-heading-beam {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 18px solid #c084fc;
+  filter: drop-shadow(0 0 6px rgba(192, 132, 252, 0.9));
+  pointer-events: none;
+}
+
+.athlete-core-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #55198B, #8c43ce);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 16px rgba(140, 67, 206, 0.9), 0 4px 10px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #ffffff;
+  z-index: 10;
+}
+
+.athlete-cycle-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FC4C02, #FF6B35);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 16px rgba(252, 76, 2, 0.9), 0 4px 10px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #ffffff;
+  z-index: 10;
+}
+
+.athlete-car-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #06b6d4);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 18px rgba(6, 182, 212, 0.9), 0 4px 12px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #ffffff;
+  z-index: 10;
+}
+
+.athlete-headlights-beam {
+  position: absolute;
+  top: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 30px solid rgba(56, 189, 248, 0.75);
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.9));
+  pointer-events: none;
+}
+
+.osm-split-flag {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #0f172a;
+  border: 1.5px solid #38bdf8;
+  color: #ffffff;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  font-family: 'Montserrat', sans-serif;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
+@keyframes athleteRadarPulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+

@@ -218,7 +218,7 @@ export interface ActivitySplit {
 
 export interface GpsActivityLog {
   id: string;
-  activityType: 'run' | 'cycle' | 'walk';
+  activityType: 'run' | 'cycle' | 'walk' | 'drive';
   date: string;
   startTime: number;
   endTime: number;
@@ -248,17 +248,33 @@ export interface WeeklyHeartPointsSummary {
 }
 
 export interface PersonalMilestones {
-  fastest1kRunSeconds: number; // in seconds, e.g. 245s (4:05)
-  fastest5kRunSeconds: number; // in seconds
-  fastest1kCycleSeconds: number; // in seconds
-  fastest10kCycleSeconds: number;
-  longestRunKm: number;
-  longestCycleKm: number;
-  topSpeedRunKmh: number;
-  topSpeedCycleKmh: number;
-  totalDistanceRunKm: number;
-  totalDistanceCycleKm: number;
-  lastUpdated: string;
+  fastest1kRunSeconds?: number;
+  fastest5kRunSeconds?: number;
+  fastest10kRunSeconds?: number;
+  longestRunKm?: number;
+  topSpeedRunKmh?: number;
+  fastest1kCycleSeconds?: number;
+  fastest10kCycleSeconds?: number;
+  longestCycleKm?: number;
+  topSpeedCycleKmh?: number;
+  totalDistanceRunKm?: number;
+  totalDistanceCycleKm?: number;
+  totalCaloriesBurned?: number;
+  currentStreakDays?: number;
+  lastUpdated?: string;
+}
+
+export interface MonthlyChallenge {
+  id: string;
+  title: string;
+  description: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  month: string;
+  isCompleted: boolean;
+  badgeIcon: string;
+  color: string;
 }
 
 export type PostBackgroundTheme =
@@ -326,12 +342,13 @@ export interface StravaActivityPost {
   userId: 'men' | 'women' | 'couple';
   title: string;
   description?: string;
-  sportType: 'run' | 'cycle' | 'calisthenics' | 'football' | 'walk' | 'workout';
+  sportType: 'run' | 'cycle' | 'calisthenics' | 'football' | 'walk' | 'drive' | 'workout';
   rpe?: number; // 1-10 Perceived Exertion
   activities: CompiledActivityItem[];
   gpsActivity?: GpsActivityLog;
   backgroundTheme: PostBackgroundTheme;
   customMediaUrl?: string; // base64 or object URL
+  photos?: string[]; // Unlimited attached user photos
   motivationalQuote: string;
   quoteAuthor: string;
   totalHeartPoints: number;
@@ -357,6 +374,8 @@ export interface StravaActivityPost {
   splits?: ActivitySplit[];
 }
 
+export type SocialCardTemplate = 'strava_classic' | 'minimal' | 'cyber_neon' | 'route_hero';
+
 export interface SocialShareCardData {
   title: string;
   workoutType: string;
@@ -369,7 +388,13 @@ export interface SocialShareCardData {
   persona: 'men' | 'women' | 'couple';
   accentColor?: string;
   routeSvgPath?: string;
+  routePoints?: GpsLocationPoint[];
   backgroundTheme?: PostBackgroundTheme;
   customMediaUrl?: string;
+  photos?: string[];
+  selectedPhotoIndex?: number;
+  showRouteOverlay?: boolean;
+  scrimIntensity?: number; // 0 to 1 (default 0.7)
+  templateStyle?: SocialCardTemplate;
 }
 

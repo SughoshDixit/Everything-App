@@ -32,11 +32,17 @@ export async function generateSocialCardCanvas(
   // ---------------------------------------------------------------------------
   // 1. MESMERIZING BACKGROUND THEME OR CUSTOM USER PHOTO
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // 1. BACKGROUND: MULTI-PHOTO USER UPLOAD OR ATHLETIC PRESET
+  // ---------------------------------------------------------------------------
   const theme = data.backgroundTheme || 'cyber_neon';
+  const customPhotoSrc = (data.photos && data.photos.length > 0 && data.selectedPhotoIndex !== undefined && data.photos[data.selectedPhotoIndex])
+    ? data.photos[data.selectedPhotoIndex]
+    : (data.photos && data.photos.length > 0 ? data.photos[0] : data.customMediaUrl);
 
-  if (theme === 'custom_image' && data.customMediaUrl) {
+  if ((theme === 'custom_image' || customPhotoSrc) && customPhotoSrc) {
     try {
-      const customImg = await loadImage(data.customMediaUrl);
+      const customImg = await loadImage(customPhotoSrc);
       // Draw image cover-fit
       const imgRatio = customImg.width / customImg.height;
       const canvasRatio = width / height;
@@ -56,18 +62,29 @@ export async function generateSocialCardCanvas(
       ctx.drawImage(customImg, offX, offY, drawW, drawH);
 
       // Darkened athletic gradient scrim overlay for crystal-clear readability
+      const intensity = typeof data.scrimIntensity === 'number' ? data.scrimIntensity : 0.65;
+      const topAlpha = Math.max(0.25, intensity * 0.85);
+      const midAlpha = Math.max(0.4, intensity);
+      const bottomAlpha = Math.min(0.98, intensity * 1.25);
+
       const scrim = ctx.createLinearGradient(0, 0, 0, height);
-      scrim.addColorStop(0, 'rgba(0, 0, 0, 0.75)');
-      scrim.addColorStop(0.4, 'rgba(9, 13, 22, 0.85)');
-      scrim.addColorStop(1, 'rgba(5, 7, 13, 0.95)');
+      scrim.addColorStop(0, `rgba(10, 10, 15, ${topAlpha})`);
+      scrim.addColorStop(0.35, `rgba(15, 18, 26, ${midAlpha})`);
+      scrim.addColorStop(1, `rgba(5, 7, 13, ${bottomAlpha})`);
       ctx.fillStyle = scrim;
       ctx.fillRect(0, 0, width, height);
     } catch {
-      // Fallback to cyber_neon if image load fails
-      drawPresetBackground(ctx, width, height, 'cyber_neon');
+      drawPresetBackground(ctx, width, height, 'strava_sunset');
     }
   } else {
     drawPresetBackground(ctx, width, height, theme);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 1.5 GPS ROUTE POLYLINE OVERLAY (STRAVA SIGNATURE FEATURE)
+  // ---------------------------------------------------------------------------
+  if (data.showRouteOverlay && data.routePoints && data.routePoints.length > 1) {
+    drawGpsRouteOverlay(ctx, data.routePoints, width, height, format);
   }
 
   // ---------------------------------------------------------------------------
@@ -75,68 +92,72 @@ export async function generateSocialCardCanvas(
   // ---------------------------------------------------------------------------
   const marginX = 75;
   let currentY = format === 'story' ? 130 : 90;
+  const template = data.templateStyle || 'strava_classic';
 
   // App Brand Logo & Title
-  ctx.fillStyle = '#CCFF00';
-  ctx.font = '800 36px "Plus Jakarta Sans", sans-serif';
+  const brandColor = template === 'strava_classic' ? '#FC4C02' : template === 'minimal' ? '#FFFFFF' : '#CCFF00';
+  ctx.fillStyle = brandColor;
+  ctx.font = '800 36px "Montserrat", sans-serif';
   ctx.fillText('⚡ EVERYTHING APP', marginX, currentY);
 
   // Streak Pill (Right Aligned)
   const streakText = `🔥 ${data.streakDays} DAYS STREAK`;
-  ctx.font = '800 26px "Plus Jakarta Sans", sans-serif';
+  ctx.font = '800 24px "Montserrat", sans-serif';
   const streakWidth = ctx.measureText(streakText).width + 44;
 
-  ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
-  ctx.strokeStyle = '#f59e0b';
-  ctx.lineWidth = 3;
+  ctx.fillStyle = 'rgba(255, 215, 0, 0.18)';
+  ctx.strokeStyle = '#FFD700';
+  ctx.lineWidth = 2.5;
   drawRoundedRect(ctx, width - marginX - streakWidth, currentY - 32, streakWidth, 44, 22);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = '#f59e0b';
+  ctx.fillStyle = '#FFD700';
   ctx.fillText(streakText, width - marginX - streakWidth + 22, currentY);
 
   // ---------------------------------------------------------------------------
   // 3. WORKOUT TITLE & DATE
   // ---------------------------------------------------------------------------
-  currentY += format === 'story' ? 110 : 80;
+  currentY += format === 'story' ? 100 : 75;
 
   // Category Pill
-  ctx.fillStyle = 'rgba(6, 182, 212, 0.25)';
-  ctx.strokeStyle = '#06b6d4';
+  const pillBg = template === 'strava_classic' ? 'rgba(252, 76, 2, 0.25)' : 'rgba(85, 25, 139, 0.35)';
+  const pillBorder = template === 'strava_classic' ? '#FC4C02' : '#55198B';
+  ctx.fillStyle = pillBg;
+  ctx.strokeStyle = pillBorder;
   ctx.lineWidth = 2;
   const categoryText = data.workoutType.toUpperCase();
-  ctx.font = '800 22px "Plus Jakarta Sans", sans-serif';
+  ctx.font = '800 22px "Montserrat", sans-serif';
   const catWidth = ctx.measureText(categoryText).width + 36;
   drawRoundedRect(ctx, marginX, currentY - 26, catWidth, 36, 18);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = '#06b6d4';
+  ctx.fillStyle = '#FFFFFF';
   ctx.fillText(categoryText, marginX + 18, currentY);
 
   // Big Bold Workout Title
   currentY += 65;
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = '900 58px "Plus Jakarta Sans", sans-serif';
+  ctx.font = '900 56px "Montserrat", sans-serif';
   wrapText(ctx, data.title, marginX, currentY, width - marginX * 2, 64);
   
   // Advance based on title length
   const titleLines = Math.ceil(ctx.measureText(data.title).width / (width - marginX * 2));
-  currentY += (titleLines - 1) * 60 + 40;
+  currentY += (titleLines - 1) * 60 + 38;
 
   // Date Tag
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '600 26px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#adb5bd';
+  ctx.font = '600 24px "Montserrat", sans-serif';
   ctx.fillText(`📅 ${data.date} · Completed Activity`, marginX, currentY);
 
   // ---------------------------------------------------------------------------
   // 4. STATS HERO GRID CARDS
   // ---------------------------------------------------------------------------
-  currentY += format === 'story' ? 65 : 45;
+  currentY += format === 'story' ? 60 : 40;
 
   const cardWidth = (width - marginX * 2 - 30) / 2;
-  const cardHeight = format === 'story' ? 150 : 110;
+  const cardHeight = format === 'story' ? 145 : 105;
 
   data.stats.slice(0, 4).forEach((stat, idx) => {
     const row = Math.floor(idx / 2);
@@ -145,107 +166,107 @@ export async function generateSocialCardCanvas(
     const y = currentY + row * (cardHeight + 20);
 
     // Glass Card Background
-    ctx.fillStyle = 'rgba(19, 28, 46, 0.85)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+    ctx.fillStyle = template === 'minimal' ? 'rgba(0, 0, 0, 0.65)' : 'rgba(26, 26, 26, 0.85)';
+    ctx.strokeStyle = template === 'strava_classic' && idx === 0 ? '#FC4C02' : 'rgba(255, 255, 255, 0.16)';
     ctx.lineWidth = 2.5;
-    drawRoundedRect(ctx, x, y, cardWidth, cardHeight, 20);
+    drawRoundedRect(ctx, x, y, cardWidth, cardHeight, 18);
     ctx.fill();
     ctx.stroke();
 
     // Metric Label
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '700 20px "Plus Jakarta Sans", sans-serif';
-    ctx.fillText(stat.label.toUpperCase(), x + 24, y + 38);
+    ctx.font = '700 20px "Montserrat", sans-serif';
+    ctx.fillText(stat.label.toUpperCase(), x + 24, y + 36);
 
     // Metric Value
-    ctx.fillStyle = '#CCFF00';
-    ctx.font = '900 44px "Plus Jakarta Sans", sans-serif';
-    ctx.fillText(stat.value, x + 24, y + 95);
+    ctx.fillStyle = template === 'strava_classic' ? '#FFFFFF' : '#CCFF00';
+    ctx.font = '900 44px "Montserrat", sans-serif';
+    ctx.fillText(stat.value, x + 24, y + 92);
 
     if (stat.unit) {
       const valWidth = ctx.measureText(stat.value).width;
-      ctx.fillStyle = '#06b6d4';
-      ctx.font = '800 24px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(` ${stat.unit}`, x + 24 + valWidth, y + 95);
+      ctx.fillStyle = template === 'strava_classic' ? '#FC4C02' : '#007ACC';
+      ctx.font = '800 24px "Montserrat", sans-serif';
+      ctx.fillText(` ${stat.unit}`, x + 24 + valWidth, y + 92);
     }
   });
 
-  currentY += (cardHeight * 2 + 40);
+  currentY += (cardHeight * 2 + 35);
 
   // ---------------------------------------------------------------------------
   // 5. MULTI-ACTIVITY WORKOUT BREAKDOWN (IF PRESENT)
   // ---------------------------------------------------------------------------
   if (data.activityItems && data.activityItems.length > 0 && format === 'story') {
-    currentY += 25;
+    currentY += 20;
     ctx.fillStyle = '#e2e8f0';
-    ctx.font = '800 24px "Plus Jakarta Sans", sans-serif';
+    ctx.font = '800 22px "Montserrat", sans-serif';
     ctx.fillText('📋 WORKOUT BREAKDOWN', marginX, currentY);
 
-    currentY += 20;
+    currentY += 18;
     data.activityItems.slice(0, 3).forEach((item) => {
-      const itemBoxH = 75;
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      const itemBoxH = 70;
+      ctx.fillStyle = 'rgba(26, 26, 26, 0.8)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
       ctx.lineWidth = 2;
-      drawRoundedRect(ctx, marginX, currentY, width - marginX * 2, itemBoxH, 16);
+      drawRoundedRect(ctx, marginX, currentY, width - marginX * 2, itemBoxH, 14);
       ctx.fill();
       ctx.stroke();
 
       // Title & sets/reps
       ctx.fillStyle = '#ffffff';
-      ctx.font = '800 24px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(`${item.icon || '⚡'} ${item.title}`, marginX + 24, currentY + 34);
+      ctx.font = '800 22px "Montserrat", sans-serif';
+      ctx.fillText(`${item.icon || '⚡'} ${item.title}`, marginX + 22, currentY + 30);
 
-      ctx.fillStyle = '#06b6d4';
-      ctx.font = '700 20px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(item.details, marginX + 24, currentY + 62);
+      ctx.fillStyle = '#007ACC';
+      ctx.font = '700 18px "Montserrat", sans-serif';
+      ctx.fillText(item.details, marginX + 22, currentY + 56);
 
-      currentY += itemBoxH + 12;
+      currentY += itemBoxH + 10;
     });
   }
 
   // ---------------------------------------------------------------------------
   // 6. MOTIVATIONAL QUOTE BANNER
   // ---------------------------------------------------------------------------
-  currentY += format === 'story' ? 25 : 20;
+  currentY += format === 'story' ? 20 : 15;
 
-  const quoteBoxHeight = format === 'story' ? 200 : 150;
-  ctx.fillStyle = 'rgba(245, 158, 11, 0.09)';
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
-  ctx.lineWidth = 2.5;
-  drawRoundedRect(ctx, marginX, currentY, width - marginX * 2, quoteBoxHeight, 20);
+  const quoteBoxHeight = format === 'story' ? 180 : 135;
+  ctx.fillStyle = 'rgba(255, 215, 0, 0.08)';
+  ctx.strokeStyle = 'rgba(255, 215, 0, 0.35)';
+  ctx.lineWidth = 2;
+  drawRoundedRect(ctx, marginX, currentY, width - marginX * 2, quoteBoxHeight, 18);
   ctx.fill();
   ctx.stroke();
 
   // Left Accent Bar on Quote Box
-  ctx.fillStyle = '#f59e0b';
-  drawRoundedRect(ctx, marginX, currentY, 10, quoteBoxHeight, 5);
+  ctx.fillStyle = '#FFD700';
+  drawRoundedRect(ctx, marginX, currentY, 8, quoteBoxHeight, 4);
   ctx.fill();
 
   // Quote Text (Wrapped)
   ctx.fillStyle = '#f8fafc';
-  ctx.font = 'italic 700 28px "Plus Jakarta Sans", sans-serif';
-  wrapText(ctx, `"${data.motivationalQuote}"`, marginX + 36, currentY + 55, width - marginX * 2 - 65, 36);
+  ctx.font = 'italic 700 26px "Montserrat", sans-serif';
+  wrapText(ctx, `"${data.motivationalQuote}"`, marginX + 32, currentY + 48, width - marginX * 2 - 60, 34);
 
   // Quote Author
-  ctx.fillStyle = '#f59e0b';
-  ctx.font = '800 22px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText(`— ${data.quoteAuthor.toUpperCase()}`, marginX + 36, currentY + quoteBoxHeight - 25);
+  ctx.fillStyle = '#FFD700';
+  ctx.font = '800 20px "Montserrat", sans-serif';
+  ctx.fillText(`— ${data.quoteAuthor.toUpperCase()}`, marginX + 32, currentY + quoteBoxHeight - 20);
 
   // ---------------------------------------------------------------------------
   // 7. FOOTER WATERMARK: "Made with Love on The Everything App"
   // ---------------------------------------------------------------------------
-  const footerY = height - (format === 'story' ? 100 : 60);
+  const footerY = height - (format === 'story' ? 90 : 55);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-  ctx.fillRect(marginX, footerY - 30, width - marginX * 2, 2);
+  ctx.fillRect(marginX, footerY - 25, width - marginX * 2, 2);
 
   // Bottom-Left Watermark
   ctx.fillStyle = '#f43f5e';
-  ctx.font = '800 24px "Plus Jakarta Sans", sans-serif';
+  ctx.font = '800 24px "Montserrat", sans-serif';
   ctx.fillText('❤️', marginX, footerY + 12);
 
   ctx.fillStyle = '#f8fafc';
-  ctx.font = '700 22px "Plus Jakarta Sans", sans-serif';
+  ctx.font = '700 22px "Montserrat", sans-serif';
   ctx.fillText('Made with Love on The Everything App', marginX + 36, footerY + 10);
 
   // Bottom-Right Persona Edition
@@ -326,6 +347,81 @@ function drawPresetBackground(
     ctx.fillStyle = glowGrad2;
     ctx.fillRect(0, 0, width, height);
   }
+}
+
+/**
+ * Draws the GPS track route polyline directly onto the canvas poster.
+ */
+function drawGpsRouteOverlay(
+  ctx: CanvasRenderingContext2D,
+  points: { latitude: number; longitude: number }[],
+  canvasWidth: number,
+  canvasHeight: number,
+  format: 'story' | 'square'
+) {
+  if (points.length < 2) return;
+
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  points.forEach((p) => {
+    if (p.latitude < minLat) minLat = p.latitude;
+    if (p.latitude > maxLat) maxLat = p.latitude;
+    if (p.longitude < minLng) minLng = p.longitude;
+    if (p.longitude > maxLng) maxLng = p.longitude;
+  });
+
+  const latSpan = maxLat - minLat || 0.001;
+  const lngSpan = maxLng - minLng || 0.001;
+
+  const boxW = canvasWidth * 0.75;
+  const boxH = format === 'story' ? canvasHeight * 0.26 : canvasHeight * 0.22;
+  const boxX = (canvasWidth - boxW) / 2;
+  const boxY = format === 'story' ? 440 : 330;
+
+  const toCanvasX = (lng: number) => boxX + ((lng - minLng) / lngSpan) * boxW;
+  const toCanvasY = (lat: number) => boxY + boxH - ((lat - minLat) / latSpan) * boxH;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Outer glow
+  ctx.strokeStyle = 'rgba(252, 76, 2, 0.45)';
+  ctx.lineWidth = 14;
+  ctx.beginPath();
+  points.forEach((p, idx) => {
+    const x = toCanvasX(p.longitude);
+    const y = toCanvasY(p.latitude);
+    if (idx === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Core line
+  ctx.strokeStyle = '#FC4C02';
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  // Start marker (Green)
+  const startP = points[0];
+  ctx.fillStyle = '#22c55e';
+  ctx.beginPath();
+  ctx.arc(toCanvasX(startP.longitude), toCanvasY(startP.latitude), 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Finish marker (Orange-Red)
+  const endP = points[points.length - 1];
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.arc(toCanvasX(endP.longitude), toCanvasY(endP.latitude), 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 /**
