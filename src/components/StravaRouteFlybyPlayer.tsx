@@ -366,14 +366,33 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         }
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
         const url = URL.createObjectURL(blob);
+        const fileName = `Strava_Flyby_${currentActivity.distanceKm}km_${currentActivity.activityType}_${Date.now()}.webm`;
+        const videoFile = new File([blob], fileName, { type: 'video/webm' });
+
+        // Direct Download to Files / Phone Storage
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Strava_OSM_Flyby_${currentActivity.distanceKm}km_${currentActivity.activityType}_${Date.now()}.webm`;
+        a.download = fileName;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // Native Social Media Share if available
+        if (navigator.canShare && navigator.canShare({ files: [videoFile] })) {
+          try {
+            await navigator.share({
+              title: `${currentActivity.activityType.toUpperCase()} Ground Track Flyby`,
+              text: `Check out my ${currentActivity.distanceKm} km ${currentActivity.activityType} route animation on Everything App! 🚀`,
+              files: [videoFile]
+            });
+          } catch (_err) {
+            // User cancelled or completed share
+          }
+        }
+
         setIsRecordingVideo(false);
         setRecordProgress(100);
       };
