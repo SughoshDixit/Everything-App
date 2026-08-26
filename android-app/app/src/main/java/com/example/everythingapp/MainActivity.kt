@@ -88,9 +88,7 @@ fun AppWebView(
         factory = { context ->
             val assetLoader = WebViewAssetLoader.Builder()
                 .setDomain("appassets.androidplatform.net")
-                .addPathHandler("/assets/web/", WebViewAssetLoader.AssetsPathHandler(context))
                 .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
-                .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(context))
                 .build()
 
             WebView(context).apply {
@@ -141,11 +139,6 @@ fun AppWebView(
                         val uri = request?.url ?: return null
                         val urlStr = uri.toString()
 
-                        // 1. Try standard WebViewAssetLoader
-                        val assetResponse = assetLoader.shouldInterceptRequest(uri)
-                        if (assetResponse != null) return assetResponse
-
-                        // 2. Custom asset streamer for appassets.androidplatform.net or localhost
                         if (urlStr.startsWith("https://appassets.androidplatform.net/") || urlStr.startsWith("http://localhost/")) {
                             val rawPath = uri.path?.trimStart('/') ?: return null
                             val cleanPath = try {
@@ -154,14 +147,18 @@ fun AppWebView(
                                 rawPath
                             }
 
-                            // Look across all asset mirrors: web/$path, $path, web/assets/$path, web/playbook/$path, web/ai-gallery/$path
+                            val stripped = cleanPath.removePrefix("assets/").removePrefix("web/")
+
                             val candidatePaths = listOf(
-                                "web/$cleanPath",
                                 cleanPath,
-                                "web/assets/$cleanPath",
-                                "web/playbook/$cleanPath",
-                                "web/ai-gallery/$cleanPath",
-                                "web/Yellow Dude/$cleanPath"
+                                "web/$cleanPath",
+                                "web/$stripped",
+                                stripped,
+                                "web/assets/$stripped",
+                                "assets/$stripped",
+                                "web/playbook/$stripped",
+                                "web/Yellow Dude/$stripped",
+                                "web/ai-gallery/$stripped"
                             )
 
                             for (candidate in candidatePaths) {
@@ -195,7 +192,8 @@ fun AppWebView(
                                 }
                             }
                         }
-                        return null
+
+                        return assetLoader.shouldInterceptRequest(uri)
                     }
 
                     override fun shouldOverrideUrlLoading(
