@@ -365,12 +365,41 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // 3. Traversed Glowing Path
-    const isDrive = initialData.workoutType.toLowerCase().includes('drive') || initialData.workoutType.toLowerCase().includes('car');
-    const isCycle = initialData.workoutType.toLowerCase().includes('cycle') || initialData.workoutType.toLowerCase().includes('ride');
-    const primaryColor = isDrive ? '#38bdf8' : isCycle ? '#FC4C02' : '#a855f7';
-    const glowColor = isDrive ? 'rgba(56, 189, 248, 0.5)' : isCycle ? 'rgba(252, 76, 2, 0.5)' : 'rgba(168, 85, 247, 0.5)';
+    // 3. Traversed Glowing Path (Multi-Stage Sequential Transition Support)
+    const hasStages = initialData.multiStageRoutes && initialData.multiStageRoutes.length > 1;
+    let activeStageName = initialData.workoutType;
+    let activeStageColor = '#06b6d4';
+    let currentStageIndex = 1;
+    let totalStagesCount = 1;
 
+    if (hasStages && initialData.multiStageRoutes) {
+      totalStagesCount = initialData.multiStageRoutes.length;
+      let cumulativePts = 0;
+      for (let s = 0; s < initialData.multiStageRoutes.length; s++) {
+        const st = initialData.multiStageRoutes[s];
+        const stagePts = st.points.length;
+        if (videoCurrentIndex <= cumulativePts + stagePts) {
+          activeStageName = st.title || st.activityType.toUpperCase();
+          currentStageIndex = s + 1;
+          const isStRide = st.activityType === 'cycle' || st.title.toLowerCase().includes('ride');
+          const isStRun = st.activityType === 'run' || st.title.toLowerCase().includes('run');
+          const isStWalk = st.activityType === 'walk' || st.title.toLowerCase().includes('walk');
+          activeStageColor = isStRide ? '#FC4C02' : isStRun ? '#06b6d4' : isStWalk ? '#10b981' : '#a855f7';
+          break;
+        }
+        cumulativePts += stagePts;
+      }
+    } else {
+      const isDrive = initialData.workoutType.toLowerCase().includes('drive') || initialData.workoutType.toLowerCase().includes('car');
+      const isCycle = initialData.workoutType.toLowerCase().includes('cycle') || initialData.workoutType.toLowerCase().includes('ride');
+      const isWalk = initialData.workoutType.toLowerCase().includes('walk');
+      activeStageColor = isDrive ? '#38bdf8' : isCycle ? '#FC4C02' : isWalk ? '#10b981' : '#06b6d4';
+    }
+
+    const primaryColor = activeStageColor;
+    const glowColor = `${primaryColor}80`;
+
+    // Draw Glowing Path
     ctx.beginPath();
     ctx.strokeStyle = glowColor;
     ctx.lineWidth = 14;
@@ -386,7 +415,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
     ctx.beginPath();
     ctx.strokeStyle = primaryColor;
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 6;
     for (let i = 0; i <= videoCurrentIndex; i++) {
       const px = toX(routePoints[i].longitude);
       const py = toY(routePoints[i].latitude);
@@ -434,7 +463,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     ctx.translate(ax, ay);
     ctx.rotate(heading);
 
-    if (isDrive) {
+    const isCurrentDrive = activeStageName.toLowerCase().includes('drive') || activeStageName.toLowerCase().includes('car');
+    const isCurrentCycle = activeStageName.toLowerCase().includes('cycle') || activeStageName.toLowerCase().includes('ride');
+
+    if (isCurrentDrive) {
       const coneGrad = ctx.createRadialGradient(0, -10, 5, 0, -90, 75);
       coneGrad.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
       coneGrad.addColorStop(0.4, 'rgba(250, 204, 21, 0.4)');
@@ -477,7 +509,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     // 6. HUD & Overlays: Telemetry, Quotes, Brand & "Made with intention doing Kuchh Bhii"
     const progressRatio = totalPoints > 1 ? videoCurrentIndex / (totalPoints - 1) : 1;
     const currentDist = (totalDistNum * progressRatio).toFixed(2);
-    const speedVal = currentPoint.speed ? (currentPoint.speed * 3.6).toFixed(1) : (isDrive ? '72.5' : isCycle ? '26.4' : '11.8');
+    const speedVal = currentPoint.speed ? (currentPoint.speed * 3.6).toFixed(1) : (isCurrentDrive ? '72.5' : isCurrentCycle ? '26.4' : '11.8');
 
     // Aesthetic Top Gradient Scrim for Story View
     const topGrad = ctx.createLinearGradient(0, 0, 0, 220);
@@ -510,15 +542,19 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       ctx.roundRect(32, 48, 10, 140, 5);
       ctx.fill();
 
-      // Big Live Metric: Distance
+      // Big Live Metric: Distance + Stage indicator
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 48px "Montserrat", sans-serif';
-      ctx.fillText(`⚡ ${currentDist} km`, 60, 110);
+      ctx.font = '900 44px "Montserrat", sans-serif';
+      ctx.fillText(`⚡ ${currentDist} km`, 60, 105);
 
-      // Sub-metrics: Speed, Activity Type, Time
+      // Stage Pill & Details
       ctx.fillStyle = primaryColor;
-      ctx.font = '800 24px "Montserrat", sans-serif';
-      ctx.fillText(`${speedVal} km/h · ${initialData.workoutType.toUpperCase()} · ${timeStat}`, 60, 154);
+      ctx.font = '800 22px "Montserrat", sans-serif';
+      const stagePill = hasStages ? `STAGE ${currentStageIndex}/${totalStagesCount}: ${activeStageName.toUpperCase()}` : activeStageName.toUpperCase();
+      ctx.fillText(`${stagePill} · ${speedVal} km/h`, 60, 145);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 16px "Montserrat", sans-serif';
+      ctx.fillText(`⏱️ Active Elapsed: ${timeStat}`, 60, 172);
     }
 
     if (showVideoQuote) {
@@ -801,8 +837,16 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
       let stepIdx = 0;
       const totalSteps = totalPoints;
+      // Precision calculation for selected videoPlaybackSpeed (0.5x, 1x, 2x, 5x)
+      // At 0.5x speed, advance by 1 step every 40ms (~25 FPS real-time slow-motion)
+      // At 1x speed, advance by 2 steps every 33ms (~60 FPS)
+      // At 2x speed, advance by 4 steps every 33ms
+      // At 5x speed, advance by 8 steps every 33ms
+      const stepIncrement = videoPlaybackSpeed === 0.5 ? 1 : videoPlaybackSpeed === 1 ? 2 : videoPlaybackSpeed === 2 ? 4 : 8;
+      const intervalDuration = videoPlaybackSpeed === 0.5 ? 40 : 33;
+
       const stepInterval = setInterval(() => {
-        stepIdx += 2;
+        stepIdx += stepIncrement;
         if (stepIdx >= totalSteps) {
           clearInterval(stepInterval);
           setVideoCurrentIndex(totalSteps - 1);
@@ -811,12 +855,12 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
             if (mediaRecorder.state === 'recording') {
               mediaRecorder.stop();
             }
-          }, 350);
+          }, 450);
         } else {
           setVideoCurrentIndex(stepIdx);
           setRecordProgress(Math.round((stepIdx / totalSteps) * 100));
         }
-      }, 33);
+      }, intervalDuration);
 
     } catch (err) {
       console.error('Video recording failed:', err);

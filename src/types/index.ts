@@ -389,6 +389,13 @@ export interface SocialShareCardData {
   accentColor?: string;
   routeSvgPath?: string;
   routePoints?: GpsLocationPoint[];
+  multiStageRoutes?: {
+    stageIndex: number;
+    title: string;
+    activityType: 'run' | 'cycle' | 'walk' | 'drive';
+    distanceKm: number;
+    points: GpsLocationPoint[];
+  }[];
   backgroundTheme?: PostBackgroundTheme;
   customMediaUrl?: string;
   photos?: string[];

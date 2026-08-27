@@ -8,7 +8,8 @@ import type {
   UserProfile,
   MotivationalQuote,
   PostBackgroundTheme,
-  SocialShareCardData
+  SocialShareCardData,
+  GpsLocationPoint
 } from '../types';
 import {
   shareSocialCardNative,
@@ -181,6 +182,24 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
     todayGpsActivities.reduce((acc, g) => acc + Math.round(g.durationSeconds / 60), 0) +
     todayWorkoutLogs.length * 20;
 
+  // Construct multi-stage sequential route segments
+  const activeGpsLogs = todayGpsActivities.filter((g) => includedItems.some((i) => i.gpsActivityId === g.id));
+  const multiStageRoutes = activeGpsLogs.map((gps, idx) => ({
+    stageIndex: idx + 1,
+    title: `${gps.distanceKm} km ${gps.activityType.toUpperCase()}`,
+    activityType: gps.activityType,
+    distanceKm: gps.distanceKm,
+    points: gps.routePoints && gps.routePoints.length > 0 ? gps.routePoints : []
+  }));
+
+  // Concatenate all points across stages for unified video track
+  const allSequentialPoints: GpsLocationPoint[] = [];
+  multiStageRoutes.forEach((stage) => {
+    if (stage.points.length > 0) {
+      allSequentialPoints.push(...stage.points);
+    }
+  });
+
   const cardData: SocialShareCardData = {
     title: postTitle,
     workoutType: includedItems.length > 1 ? 'Daily Summary' : includedItems[0]?.title || 'Workout',
@@ -203,7 +222,9 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
     backgroundTheme: theme,
     customMediaUrl: photos[selectedPhotoIdx] || customMediaUrl,
     photos,
-    selectedPhotoIndex: selectedPhotoIdx
+    selectedPhotoIndex: selectedPhotoIdx,
+    routePoints: allSequentialPoints.length > 0 ? allSequentialPoints : (todayGpsActivities[0]?.routePoints || []),
+    multiStageRoutes
   };
 
   const handleSave = () => {
