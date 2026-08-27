@@ -1474,18 +1474,24 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   <input
                     ref={audioFileInputRef}
                     type="file"
-                    accept="audio/*"
+                    accept="audio/*,audio/mp3,audio/mpeg,audio/wav,audio/m4a,audio/aac,audio/ogg,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      const url = URL.createObjectURL(file);
-                      setCustomAudioUrl(url);
-                      setCustomAudioName(file.name);
-                      setAudioStartTime(0);
-                      setIsAudioPreviewPlaying(false);
-                      setToastMessage(`Loaded: ${file.name} 🎵`);
-                      setTimeout(() => setToastMessage(null), 3000);
+                      // Read as Data URL for robust playback on Android WebView & Safari
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        if (event.target?.result) {
+                          setCustomAudioUrl(event.target.result as string);
+                          setCustomAudioName(file.name);
+                          setAudioStartTime(0);
+                          setIsAudioPreviewPlaying(false);
+                          setToastMessage(`Loaded: ${file.name} 🎵`);
+                          setTimeout(() => setToastMessage(null), 3000);
+                        }
+                      };
+                      reader.readAsDataURL(file);
                     }}
                   />
                 </div>

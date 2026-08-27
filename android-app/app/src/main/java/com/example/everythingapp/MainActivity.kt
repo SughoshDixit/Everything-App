@@ -42,20 +42,51 @@ import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
 
+import android.webkit.ValueCallback
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+
 class MainActivity : ComponentActivity() {
 
     private var webView: WebView? = null
+    var fileChooserCallback: ValueCallback<Array<Uri>>? = null
+
+    val filePickerLauncher: ActivityResultLauncher<Intent> = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (fileChooserCallback == null) return@registerForActivityResult
+
+        val results: Array<Uri>? = when {
+            result.resultCode == RESULT_OK && result.data != null -> {
+                val data = result.data
+                val clipData = data?.clipData
+                if (clipData != null) {
+                    Array(clipData.itemCount) { i -> clipData.getItemAt(i).uri }
+                } else {
+                    data?.data?.let { arrayOf(it) }
+                }
+            }
+            else -> null
+        }
+        fileChooserCallback?.onReceiveValue(results)
+        fileChooserCallback = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Request runtime permissions
+        // Request runtime permissions including audio & images for Android 13+ and legacy
         val permissions = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+            permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
+            permissions.add(Manifest.permission.READ_MEDIA_IMAGES)
+            permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
+        } else {
+            permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
 
         val neededPermissions = permissions.filter {
@@ -83,7 +114,25 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxSize()
                     .systemBarsPadding(),
-                onWebViewCreated = { webView = it }
+                onWebViewCreated = { webView = it },
+                onShowFileChooser = { callback, params ->
+                    fileChooserCallback?.onReceiveValue(null)
+                    fileChooserCallback = callback
+
+                    val intent = params?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                        type = "*/*"
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                    }
+                    try {
+                        filePickerLauncher.launch(intent)
+                        true
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "File picker launch failed", e)
+                        fileChooserCallback?.onReceiveValue(null)
+                        fileChooserCallback = null
+                        false
+                    }
+                }
             )
         }
     }
@@ -209,7 +258,8 @@ class AndroidNativeBridge(private val context: Context) {
 @Composable
 fun AppWebView(
     modifier: Modifier = Modifier,
-    onWebViewCreated: (WebView) -> Unit
+    onWebViewCreated: (WebView) -> Unit,
+    onShowFileChooser: ((ValueCallback<Array<Uri>>?, WebChromeClient.FileChooserParams?) -> Boolean)? = null
 ) {
     AndroidView(
         modifier = modifier,
@@ -245,6 +295,14 @@ fun AppWebView(
                 addJavascriptInterface(AndroidNativeBridge(context), "AndroidBridge")
 
                 webChromeClient = object : WebChromeClient() {
+                    override fun onShowFileChooser(
+                        webView: WebView?,
+                        filePathCallback: ValueCallback<Array<Uri>>?,
+                        fileChooserParams: FileChooserParams?
+                    ): Boolean {
+                        return onShowFileChooser?.invoke(filePathCallback, fileChooserParams) ?: super.onShowFileChooser(webView, filePathCallback, fileChooserParams)
+                    }
+
                     override fun onGeolocationPermissionsShowPrompt(
                         origin: String?,
                         callback: GeolocationPermissions.Callback?
