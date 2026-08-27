@@ -80,6 +80,9 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   const [customVideoUrl, setCustomVideoUrl] = useState<string | null>(null);
   const [customAudioUrl, setCustomAudioUrl] = useState<string | null>(null);
   const [customAudioName, setCustomAudioName] = useState<string | null>(null);
+  const [audioStartTime, setAudioStartTime] = useState<number>(0);
+  const [audioTotalDuration, setAudioTotalDuration] = useState<number>(0);
+  const [isAudioPreviewPlaying, setIsAudioPreviewPlaying] = useState<boolean>(false);
   const [showVideoTelemetry, setShowVideoTelemetry] = useState<boolean>(true);
   const [showVideoQuote, setShowVideoQuote] = useState<boolean>(true);
 
@@ -652,7 +655,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       let combinedStream = canvasStream;
       if (customAudioUrl && userAudioElementRef.current) {
         try {
-          userAudioElementRef.current.currentTime = 0;
+          userAudioElementRef.current.currentTime = audioStartTime;
           userAudioElementRef.current.play();
           // Capture audio stream
           // @ts-expect-error captureStream on HTMLMediaElement
@@ -847,7 +850,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
         />
       )}
 
-      {/* Hidden User Audio Tag for Sound Track Mixing */}
+      {/* Hidden User Audio Tag for Sound Track Mixing & Live Preview */}
       {customAudioUrl && (
         <audio
           ref={userAudioElementRef}
@@ -855,6 +858,12 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
           loop
           crossOrigin="anonymous"
           className="hidden"
+          onLoadedMetadata={(e) => {
+            const dur = (e.target as HTMLAudioElement).duration || 0;
+            setAudioTotalDuration(dur);
+          }}
+          onPlay={() => setIsAudioPreviewPlaying(true)}
+          onPause={() => setIsAudioPreviewPlaying(false)}
         />
       )}
 
@@ -1266,60 +1275,131 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               </div>
             </div>
 
-            {/* Local Audio Soundtrack Selector */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-card border border-glass text-xs">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-full bg-[#55198B]/20 text-[#c084fc]">
-                  <Music size={14} />
+            {/* Local Audio Soundtrack Selector & Precision Part/Trim Selector */}
+            <div className="flex flex-col gap-2 p-3 rounded-2xl bg-card border border-glass text-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-full bg-[#55198B]/20 text-[#c084fc]">
+                    <Music size={14} />
+                  </div>
+                  <div>
+                    <span className="font-bold text-main block text-[11px]">
+                      {customAudioName ? `🎵 ${customAudioName}` : 'Add Local Device Audio (Song / BGM)'}
+                    </span>
+                    <span className="text-[10px] text-sub">
+                      {customAudioUrl ? 'Choose which part of the song to play in your post' : 'MP3, WAV, AAC, M4A from your device'}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-bold text-main block text-[11px]">
-                    {customAudioName ? `🎵 ${customAudioName}` : 'Add Local Device Audio (Song / BGM)'}
-                  </span>
-                  <span className="text-[10px] text-sub">
-                    {customAudioUrl ? 'Audio will be mixed into the exported video' : 'MP3, WAV, AAC, M4A from your device'}
-                  </span>
+
+                <div className="flex items-center gap-1">
+                  {customAudioUrl && (
+                    <button
+                      onClick={() => {
+                        if (userAudioElementRef.current) {
+                          userAudioElementRef.current.pause();
+                        }
+                        setCustomAudioUrl(null);
+                        setCustomAudioName(null);
+                        setAudioStartTime(0);
+                        setAudioTotalDuration(0);
+                        setIsAudioPreviewPlaying(false);
+                      }}
+                      className="p-1 text-red-400 hover:text-red-300"
+                      title="Remove Audio"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => audioFileInputRef.current?.click()}
+                    className={`btn-google-outlined text-[11px] py-1 px-2.5 rounded-full font-bold ${
+                      customAudioUrl ? 'border-emerald-500 text-emerald-400' : ''
+                    }`}
+                  >
+                    {customAudioUrl ? 'Change Song' : 'Choose Song'}
+                  </button>
+                  <input
+                    ref={audioFileInputRef}
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const url = URL.createObjectURL(file);
+                      setCustomAudioUrl(url);
+                      setCustomAudioName(file.name);
+                      setAudioStartTime(0);
+                      setIsAudioPreviewPlaying(false);
+                      setToastMessage(`Loaded: ${file.name} 🎵`);
+                      setTimeout(() => setToastMessage(null), 3000);
+                    }}
+                  />
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
-                {customAudioUrl && (
-                  <button
-                    onClick={() => {
-                      setCustomAudioUrl(null);
-                      setCustomAudioName(null);
+              {/* Audio Part Trimmer & Live Preview Row */}
+              {customAudioUrl && (
+                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-glass flex flex-col gap-2 mt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-cyan-400 flex items-center gap-1">
+                      <span>✂️ Select Song Start Point:</span>
+                      <span className="font-mono bg-cyan-950/80 px-1.5 py-0.5 rounded text-white border border-cyan-800">
+                        {Math.floor(audioStartTime / 60)}:{String(Math.floor(audioStartTime % 60)).padStart(2, '0')}
+                      </span>
+                    </span>
+                    <span className="text-[10px] text-sub font-mono">
+                      Total: {Math.floor(audioTotalDuration / 60)}:{String(Math.floor(audioTotalDuration % 60)).padStart(2, '0')}
+                    </span>
+                  </div>
+
+                  {/* Scrubber Range */}
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.max(10, Math.floor(audioTotalDuration))}
+                    step={1}
+                    value={audioStartTime}
+                    onChange={(e) => {
+                      const newTime = Number(e.target.value);
+                      setAudioStartTime(newTime);
+                      if (userAudioElementRef.current) {
+                        userAudioElementRef.current.currentTime = newTime;
+                      }
                     }}
-                    className="p-1 text-red-400 hover:text-red-300"
-                    title="Remove Audio"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => audioFileInputRef.current?.click()}
-                  className={`btn-google-outlined text-[11px] py-1 px-2.5 rounded-full font-bold ${
-                    customAudioUrl ? 'border-emerald-500 text-emerald-400' : ''
-                  }`}
-                >
-                  {customAudioUrl ? 'Change Audio' : 'Choose Audio'}
-                </button>
-                <input
-                  ref={audioFileInputRef}
-                  type="file"
-                  accept="audio/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const url = URL.createObjectURL(file);
-                    setCustomAudioUrl(url);
-                    setCustomAudioName(file.name);
-                    setToastMessage(`Audio added: ${file.name} 🎵`);
-                    setTimeout(() => setToastMessage(null), 3000);
-                  }}
-                />
-              </div>
+                    className="w-full accent-cyan-400 h-2 bg-slate-800 rounded-lg cursor-pointer"
+                  />
+
+                  {/* Live Preview Button */}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] text-zinc-400">
+                      Plays starting from {Math.floor(audioStartTime / 60)}:{String(Math.floor(audioStartTime % 60)).padStart(2, '0')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!userAudioElementRef.current) return;
+                        if (isAudioPreviewPlaying) {
+                          userAudioElementRef.current.pause();
+                        } else {
+                          userAudioElementRef.current.currentTime = audioStartTime;
+                          userAudioElementRef.current.play();
+                        }
+                      }}
+                      className={`text-[11px] py-1 px-3 rounded-full font-bold flex items-center gap-1.5 transition-all shadow-md ${
+                        isAudioPreviewPlaying
+                          ? 'bg-amber-500 text-black'
+                          : 'bg-[#55198B] text-white hover:bg-[#6c21b0]'
+                      }`}
+                    >
+                      {isAudioPreviewPlaying ? <Pause size={12} /> : <Play size={12} />}
+                      <span>{isAudioPreviewPlaying ? 'Pause Song Preview' : '🎧 Listen Preview'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Video Export & Share Actions */}

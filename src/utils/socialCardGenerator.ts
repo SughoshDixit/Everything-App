@@ -203,25 +203,44 @@ export async function generateSocialCardCanvas(
     ctx.fillText('📋 WORKOUT BREAKDOWN', marginX, currentY);
 
     currentY += 18;
-    data.activityItems.slice(0, 3).forEach((item) => {
-      const itemBoxH = 70;
-      ctx.fillStyle = 'rgba(26, 26, 26, 0.8)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    data.activityItems.slice(0, 4).forEach((item, idx) => {
+      const itemBoxH = 78;
+      const lowerTitle = item.title.toLowerCase();
+      const isRide = lowerTitle.includes('ride') || lowerTitle.includes('cycle') || item.icon?.includes('🚴');
+      const isRun = lowerTitle.includes('run') || item.icon?.includes('🏃');
+      const isWalk = lowerTitle.includes('walk') || item.icon?.includes('🚶');
+
+      const stageColor = isRide ? '#FC4C02' : isRun ? '#06b6d4' : isWalk ? '#10b981' : '#a855f7';
+      const stageBorder = isRide ? 'rgba(252, 76, 2, 0.35)' : isRun ? 'rgba(6, 182, 212, 0.35)' : isWalk ? 'rgba(16, 185, 129, 0.35)' : 'rgba(168, 85, 247, 0.35)';
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.strokeStyle = stageBorder;
       ctx.lineWidth = 2;
-      drawRoundedRect(ctx, marginX, currentY, width - marginX * 2, itemBoxH, 14);
+      drawRoundedRect(ctx, marginX, currentY, width - marginX * 2, itemBoxH, 16);
       ctx.fill();
       ctx.stroke();
 
-      // Title & sets/reps
+      // Left Accent Color Bar
+      ctx.fillStyle = stageColor;
+      drawRoundedRect(ctx, marginX, currentY, 6, itemBoxH, 3);
+      ctx.fill();
+
+      // Stage Number & Icon Badge
+      ctx.fillStyle = stageColor;
+      ctx.font = '800 13px "Montserrat", sans-serif';
+      ctx.fillText(`STAGE ${idx + 1}`, marginX + 20, currentY + 24);
+
+      // Title
       ctx.fillStyle = '#ffffff';
       ctx.font = '800 22px "Montserrat", sans-serif';
-      ctx.fillText(`${item.icon || '⚡'} ${item.title}`, marginX + 22, currentY + 30);
+      ctx.fillText(item.title, marginX + 90, currentY + 24);
 
-      ctx.fillStyle = '#007ACC';
-      ctx.font = '700 18px "Montserrat", sans-serif';
-      ctx.fillText(item.details, marginX + 22, currentY + 56);
+      // Details / Pace / Time
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 17px "Montserrat", sans-serif';
+      ctx.fillText(`⏱️ ${item.details}`, marginX + 20, currentY + 56);
 
-      currentY += itemBoxH + 10;
+      currentY += itemBoxH + 12;
     });
   }
 

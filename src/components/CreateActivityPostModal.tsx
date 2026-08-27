@@ -97,7 +97,13 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
     if (initialPost) return initialPost.title;
     const hasWalk = todayGpsActivities.some(g => g.activityType === 'walk');
     const hasRun = todayGpsActivities.some(g => g.activityType === 'run');
-    if (hasWalk && hasRun) {
+    const hasCycle = todayGpsActivities.some(g => g.activityType === 'cycle');
+
+    if (hasCycle && hasRun) {
+      const cycleDist = todayGpsActivities.find(g => g.activityType === 'cycle')?.distanceKm || 0;
+      const runDist = todayGpsActivities.find(g => g.activityType === 'run')?.distanceKm || 0;
+      return `${cycleDist}k Ride ➔ ${runDist}k Run (Brick Session) 🚴🏃`;
+    } else if (hasWalk && hasRun) {
       return 'Park Run & Commute Walk Triathlon 🏃🚶';
     } else if (todayGpsActivities.length > 0 && todayWorkoutLogs.length > 0) {
       return 'Outdoor Cardio & Calisthenics Combo 💪';
