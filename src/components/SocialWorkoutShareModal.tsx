@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { SocialShareCardData, MotivationalQuote, SocialCardTemplate, GpsLocationPoint } from '../types';
 import {
   generateSocialCardCanvas,
@@ -35,6 +35,13 @@ interface SocialWorkoutShareModalProps {
 type ShareStudioMode = 'poster' | 'video';
 type VideoMapTheme = 'dark_canvas' | 'osm' | 'satellite' | 'neon' | 'custom_media';
 
+// Tile URLs for photorealistic and real-time map views
+const TILE_URL_MAP: Record<string, string> = {
+  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  osm: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  dark_canvas: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+};
+
 export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = ({
   initialData,
   quotesList,
@@ -63,7 +70,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   const [showRouteOverlay, setShowRouteOverlay] = useState<boolean>(!!initialData.routePoints && initialData.routePoints.length > 1);
 
   // Video Mode State
-  const [videoMapTheme, setVideoMapTheme] = useState<VideoMapTheme>('dark_canvas');
+  const [videoMapTheme, setVideoMapTheme] = useState<VideoMapTheme>('satellite');
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
   const [videoPlaybackSpeed, setVideoPlaybackSpeed] = useState<number>(2);
   const [videoCurrentIndex, setVideoCurrentIndex] = useState<number>(0);
@@ -72,6 +79,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   const [customVideoUrl, setCustomVideoUrl] = useState<string | null>(null);
   const [showVideoTelemetry, setShowVideoTelemetry] = useState<boolean>(true);
   const [showVideoQuote, setShowVideoQuote] = useState<boolean>(true);
+
+  // Map Tile Cache for Real-Time Satellite / OSM / Dark Canvas
+  const [mapTilesCache, setMapTilesCache] = useState<Map<string, HTMLImageElement>>(new Map());
+  const [mapTilesReady, setMapTilesReady] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const videoFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -136,6 +147,107 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     templateStyle: template
   };
 
+  // Calculated stats
+  const distStat = initialData.stats.find(s => s.label.toLowerCase().includes('dist'))?.value || '5.0';
+  const totalDistNum = parseFloat(distStat) || 5.0;
+  const timeStat = initialData.stats.find(s => s.label.toLowerCase().includes('time') || s.label.toLowerCase().includes('dur'))?.value || '28:45';
+
+  // Convert lat/lng to Web Mercator Tile X/Y at Zoom level
+  const latLngToTile = useCallback((lat: number, lng: number, zoom: number) => {
+    const n = Math.pow(2, zoom);
+    const x = Math.floor(((lng + 180) / 360) * n);
+    const latRad = (lat * Math.PI) / 180;
+    const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+    return { x, y, zoom };
+  }, []);
+
+  // Convert Tile X/Y to lat/lng bounding box
+  const tileToBoundingBox = useCallback((x: number, y: number, zoom: number) => {
+    const n = Math.pow(2, zoom);
+    const minLng = (x / n) * 360 - 180;
+    const maxLng = ((x + 1) / n) * 360 - 180;
+    const minLatRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n)));
+    const maxLatRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n)));
+    const minLat = (minLatRad * 180) / Math.PI;
+    const maxLat = (maxLatRad * 180) / Math.PI;
+    return { minLat, maxLat, minLng, maxLng };
+  }, []);
+
+  // 0. Pre-fetch Real Map Tiles for current Route & Theme
+  useEffect(() => {
+    if (studioMode !== 'video' || videoMapTheme === 'neon' || videoMapTheme === 'custom_media' || !TILE_URL_MAP[videoMapTheme]) {
+      setMapTilesReady(true);
+      return;
+    }
+
+    let isMounted = true;
+    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+    routePoints.forEach((p) => {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    });
+
+    // Determine optimal zoom level
+    const latDiff = maxLat - minLat;
+    const lngDiff = maxLng - minLng;
+    const maxDiff = Math.max(latDiff, lngDiff);
+    let zoom = 14;
+    if (maxDiff > 0.4) zoom = 11;
+    else if (maxDiff > 0.15) zoom = 12;
+    else if (maxDiff > 0.05) zoom = 13;
+    else if (maxDiff > 0.02) zoom = 14;
+    else zoom = 15;
+
+    const minTile = latLngToTile(maxLat, minLng, zoom);
+    const maxTile = latLngToTile(minLat, maxLng, zoom);
+
+    const tilePromises: Promise<{ key: string; img: HTMLImageElement; bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number } }>[] = [];
+    const urlPattern = TILE_URL_MAP[videoMapTheme];
+
+    // Fetch bounding tiles with margin
+    const startX = Math.max(0, minTile.x - 1);
+    const endX = maxTile.x + 1;
+    const startY = Math.max(0, minTile.y - 1);
+    const endY = maxTile.y + 1;
+
+    for (let tx = startX; tx <= endX; tx++) {
+      for (let ty = startY; ty <= endY; ty++) {
+        const key = `${videoMapTheme}_${zoom}_${tx}_${ty}`;
+        const url = urlPattern.replace('{z}', zoom.toString()).replace('{x}', tx.toString()).replace('{y}', ty.toString());
+        const bounds = tileToBoundingBox(tx, ty, zoom);
+
+        const p = new Promise<{ key: string; img: HTMLImageElement; bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number } }>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve({ key, img, bounds });
+          img.onerror = () => {
+            const blank = new Image();
+            blank.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+            resolve({ key, img: blank, bounds });
+          };
+          img.src = url;
+        });
+        tilePromises.push(p);
+      }
+    }
+
+    Promise.all(tilePromises).then((results) => {
+      if (!isMounted) return;
+      const cache = new Map<string, HTMLImageElement>();
+      results.forEach((r) => {
+        cache.set(r.key, r.img);
+      });
+      setMapTilesCache(cache);
+      setMapTilesReady(true);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [studioMode, videoMapTheme, routePoints, latLngToTile, tileToBoundingBox]);
+
   // 1. Poster Canvas Preview
   useEffect(() => {
     if (studioMode !== 'poster') return;
@@ -190,7 +302,29 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     const w = canvas.width;
     const h = canvas.height;
 
-    // Background: Custom User Video / Theme / Photo
+    // Coordinate Normalization
+    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+    routePoints.forEach((p) => {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    });
+
+    const latMargin = (maxLat - minLat) * 0.12 || 0.002;
+    const lngMargin = (maxLng - minLng) * 0.12 || 0.002;
+    const routeMinLat = minLat - latMargin;
+    const routeMaxLat = maxLat + latMargin;
+    const routeMinLng = minLng - lngMargin;
+    const routeMaxLng = maxLng + lngMargin;
+
+    const latR = routeMaxLat - routeMinLat || 0.001;
+    const lngR = routeMaxLng - routeMinLng || 0.001;
+
+    const toX = (lng: number) => ((lng - routeMinLng) / lngR) * w;
+    const toY = (lat: number) => h - ((lat - routeMinLat) / latR) * h;
+
+    // 1. Draw Background: Real Tiles vs Custom Media vs Neon
     if (customVideoUrl && userVideoElementRef.current && userVideoElementRef.current.readyState >= 2) {
       ctx.drawImage(userVideoElementRef.current, 0, 0, w, h);
       ctx.fillStyle = `rgba(5, 7, 13, ${scrimIntensity})`;
@@ -203,30 +337,15 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
         ctx.fillStyle = `rgba(5, 7, 13, ${scrimIntensity})`;
         ctx.fillRect(0, 0, w, h);
       } else {
-        drawFallbackTheme(ctx, w, h, videoMapTheme);
+        renderRealisticMapBackground(ctx, w, h, videoMapTheme, routeMinLat, routeMaxLat, routeMinLng, routeMaxLng, toX, toY);
       }
     } else {
-      drawFallbackTheme(ctx, w, h, videoMapTheme);
+      renderRealisticMapBackground(ctx, w, h, videoMapTheme, routeMinLat, routeMaxLat, routeMinLng, routeMaxLng, toX, toY);
     }
 
-    // Coordinate Normalization
-    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-    routePoints.forEach((p) => {
-      if (p.latitude < minLat) minLat = p.latitude;
-      if (p.latitude > maxLat) maxLat = p.latitude;
-      if (p.longitude < minLng) minLng = p.longitude;
-      if (p.longitude > maxLng) maxLng = p.longitude;
-    });
-
-    const latR = maxLat - minLat || 0.001;
-    const lngR = maxLng - minLng || 0.001;
-    const padding = 50;
-    const toX = (lng: number) => padding + ((lng - minLng) / lngR) * (w - padding * 2);
-    const toY = (lat: number) => (h - padding) - ((lat - minLat) / latR) * (h - padding * 2);
-
-    // Planned Base Path
+    // 2. Planned Route Base Path
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.strokeStyle = videoMapTheme === 'satellite' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.25)';
     ctx.lineWidth = 3;
     ctx.setLineDash([6, 6]);
     routePoints.forEach((p, idx) => {
@@ -238,11 +357,11 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Traversed Glowing Path
+    // 3. Traversed Glowing Path
     const isDrive = initialData.workoutType.toLowerCase().includes('drive') || initialData.workoutType.toLowerCase().includes('car');
     const isCycle = initialData.workoutType.toLowerCase().includes('cycle') || initialData.workoutType.toLowerCase().includes('ride');
     const primaryColor = isDrive ? '#38bdf8' : isCycle ? '#FC4C02' : '#a855f7';
-    const glowColor = isDrive ? 'rgba(56, 189, 248, 0.4)' : isCycle ? 'rgba(252, 76, 2, 0.4)' : 'rgba(168, 85, 247, 0.4)';
+    const glowColor = isDrive ? 'rgba(56, 189, 248, 0.5)' : isCycle ? 'rgba(252, 76, 2, 0.5)' : 'rgba(168, 85, 247, 0.5)';
 
     ctx.beginPath();
     ctx.strokeStyle = glowColor;
@@ -259,7 +378,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
     ctx.beginPath();
     ctx.strokeStyle = primaryColor;
-    ctx.lineWidth = 4.5;
+    ctx.lineWidth = 5;
     for (let i = 0; i <= videoCurrentIndex; i++) {
       const px = toX(routePoints[i].longitude);
       const py = toY(routePoints[i].latitude);
@@ -268,7 +387,29 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     }
     ctx.stroke();
 
-    // Active Athlete / Vehicle Marker
+    // 4. Start & Finish Point Pins
+    const startPt = routePoints[0];
+    const endPt = routePoints[totalPoints - 1];
+
+    // Start Pin (Green)
+    ctx.fillStyle = '#10B981';
+    ctx.beginPath();
+    ctx.arc(toX(startPt.longitude), toY(startPt.latitude), 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Finish Pin (Red)
+    ctx.fillStyle = '#EF4444';
+    ctx.beginPath();
+    ctx.arc(toX(endPt.longitude), toY(endPt.latitude), 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // 5. Active Moving Athlete / Vehicle Marker
     const currentPoint = routePoints[videoCurrentIndex];
     const prevPoint = routePoints[Math.max(0, videoCurrentIndex - 1)];
     const ax = toX(currentPoint.longitude);
@@ -286,15 +427,15 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     ctx.rotate(heading);
 
     if (isDrive) {
-      const coneGrad = ctx.createRadialGradient(0, -10, 5, 0, -80, 70);
-      coneGrad.addColorStop(0, 'rgba(254, 240, 138, 0.85)');
-      coneGrad.addColorStop(0.5, 'rgba(250, 204, 21, 0.35)');
-      coneGrad.addColorStop(1, 'rgba(250, 204, 21, 0)');
+      const coneGrad = ctx.createRadialGradient(0, -10, 5, 0, -90, 75);
+      coneGrad.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
+      coneGrad.addColorStop(0.4, 'rgba(250, 204, 21, 0.4)');
+      coneGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = coneGrad;
       ctx.beginPath();
       ctx.moveTo(-6, -10);
-      ctx.lineTo(-40, -80);
-      ctx.lineTo(40, -80);
+      ctx.lineTo(-45, -90);
+      ctx.lineTo(45, -90);
       ctx.lineTo(6, -10);
       ctx.closePath();
       ctx.fill();
@@ -314,27 +455,24 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     } else {
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 3.5;
       ctx.beginPath();
-      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.arc(0, 0, 15, 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.restore();
 
-    // HUD & Overlays: Telemetry, Quotes, Brand & "Made with Love"
+    // 6. HUD & Overlays: Telemetry, Quotes, Brand & "Made with Love"
     const progressRatio = totalPoints > 1 ? videoCurrentIndex / (totalPoints - 1) : 1;
-    const totalDistNum = parseFloat(initialData.stats.find(s => s.label.toLowerCase().includes('dist'))?.value || '5.0') || 5.0;
     const currentDist = (totalDistNum * progressRatio).toFixed(2);
     const speedVal = currentPoint.speed ? (currentPoint.speed * 3.6).toFixed(1) : (isDrive ? '72.5' : isCycle ? '26.4' : '11.8');
-    const timeStat = initialData.stats.find(s => s.label.toLowerCase().includes('time') || s.label.toLowerCase().includes('dur'))?.value || '28:45';
 
     if (showVideoTelemetry) {
-      // Top Telemetry Header
-      ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
+      ctx.fillStyle = 'rgba(10, 15, 26, 0.9)';
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -352,10 +490,9 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     }
 
     if (showVideoQuote) {
-      // Bottom Quote Pill
       const quoteBoxW = w - 32;
-      ctx.fillStyle = 'rgba(10, 15, 26, 0.85)';
-      ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+      ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.35)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.roundRect(16, h - 85, quoteBoxW, 58, 14);
@@ -371,48 +508,124 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       ctx.font = '800 10px Montserrat, sans-serif';
       ctx.fillText(`— ${currentQuote.author.toUpperCase()}`, 32, h - 40);
 
-      // Made with love badge
       ctx.fillStyle = '#f43f5e';
       ctx.font = '700 10px Montserrat, sans-serif';
       ctx.fillText('❤️ Made with Love on The Everything App', quoteBoxW - 220, h - 40);
     }
 
-    // Progress Bar at Bottom
+    // Bottom Progress Bar
     ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.fillRect(0, h - 6, w, 6);
     ctx.fillStyle = primaryColor;
     ctx.fillRect(0, h - 6, w * progressRatio, 6);
 
-  }, [studioMode, videoCurrentIndex, routePoints, totalPoints, videoMapTheme, initialData, customVideoUrl, photos, selectedPhotoIdx, scrimIntensity, showVideoTelemetry, showVideoQuote, currentQuote]);
+  }, [studioMode, videoCurrentIndex, routePoints, totalPoints, videoMapTheme, initialData, customVideoUrl, photos, selectedPhotoIdx, scrimIntensity, showVideoTelemetry, showVideoQuote, currentQuote, mapTilesCache, mapTilesReady, timeStat, totalDistNum]);
 
-  function drawFallbackTheme(ctx: CanvasRenderingContext2D, w: number, h: number, theme: VideoMapTheme) {
-    if (theme === 'dark_canvas') {
-      ctx.fillStyle = '#090d16';
+  // Realistic Map Background Drawer with Cached Satellite / OSM Tiles
+  function renderRealisticMapBackground(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    theme: VideoMapTheme,
+    minLat: number,
+    maxLat: number,
+    minLng: number,
+    maxLng: number,
+    toX: (lng: number) => number,
+    toY: (lat: number) => number
+  ) {
+    if (theme === 'neon') {
+      // Cyber Neon Vector Map Grid
+      ctx.fillStyle = '#05070e';
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.strokeStyle = 'rgba(204, 255, 0, 0.08)';
       ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 40) {
+      for (let x = 0; x < w; x += 30) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
       }
-      for (let y = 0; y < h; y += 40) {
+      for (let y = 0; y < h; y += 30) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
       }
-    } else if (theme === 'osm') {
-      ctx.fillStyle = '#1e293b';
+      const neonGlow = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, w / 1.2);
+      neonGlow.addColorStop(0, 'rgba(85, 25, 139, 0.25)');
+      neonGlow.addColorStop(1, 'transparent');
+      ctx.fillStyle = neonGlow;
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 50) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      return;
+    }
+
+    // Real-Time Satellite / OSM / Dark Canvas Tile Blitting
+    let tilesRendered = 0;
+    if (mapTilesCache.size > 0) {
+      const latDiff = maxLat - minLat;
+      const lngDiff = maxLng - minLng;
+      const maxDiff = Math.max(latDiff, lngDiff);
+      let zoom = 14;
+      if (maxDiff > 0.4) zoom = 11;
+      else if (maxDiff > 0.15) zoom = 12;
+      else if (maxDiff > 0.05) zoom = 13;
+      else if (maxDiff > 0.02) zoom = 14;
+      else zoom = 15;
+
+      const minTile = latLngToTile(maxLat, minLng, zoom);
+      const maxTile = latLngToTile(minLat, maxLng, zoom);
+
+      for (let tx = minTile.x - 1; tx <= maxTile.x + 1; tx++) {
+        for (let ty = minTile.y - 1; ty <= maxTile.y + 1; ty++) {
+          const key = `${theme}_${zoom}_${tx}_${ty}`;
+          const img = mapTilesCache.get(key);
+          if (img && img.complete && img.width > 1) {
+            const b = tileToBoundingBox(tx, ty, zoom);
+            const x1 = toX(b.minLng);
+            const y1 = toY(b.maxLat);
+            const x2 = toX(b.maxLng);
+            const y2 = toY(b.minLat);
+            const dw = x2 - x1;
+            const dh = y2 - y1;
+            ctx.drawImage(img, x1, y1, dw, dh);
+            tilesRendered++;
+          }
+        }
       }
-    } else if (theme === 'satellite') {
-      const grad = ctx.createRadialGradient(w / 2, h / 2, 50, w / 2, h / 2, w / 1.4);
-      grad.addColorStop(0, '#0b2a3a');
-      grad.addColorStop(1, '#020910');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
-    } else {
-      ctx.fillStyle = '#030712';
+    }
+
+    // If tiles are still loading or offline, draw rich atmospheric vector fallback
+    if (tilesRendered === 0) {
+      if (theme === 'satellite') {
+        const satGrad = ctx.createLinearGradient(0, 0, w, h);
+        satGrad.addColorStop(0, '#041019');
+        satGrad.addColorStop(0.5, '#072433');
+        satGrad.addColorStop(1, '#020b12');
+        ctx.fillStyle = satGrad;
+        ctx.fillRect(0, 0, w, h);
+      } else if (theme === 'osm') {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < w; x += 45) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        }
+        for (let y = 0; y < h; y += 45) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+      } else {
+        ctx.fillStyle = '#090d16';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < w; x += 40) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        }
+        for (let y = 0; y < h; y += 40) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+      }
+    }
+
+    // Darkened atmospheric scrim for route and telemetry legibility
+    if (theme === 'satellite') {
+      ctx.fillStyle = 'rgba(5, 10, 18, 0.35)';
       ctx.fillRect(0, 0, w, h);
     }
   }
@@ -865,10 +1078,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-1 bg-black/20 p-1 rounded-full border border-glass">
                 {[
-                  { id: 'dark_canvas', label: 'Dark Canvas' },
-                  { id: 'osm', label: 'Map' },
-                  { id: 'satellite', label: 'Satellite' },
-                  { id: 'neon', label: 'Cyber Neon' }
+                  { id: 'satellite', label: '🛰️ Satellite' },
+                  { id: 'osm', label: '🗺️ Map' },
+                  { id: 'dark_canvas', label: '🌑 Dark Canvas' },
+                  { id: 'neon', label: '⚡ Cyber Neon' }
                 ].map((th) => (
                   <button
                     key={th.id}
@@ -876,7 +1089,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                       setVideoMapTheme(th.id as VideoMapTheme);
                       setCustomVideoUrl(null);
                     }}
-                    className={`text-xs py-1 px-2.5 rounded-full font-bold transition-all cursor-pointer ${
+                    className={`text-xs py-1.5 px-3 rounded-full font-bold transition-all cursor-pointer ${
                       videoMapTheme === th.id && !customVideoUrl
                         ? 'bg-[#55198B] text-white shadow-md'
                         : 'text-sub hover:text-main'
