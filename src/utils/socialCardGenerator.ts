@@ -477,6 +477,15 @@ function wrapText(
   ctx.fillText(line, x, y);
 }
 
+declare global {
+  interface Window {
+    AndroidBridge?: {
+      downloadBase64File: (base64Data: string, fileName: string, mimeType: string) => boolean;
+      shareBase64Media: (base64Data: string, fileName: string, mimeType: string, title: string, text: string) => boolean;
+    };
+  }
+}
+
 /**
  * Exports Canvas as a downloadable PNG image.
  */
@@ -486,14 +495,25 @@ export async function downloadSocialCardImage(
 ): Promise<void> {
   const canvas = await generateSocialCardCanvas(data, format);
   const dataUrl = canvas.toDataURL('image/png');
+  const fileName = `Workout_${data.title.replace(/\s+/g, '_')}_${Date.now()}.png`;
+
+  // 1. If AndroidBridge is available in WebView app, save directly to Android Gallery / Pictures
+  if (window.AndroidBridge && typeof window.AndroidBridge.downloadBase64File === 'function') {
+    const success = window.AndroidBridge.downloadBase64File(dataUrl, fileName, 'image/png');
+    if (success) return;
+  }
+
+  // 2. Standard Web Browser download fallback
   const link = document.createElement('a');
-  link.download = `Workout_${data.title.replace(/\s+/g, '_')}_${Date.now()}.png`;
+  link.download = fileName;
   link.href = dataUrl;
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
 }
 
 /**
- * Shares workout card using Web Share API (native WhatsApp/Instagram share dialog).
+ * Shares workout card using Web Share API or native AndroidBridge share dialog.
  */
 export async function shareSocialCardNative(
   data: SocialShareCardData,
@@ -501,7 +521,18 @@ export async function shareSocialCardNative(
 ): Promise<boolean> {
   try {
     const canvas = await generateSocialCardCanvas(data, format);
-    
+    const dataUrl = canvas.toDataURL('image/png');
+    const fileName = `Workout_${data.title.replace(/\s+/g, '_')}_${Date.now()}.png`;
+    const shareTitle = `${data.title} Workout Complete! ⚡`;
+    const shareText = `Crushed my ${data.title} session! 🔥 ${data.streakDays} Day Streak on Everything App.\n"${data.motivationalQuote}" — ${data.quoteAuthor}\n\n❤️ Made with Love on The Everything App`;
+
+    // 1. If inside Android native WebView bridge, trigger direct Android Intent Chooser
+    if (window.AndroidBridge && typeof window.AndroidBridge.shareBase64Media === 'function') {
+      const ok = window.AndroidBridge.shareBase64Media(dataUrl, fileName, 'image/png', shareTitle, shareText);
+      if (ok) return true;
+    }
+
+    // 2. Try Web Share API with File
     return new Promise((resolve) => {
       canvas.toBlob(async (blob) => {
         if (!blob) {
@@ -509,28 +540,33 @@ export async function shareSocialCardNative(
           return;
         }
 
-        const file = new File([blob], `Workout_${Date.now()}.png`, { type: 'image/png' });
+        const file = new File([blob], fileName, { type: 'image/png' });
         const shareData: ShareData = {
-          title: `${data.title} Workout Complete! ⚡`,
-          text: `Crushed my ${data.title} session! 🔥 ${data.streakDays} Day Streak on Everything App. "${data.motivationalQuote}" — Made with Love on The Everything App ❤️`,
+          title: shareTitle,
+          text: shareText,
           files: [file]
         };
 
         if (navigator.canShare && navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-          resolve(true);
-        } else {
-          // Fallback: direct WhatsApp share text link
-          const shareText = encodeURIComponent(
-            `⚡ *Workout Crushed: ${data.title}*\n` +
-            `🔥 *${data.streakDays} Day Streak*\n` +
-            data.stats.map((s) => `• ${s.label}: *${s.value}${s.unit ? ' ' + s.unit : ''}*`).join('\n') +
-            (data.activityItems && data.activityItems.length > 0 ? `\n\n*Workouts Done:*\n` + data.activityItems.map((i) => `• ${i.title}: ${i.details}`).join('\n') : '') +
-            `\n\n"${data.motivationalQuote}" — *${data.quoteAuthor}*\n\n_❤️ Made with Love on The Everything App_`
-          );
-          window.open(`https://api.whatsapp.com/send?text=${shareText}`, '_blank');
-          resolve(true);
+          try {
+            await navigator.share(shareData);
+            resolve(true);
+            return;
+          } catch {
+            // User dismissed or failed
+          }
         }
+
+        // 3. Fallback: direct WhatsApp share text link
+        const whatsappText = encodeURIComponent(
+          `⚡ *Workout Crushed: ${data.title}*\n` +
+          `🔥 *${data.streakDays} Day Streak*\n` +
+          data.stats.map((s) => `• ${s.label}: *${s.value}${s.unit ? ' ' + s.unit : ''}*`).join('\n') +
+          (data.activityItems && data.activityItems.length > 0 ? `\n\n*Workouts Done:*\n` + data.activityItems.map((i) => `• ${i.title}: ${i.details}`).join('\n') : '') +
+          `\n\n"${data.motivationalQuote}" — *${data.quoteAuthor}*\n\n_❤️ Made with Love on The Everything App_`
+        );
+        window.open(`https://api.whatsapp.com/send?text=${whatsappText}`, '_blank');
+        resolve(true);
       }, 'image/png');
     });
   } catch {

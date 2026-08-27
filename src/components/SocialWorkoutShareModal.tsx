@@ -23,8 +23,7 @@ import {
   Image as ImageIcon,
   Play,
   Pause,
-  RotateCcw,
-  Layers
+  RotateCcw
 } from 'lucide-react';
 
 interface SocialWorkoutShareModalProps {
@@ -34,7 +33,7 @@ interface SocialWorkoutShareModalProps {
 }
 
 type ShareStudioMode = 'poster' | 'video';
-type VideoMapTheme = 'dark_canvas' | 'osm' | 'satellite' | 'neon';
+type VideoMapTheme = 'dark_canvas' | 'osm' | 'satellite' | 'neon' | 'custom_media';
 
 export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = ({
   initialData,
@@ -49,7 +48,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   const [template, setTemplate] = useState<SocialCardTemplate>(initialData.templateStyle || 'strava_classic');
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState<number>(0);
   const [isSharing, setIsSharing] = useState<boolean>(false);
-  const [copied, setCopied] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
 
   // Multi-photo state (Unlimited photos upload)
@@ -69,9 +69,14 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   const [videoCurrentIndex, setVideoCurrentIndex] = useState<number>(0);
   const [isRecordingVideo, setIsRecordingVideo] = useState<boolean>(false);
   const [recordProgress, setRecordProgress] = useState<number>(0);
+  const [customVideoUrl, setCustomVideoUrl] = useState<string | null>(null);
+  const [showVideoTelemetry, setShowVideoTelemetry] = useState<boolean>(true);
+  const [showVideoQuote, setShowVideoQuote] = useState<boolean>(true);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoFileInputRef = useRef<HTMLInputElement | null>(null);
   const videoCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const userVideoElementRef = useRef<HTMLVideoElement | null>(null);
   const videoAnimFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -185,46 +190,23 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     const w = canvas.width;
     const h = canvas.height;
 
-    // Background Theme
-    if (videoMapTheme === 'dark_canvas') {
-      ctx.fillStyle = '#090d16';
+    // Background: Custom User Video / Theme / Photo
+    if (customVideoUrl && userVideoElementRef.current && userVideoElementRef.current.readyState >= 2) {
+      ctx.drawImage(userVideoElementRef.current, 0, 0, w, h);
+      ctx.fillStyle = `rgba(5, 7, 13, ${scrimIntensity})`;
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 40) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
+    } else if (photos.length > 0 && photos[selectedPhotoIdx]) {
+      const bgImg = new Image();
+      bgImg.src = photos[selectedPhotoIdx];
+      if (bgImg.complete && bgImg.width > 0) {
+        ctx.drawImage(bgImg, 0, 0, w, h);
+        ctx.fillStyle = `rgba(5, 7, 13, ${scrimIntensity})`;
+        ctx.fillRect(0, 0, w, h);
+      } else {
+        drawFallbackTheme(ctx, w, h, videoMapTheme);
       }
-      for (let y = 0; y < h; y += 40) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
-    } else if (videoMapTheme === 'osm') {
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 50) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-    } else if (videoMapTheme === 'satellite') {
-      ctx.fillStyle = '#05121e';
-      ctx.fillRect(0, 0, w, h);
-      const grad = ctx.createRadialGradient(w / 2, h / 2, 50, w / 2, h / 2, w / 1.5);
-      grad.addColorStop(0, '#0b2a3a');
-      grad.addColorStop(1, '#020910');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
     } else {
-      ctx.fillStyle = '#030712';
-      ctx.fillRect(0, 0, w, h);
+      drawFallbackTheme(ctx, w, h, videoMapTheme);
     }
 
     // Coordinate Normalization
@@ -244,7 +226,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
     // Planned Base Path
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = 3;
     ctx.setLineDash([6, 6]);
     routePoints.forEach((p, idx) => {
@@ -260,7 +242,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     const isDrive = initialData.workoutType.toLowerCase().includes('drive') || initialData.workoutType.toLowerCase().includes('car');
     const isCycle = initialData.workoutType.toLowerCase().includes('cycle') || initialData.workoutType.toLowerCase().includes('ride');
     const primaryColor = isDrive ? '#38bdf8' : isCycle ? '#FC4C02' : '#a855f7';
-    const glowColor = isDrive ? 'rgba(56, 189, 248, 0.35)' : isCycle ? 'rgba(252, 76, 2, 0.35)' : 'rgba(168, 85, 247, 0.35)';
+    const glowColor = isDrive ? 'rgba(56, 189, 248, 0.4)' : isCycle ? 'rgba(252, 76, 2, 0.4)' : 'rgba(168, 85, 247, 0.4)';
 
     ctx.beginPath();
     ctx.strokeStyle = glowColor;
@@ -277,7 +259,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
     ctx.beginPath();
     ctx.strokeStyle = primaryColor;
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 4.5;
     for (let i = 0; i <= videoCurrentIndex; i++) {
       const px = toX(routePoints[i].longitude);
       const py = toY(routePoints[i].latitude);
@@ -343,27 +325,57 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     }
     ctx.restore();
 
-    // Top Video Telemetry HUD
+    // HUD & Overlays: Telemetry, Quotes, Brand & "Made with Love"
     const progressRatio = totalPoints > 1 ? videoCurrentIndex / (totalPoints - 1) : 1;
     const totalDistNum = parseFloat(initialData.stats.find(s => s.label.toLowerCase().includes('dist'))?.value || '5.0') || 5.0;
     const currentDist = (totalDistNum * progressRatio).toFixed(2);
     const speedVal = currentPoint.speed ? (currentPoint.speed * 3.6).toFixed(1) : (isDrive ? '72.5' : isCycle ? '26.4' : '11.8');
+    const timeStat = initialData.stats.find(s => s.label.toLowerCase().includes('time') || s.label.toLowerCase().includes('dur'))?.value || '28:45';
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(16, 16, 260, 68, 14);
-    ctx.fill();
-    ctx.stroke();
+    if (showVideoTelemetry) {
+      // Top Telemetry Header
+      ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(16, 16, 320, 72, 16);
+      ctx.fill();
+      ctx.stroke();
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 18px Montserrat, sans-serif';
-    ctx.fillText(`${currentDist} km`, 32, 42);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 20px Montserrat, sans-serif';
+      ctx.fillText(`⚡ ${currentDist} km`, 32, 44);
 
-    ctx.fillStyle = primaryColor;
-    ctx.font = 'bold 12px Montserrat, sans-serif';
-    ctx.fillText(`${speedVal} km/h • ${initialData.workoutType}`, 32, 62);
+      ctx.fillStyle = primaryColor;
+      ctx.font = '700 13px Montserrat, sans-serif';
+      ctx.fillText(`${speedVal} km/h · ${initialData.workoutType.toUpperCase()} · ${timeStat}`, 32, 66);
+    }
+
+    if (showVideoQuote) {
+      // Bottom Quote Pill
+      const quoteBoxW = w - 32;
+      ctx.fillStyle = 'rgba(10, 15, 26, 0.85)';
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(16, h - 85, quoteBoxW, 58, 14);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'italic 600 12px Montserrat, sans-serif';
+      const quoteSnippet = currentQuote.text.length > 68 ? currentQuote.text.substring(0, 65) + '...' : currentQuote.text;
+      ctx.fillText(`"${quoteSnippet}"`, 32, h - 57);
+
+      ctx.fillStyle = '#FFD700';
+      ctx.font = '800 10px Montserrat, sans-serif';
+      ctx.fillText(`— ${currentQuote.author.toUpperCase()}`, 32, h - 40);
+
+      // Made with love badge
+      ctx.fillStyle = '#f43f5e';
+      ctx.font = '700 10px Montserrat, sans-serif';
+      ctx.fillText('❤️ Made with Love on The Everything App', quoteBoxW - 220, h - 40);
+    }
 
     // Progress Bar at Bottom
     ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
@@ -371,7 +383,39 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     ctx.fillStyle = primaryColor;
     ctx.fillRect(0, h - 6, w * progressRatio, 6);
 
-  }, [studioMode, videoCurrentIndex, routePoints, totalPoints, videoMapTheme, initialData]);
+  }, [studioMode, videoCurrentIndex, routePoints, totalPoints, videoMapTheme, initialData, customVideoUrl, photos, selectedPhotoIdx, scrimIntensity, showVideoTelemetry, showVideoQuote, currentQuote]);
+
+  function drawFallbackTheme(ctx: CanvasRenderingContext2D, w: number, h: number, theme: VideoMapTheme) {
+    if (theme === 'dark_canvas') {
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+    } else if (theme === 'osm') {
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 50) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+    } else if (theme === 'satellite') {
+      const grad = ctx.createRadialGradient(w / 2, h / 2, 50, w / 2, h / 2, w / 1.4);
+      grad.addColorStop(0, '#0b2a3a');
+      grad.addColorStop(1, '#020910');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    } else {
+      ctx.fillStyle = '#030712';
+      ctx.fillRect(0, 0, w, h);
+    }
+  }
 
   // 3. Export / Record Animated Video Clip
   const handleRecordAndExportVideo = async (shouldShareDirectly: boolean = false) => {
@@ -401,35 +445,70 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
       mediaRecorder.onstop = async () => {
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-        const videoUrl = URL.createObjectURL(blob);
-        setIsRecordingVideo(false);
-        setRecordProgress(100);
+        const fileName = `Strava_Track_${initialData.title.replace(/\s+/g, '_')}_${Date.now()}.webm`;
+        const shareTitle = `${initialData.title} Video Track 🚀`;
+        const shareText = `Check out my ${initialData.workoutType} track on Everything App! 🔥 "${currentQuote.text}" — Made with Love on The Everything App ❤️`;
 
-        const fileName = `Strava_Activity_Track_${initialData.title.replace(/\s+/g, '_')}_${Date.now()}.webm`;
-        const videoFile = new File([blob], fileName, { type: 'video/webm' });
+        // Convert blob to Base64 for AndroidBridge native file saving / sharing
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Data = reader.result as string;
 
-        if (shouldShareDirectly && navigator.canShare && navigator.canShare({ files: [videoFile] })) {
-          try {
-            await navigator.share({
-              title: initialData.title,
-              text: `Check out my ${initialData.workoutType} track on Everything App! 🚀`,
-              files: [videoFile]
-            });
-            return;
-          } catch (_err) {
-            // Fall through to download
+          if (shouldShareDirectly) {
+            if (window.AndroidBridge && typeof window.AndroidBridge.shareBase64Media === 'function') {
+              const ok = window.AndroidBridge.shareBase64Media(base64Data, fileName, 'video/webm', shareTitle, shareText);
+              if (ok) {
+                setIsRecordingVideo(false);
+                setRecordProgress(100);
+                setToastMessage('Sharing video to social media...');
+                setTimeout(() => setToastMessage(null), 3000);
+                return;
+              }
+            }
+
+            const videoFile = new File([blob], fileName, { type: 'video/webm' });
+            if (navigator.canShare && navigator.canShare({ files: [videoFile] })) {
+              try {
+                await navigator.share({
+                  title: shareTitle,
+                  text: shareText,
+                  files: [videoFile]
+                });
+                setIsRecordingVideo(false);
+                setRecordProgress(100);
+                return;
+              } catch {
+                // Fall through to download
+              }
+            }
           }
-        }
 
-        // Automatic Direct Download
-        const a = document.createElement('a');
-        a.href = videoUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 3000);
+          // Direct Download: Try AndroidBridge first
+          if (window.AndroidBridge && typeof window.AndroidBridge.downloadBase64File === 'function') {
+            const saved = window.AndroidBridge.downloadBase64File(base64Data, fileName, 'video/webm');
+            if (saved) {
+              setIsRecordingVideo(false);
+              setRecordProgress(100);
+              setToastMessage('Video saved to Gallery / Storage! 🎬');
+              setTimeout(() => setToastMessage(null), 3000);
+              return;
+            }
+          }
+
+          // Fallback browser download
+          const videoUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = videoUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setIsRecordingVideo(false);
+          setRecordProgress(100);
+          setToastMessage('Video Downloaded to Files! 🎬');
+          setTimeout(() => setToastMessage(null), 3000);
+        };
+        reader.readAsDataURL(blob);
       };
 
       mediaRecorder.start();
@@ -446,7 +525,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
             if (mediaRecorder.state === 'recording') {
               mediaRecorder.stop();
             }
-          }, 300);
+          }, 350);
         } else {
           setVideoCurrentIndex(stepIdx);
           setRecordProgress(Math.round((stepIdx / totalSteps) * 100));
@@ -499,9 +578,11 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   };
 
   const handleDownload = async () => {
+    setIsDownloading(true);
     await downloadSocialCardImage(cardData, format);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setIsDownloading(false);
+    setToastMessage('HD Poster saved to Gallery / Files! 🖼️');
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   const handleNextQuote = () => {
@@ -510,6 +591,28 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
   return (
     <div className="modal-backdrop" style={{ zIndex: 10000 }}>
+      {/* Hidden User Video Tag for Canvas Drawing */}
+      {customVideoUrl && (
+        <video
+          ref={userVideoElementRef}
+          src={customVideoUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="hidden"
+          onLoadedMetadata={() => userVideoElementRef.current?.play()}
+        />
+      )}
+
+      {/* Toast Notification Alert */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-slate-900/95 border border-emerald-500/50 text-emerald-400 text-xs font-black py-2 px-4 rounded-full shadow-2xl z-[10001] flex items-center gap-2 animate-scale-up">
+          <Check size={14} className="text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       <div className="modal-content google-card animate-scale-up max-w-xl w-full max-h-[96vh] overflow-y-auto p-4 md:p-6 flex flex-col justify-between">
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-glass pb-3 mb-2">
@@ -730,23 +833,24 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               </div>
             </div>
 
-            {/* Poster Action Buttons */}
+            {/* Poster Action Buttons: 1 Share Button and 1 Download Button */}
             <div className="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-glass">
               <button
-                className="btn-google-primary text-xs py-2.5 rounded-full flex items-center justify-center gap-1.5"
+                className="btn-google-primary text-xs py-3 rounded-full flex items-center justify-center gap-1.5 shadow-lg"
                 onClick={handleShareNative}
                 disabled={isSharing}
               >
-                <Share2 size={15} />
-                <span>{isSharing ? 'Sharing...' : 'Share to Social'}</span>
+                <Share2 size={16} />
+                <span>{isSharing ? 'Sharing...' : 'Share to Social (WhatsApp/Insta)'}</span>
               </button>
 
               <button
-                className="btn-google-tonal text-xs py-2.5 rounded-full flex items-center justify-center gap-1.5"
+                className="btn-google-tonal text-xs py-3 rounded-full flex items-center justify-center gap-1.5 shadow-lg"
                 onClick={handleDownload}
+                disabled={isDownloading}
               >
-                {copied ? <Check size={15} className="text-emerald-500" /> : <Download size={15} />}
-                <span>{copied ? 'Saved to Files!' : 'Download HD PNG'}</span>
+                <Download size={16} />
+                <span>{isDownloading ? 'Saving...' : 'Download HD PNG (Files)'}</span>
               </button>
             </div>
           </div>
@@ -757,25 +861,23 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
         {/* ------------------------------------------------------------------- */}
         {studioMode === 'video' && (
           <div className="flex flex-col gap-3">
-            {/* Map Theme Switcher */}
+            {/* Top Media & Map Theme Switcher */}
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <span className="text-xs font-bold text-sub flex items-center gap-1">
-                <Layers size={13} className="text-[#55198B] dark:text-[#c084fc]" />
-                <span>Map Style:</span>
-              </span>
-
               <div className="flex items-center gap-1 bg-black/20 p-1 rounded-full border border-glass">
                 {[
                   { id: 'dark_canvas', label: 'Dark Canvas' },
-                  { id: 'osm', label: 'OpenStreetMap' },
+                  { id: 'osm', label: 'Map' },
                   { id: 'satellite', label: 'Satellite' },
                   { id: 'neon', label: 'Cyber Neon' }
                 ].map((th) => (
                   <button
                     key={th.id}
-                    onClick={() => setVideoMapTheme(th.id as VideoMapTheme)}
+                    onClick={() => {
+                      setVideoMapTheme(th.id as VideoMapTheme);
+                      setCustomVideoUrl(null);
+                    }}
                     className={`text-xs py-1 px-2.5 rounded-full font-bold transition-all cursor-pointer ${
-                      videoMapTheme === th.id
+                      videoMapTheme === th.id && !customVideoUrl
                         ? 'bg-[#55198B] text-white shadow-md'
                         : 'text-sub hover:text-main'
                     }`}
@@ -783,6 +885,34 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                     {th.label}
                   </button>
                 ))}
+              </div>
+
+              {/* Upload Custom Video / Photo Background */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => videoFileInputRef.current?.click()}
+                  className={`btn-google-outlined text-[11px] py-1 px-2.5 flex items-center gap-1 rounded-full ${
+                    customVideoUrl ? 'border-emerald-500 text-emerald-400 font-bold' : ''
+                  }`}
+                >
+                  <Video size={12} />
+                  <span>{customVideoUrl ? 'Custom Video Loaded' : 'Add My Video'}</span>
+                </button>
+                <input
+                  ref={videoFileInputRef}
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const url = URL.createObjectURL(file);
+                    setCustomVideoUrl(url);
+                    setVideoMapTheme('custom_media');
+                    setToastMessage('Custom video loaded! 🎥');
+                    setTimeout(() => setToastMessage(null), 3000);
+                  }}
+                />
               </div>
             </div>
 
@@ -848,24 +978,59 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               )}
             </div>
 
+            {/* Video Overlay Toggles: Telemetry & Quote */}
+            <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-card border border-glass text-xs">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1 text-sub font-semibold">
+                  <MapPin size={12} className="text-orange-500" />
+                  <span>Telemetry HUD</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowVideoTelemetry(!showVideoTelemetry)}
+                  className={`py-0.5 px-2 rounded-full font-bold text-[11px] ${
+                    showVideoTelemetry ? 'bg-orange-500 text-white' : 'bg-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  {showVideoTelemetry ? 'ON' : 'OFF'}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1 text-sub font-semibold">
+                  <RefreshCw size={12} className="text-amber-400" />
+                  <span>Quote & Love Pill</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowVideoQuote(!showVideoQuote)}
+                  className={`py-0.5 px-2 rounded-full font-bold text-[11px] ${
+                    showVideoQuote ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  {showVideoQuote ? 'ON' : 'OFF'}
+                </button>
+              </div>
+            </div>
+
             {/* Video Export & Share Actions */}
             <div className="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-glass">
               <button
-                className="btn-google-primary text-xs py-2.5 rounded-full flex items-center justify-center gap-1.5"
+                className="btn-google-primary text-xs py-3 rounded-full flex items-center justify-center gap-1.5 shadow-lg"
                 onClick={() => handleRecordAndExportVideo(true)}
                 disabled={isRecordingVideo}
               >
-                <Share2 size={15} />
-                <span>Share Video Directly</span>
+                <Share2 size={16} />
+                <span>Share Video (Social Apps)</span>
               </button>
 
               <button
-                className="btn-google-tonal text-xs py-2.5 rounded-full flex items-center justify-center gap-1.5"
+                className="btn-google-tonal text-xs py-3 rounded-full flex items-center justify-center gap-1.5 shadow-lg"
                 onClick={() => handleRecordAndExportVideo(false)}
                 disabled={isRecordingVideo}
               >
-                {copied ? <Check size={15} className="text-emerald-500" /> : <Download size={15} />}
-                <span>{copied ? 'Video Downloaded!' : 'Download Video (.webm)'}</span>
+                <Download size={16} />
+                <span>Download Video (.webm)</span>
               </button>
             </div>
           </div>

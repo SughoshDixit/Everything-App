@@ -2440,3 +2440,46 @@ h1 {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   PIXEL 10 / MODERN FLAGSHIP DISPLAY & LUXURY ULTRA-SMOOTH ADAPTATION
+   Aspect ratio: 20:9 (typical 1080x2400 / 1440x3120), edge-to-edge, dynamic island/punch-hole
+--------------------------------------------------------------------------- */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Luxury Material Glassmorphism & High Refresh Rate Polish */
+.google-card, .glass-card {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Enhanced Modal Backdrop for 20:9 Flagship Screen Height */
+.modal-backdrop {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+}
+
+@media (max-aspect-ratio: 9/19) {
+  /* Extra tall flagship displays like Google Pixel 10 */
+  .modal-content {
+    max-height: 92vh;
+    border-radius: 28px;
+  }
+}
+
+

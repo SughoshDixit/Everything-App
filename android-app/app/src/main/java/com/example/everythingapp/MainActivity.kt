@@ -29,6 +29,18 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
+import android.content.ContentValues
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
+import android.util.Base64
+import android.webkit.JavascriptInterface
+import android.widget.Toast
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
 
@@ -77,6 +89,122 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+class AndroidNativeBridge(private val context: Context) {
+
+    @JavascriptInterface
+    fun downloadBase64File(base64Data: String, fileName: String, mimeType: String): Boolean {
+        return try {
+            val cleanBase64 = if (base64Data.contains(",")) {
+                base64Data.substringAfter(",")
+            } else {
+                base64Data
+            }
+            val bytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                    if (mimeType.startsWith("video/")) {
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/EverythingApp")
+                    } else if (mimeType.startsWith("image/")) {
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/EverythingApp")
+                    } else {
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/EverythingApp")
+                    }
+                }
+
+                val collectionUri = when {
+                    mimeType.startsWith("video/") -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                    mimeType.startsWith("image/") -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                    else -> MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                }
+
+                val itemUri = context.contentResolver.insert(collectionUri, contentValues)
+                if (itemUri != null) {
+                    context.contentResolver.openOutputStream(itemUri)?.use { outputStream ->
+                        outputStream.write(bytes)
+                        outputStream.flush()
+                    }
+                    (context as? ComponentActivity)?.runOnUiThread {
+                        Toast.makeText(context, "Saved to Gallery / Storage: $fileName", Toast.LENGTH_LONG).show()
+                    }
+                    return true
+                }
+            } else {
+                val dir = Environment.getExternalStoragePublicDirectory(
+                    if (mimeType.startsWith("video/")) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES
+                )
+                dir.mkdirs()
+                val targetFile = File(dir, fileName)
+                FileOutputStream(targetFile).use { fos ->
+                    fos.write(bytes)
+                    fos.flush()
+                }
+                (context as? ComponentActivity)?.runOnUiThread {
+                    Toast.makeText(context, "Saved to Gallery: ${targetFile.absolutePath}", Toast.LENGTH_LONG).show()
+                }
+                return true
+            }
+            false
+        } catch (e: Exception) {
+            Log.e("AndroidNativeBridge", "Download failed", e)
+            (context as? ComponentActivity)?.runOnUiThread {
+                Toast.makeText(context, "Download Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun shareBase64Media(base64Data: String, fileName: String, mimeType: String, title: String, text: String): Boolean {
+        return try {
+            val cleanBase64 = if (base64Data.contains(",")) {
+                base64Data.substringAfter(",")
+            } else {
+                base64Data
+            }
+            val bytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+
+            // Save to shared cache directory
+            val cacheDir = File(context.cacheDir, "shared_media")
+            cacheDir.mkdirs()
+            val tempFile = File(cacheDir, fileName)
+            FileOutputStream(tempFile).use { fos ->
+                fos.write(bytes)
+                fos.flush()
+            }
+
+            val fileUri = FileProvider.getUriForFile(
+                context,
+                "com.example.everythingapp.fileprovider",
+                tempFile
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, fileUri)
+                putExtra(Intent.EXTRA_TITLE, title)
+                putExtra(Intent.EXTRA_SUBJECT, title)
+                putExtra(Intent.EXTRA_TEXT, text)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val chooser = Intent.createChooser(shareIntent, "Share via WhatsApp, Instagram, Telegram...").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
+            true
+        } catch (e: Exception) {
+            Log.e("AndroidNativeBridge", "Native share failed", e)
+            (context as? ComponentActivity)?.runOnUiThread {
+                Toast.makeText(context, "Share error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+            false
+        }
+    }
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun AppWebView(
@@ -113,6 +241,8 @@ fun AppWebView(
                     setGeolocationEnabled(true)
                     mediaPlaybackRequiresUserGesture = false
                 }
+
+                addJavascriptInterface(AndroidNativeBridge(context), "AndroidBridge")
 
                 webChromeClient = object : WebChromeClient() {
                     override fun onGeolocationPermissionsShowPrompt(
