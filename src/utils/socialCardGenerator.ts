@@ -254,7 +254,7 @@ export async function generateSocialCardCanvas(
   ctx.fillText(`— ${data.quoteAuthor.toUpperCase()}`, marginX + 32, currentY + quoteBoxHeight - 20);
 
   // ---------------------------------------------------------------------------
-  // 7. FOOTER WATERMARK: "Made with Love on The Everything App"
+  // 7. FOOTER WATERMARK: "Made with an intention of doing Kuchh Bhii by Sughosh"
   // ---------------------------------------------------------------------------
   const footerY = height - (format === 'story' ? 90 : 55);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
@@ -263,11 +263,11 @@ export async function generateSocialCardCanvas(
   // Bottom-Left Watermark
   ctx.fillStyle = '#f43f5e';
   ctx.font = '800 24px "Montserrat", sans-serif';
-  ctx.fillText('❤️', marginX, footerY + 12);
+  ctx.fillText('⚡', marginX, footerY + 12);
 
   ctx.fillStyle = '#f8fafc';
-  ctx.font = '700 22px "Montserrat", sans-serif';
-  ctx.fillText('Made with Love on The Everything App', marginX + 36, footerY + 10);
+  ctx.font = '700 20px "Montserrat", sans-serif';
+  ctx.fillText('Made with an intention of doing Kuchh Bhii by Sughosh 😉', marginX + 36, footerY + 10);
 
   // Bottom-Right Persona Edition
   ctx.fillStyle = '#06b6d4';

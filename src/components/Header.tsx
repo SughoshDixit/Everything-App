@@ -61,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
               Sughosh Dixit
             </h1>
             <span className="text-[10px] font-bold text-[#55198B] dark:text-[#c084fc] tracking-wider uppercase block">
-              Everything App &bull; Ecosystem
+              Kuchh Bhii App &bull; Ecosystem
             </span>
           </div>
         </button>

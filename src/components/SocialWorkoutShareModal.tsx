@@ -23,7 +23,8 @@ import {
   Image as ImageIcon,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  Music
 } from 'lucide-react';
 
 interface SocialWorkoutShareModalProps {
@@ -77,6 +78,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   const [isRecordingVideo, setIsRecordingVideo] = useState<boolean>(false);
   const [recordProgress, setRecordProgress] = useState<number>(0);
   const [customVideoUrl, setCustomVideoUrl] = useState<string | null>(null);
+  const [customAudioUrl, setCustomAudioUrl] = useState<string | null>(null);
+  const [customAudioName, setCustomAudioName] = useState<string | null>(null);
   const [showVideoTelemetry, setShowVideoTelemetry] = useState<boolean>(true);
   const [showVideoQuote, setShowVideoQuote] = useState<boolean>(true);
 
@@ -86,8 +89,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const videoFileInputRef = useRef<HTMLInputElement | null>(null);
+  const audioFileInputRef = useRef<HTMLInputElement | null>(null);
   const videoCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const userVideoElementRef = useRef<HTMLVideoElement | null>(null);
+  const userAudioElementRef = useRef<HTMLAudioElement | null>(null);
   const videoAnimFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -630,7 +635,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     }
   }
 
-  // 3. Export / Record Animated Video Clip
+  // 3. Export / Record Animated Video Clip (with Audio Track support)
   const handleRecordAndExportVideo = async (shouldShareDirectly: boolean = false) => {
     if (isRecordingVideo || !videoCanvasRef.current) return;
 
@@ -641,13 +646,34 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       setIsVideoPlaying(false);
 
       const canvas = videoCanvasRef.current;
-      const stream = canvas.captureStream(30);
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-        ? 'video/webm;codecs=vp9'
+      const canvasStream = canvas.captureStream(30);
+
+      // Mix Audio Track if user uploaded local audio or custom video has audio
+      let combinedStream = canvasStream;
+      if (customAudioUrl && userAudioElementRef.current) {
+        try {
+          userAudioElementRef.current.currentTime = 0;
+          userAudioElementRef.current.play();
+          // Capture audio stream
+          // @ts-expect-error captureStream on HTMLMediaElement
+          const audioStream: MediaStream = userAudioElementRef.current.captureStream ? userAudioElementRef.current.captureStream() : (userAudioElementRef.current.mozCaptureStream ? userAudioElementRef.current.mozCaptureStream() : null);
+          if (audioStream && audioStream.getAudioTracks().length > 0) {
+            const tracks = [...canvasStream.getVideoTracks(), ...audioStream.getAudioTracks()];
+            combinedStream = new MediaStream(tracks);
+          }
+        } catch (e) {
+          console.warn('Audio capture stream fallback:', e);
+        }
+      }
+
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+        ? 'video/webm;codecs=vp9,opus'
+        : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+        ? 'video/webm;codecs=vp8,opus'
         : 'video/webm';
 
       recordedChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -657,10 +683,13 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       };
 
       mediaRecorder.onstop = async () => {
+        if (userAudioElementRef.current) {
+          userAudioElementRef.current.pause();
+        }
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-        const fileName = `Strava_Track_${initialData.title.replace(/\s+/g, '_')}_${Date.now()}.webm`;
+        const fileName = `KuchhBhii_Track_${initialData.title.replace(/\s+/g, '_')}_${Date.now()}.webm`;
         const shareTitle = `${initialData.title} Video Track 🚀`;
-        const shareText = `Check out my ${initialData.workoutType} track on Everything App! 🔥 "${currentQuote.text}" — Made with Love on The Everything App ❤️`;
+        const shareText = `Check out my ${initialData.workoutType} track on Kuchh Bhii App! 🔥 "${currentQuote.text}" — Made with an intention of doing Kuchh Bhii by Sughosh 😉⚡`;
 
         // Convert blob to Base64 for AndroidBridge native file saving / sharing
         const reader = new FileReader();
@@ -673,7 +702,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               if (ok) {
                 setIsRecordingVideo(false);
                 setRecordProgress(100);
-                setToastMessage('Sharing video to social media...');
+                setToastMessage('Sharing video with audio to social apps... 🎶');
                 setTimeout(() => setToastMessage(null), 3000);
                 return;
               }
@@ -815,6 +844,17 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
           playsInline
           className="hidden"
           onLoadedMetadata={() => userVideoElementRef.current?.play()}
+        />
+      )}
+
+      {/* Hidden User Audio Tag for Sound Track Mixing */}
+      {customAudioUrl && (
+        <audio
+          ref={userAudioElementRef}
+          src={customAudioUrl}
+          loop
+          crossOrigin="anonymous"
+          className="hidden"
         />
       )}
 
@@ -1212,7 +1252,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1 text-sub font-semibold">
                   <RefreshCw size={12} className="text-amber-400" />
-                  <span>Quote & Love Pill</span>
+                  <span>Quote & Joke Pill</span>
                 </span>
                 <button
                   type="button"
@@ -1223,6 +1263,62 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                 >
                   {showVideoQuote ? 'ON' : 'OFF'}
                 </button>
+              </div>
+            </div>
+
+            {/* Local Audio Soundtrack Selector */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-card border border-glass text-xs">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-full bg-[#55198B]/20 text-[#c084fc]">
+                  <Music size={14} />
+                </div>
+                <div>
+                  <span className="font-bold text-main block text-[11px]">
+                    {customAudioName ? `🎵 ${customAudioName}` : 'Add Local Device Audio (Song / BGM)'}
+                  </span>
+                  <span className="text-[10px] text-sub">
+                    {customAudioUrl ? 'Audio will be mixed into the exported video' : 'MP3, WAV, AAC, M4A from your device'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {customAudioUrl && (
+                  <button
+                    onClick={() => {
+                      setCustomAudioUrl(null);
+                      setCustomAudioName(null);
+                    }}
+                    className="p-1 text-red-400 hover:text-red-300"
+                    title="Remove Audio"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => audioFileInputRef.current?.click()}
+                  className={`btn-google-outlined text-[11px] py-1 px-2.5 rounded-full font-bold ${
+                    customAudioUrl ? 'border-emerald-500 text-emerald-400' : ''
+                  }`}
+                >
+                  {customAudioUrl ? 'Change Audio' : 'Choose Audio'}
+                </button>
+                <input
+                  ref={audioFileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const url = URL.createObjectURL(file);
+                    setCustomAudioUrl(url);
+                    setCustomAudioName(file.name);
+                    setToastMessage(`Audio added: ${file.name} 🎵`);
+                    setTimeout(() => setToastMessage(null), 3000);
+                  }}
+                />
               </div>
             </div>
 

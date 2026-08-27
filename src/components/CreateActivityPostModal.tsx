@@ -60,12 +60,13 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
 
     const items: CompiledActivityItem[] = [];
 
-    // Add GPS activities
+    // Add GPS activities (Walk, Run, Cycle, Drive)
     todayGpsActivities.forEach((gps) => {
+      const typeLabel = gps.activityType === 'run' ? '🏃 Run' : gps.activityType === 'cycle' ? '🚴 Ride' : gps.activityType === 'walk' ? '🚶 Walk' : '🚗 Drive';
       items.push({
         id: `comp_gps_${gps.id}`,
         category: gps.activityType === 'run' ? 'gps_run' : gps.activityType === 'cycle' ? 'gps_cycle' : 'gps_walk',
-        title: `${gps.distanceKm} km ${gps.activityType === 'run' ? 'Run' : 'Ride'}`,
+        title: `${gps.distanceKm} km ${typeLabel}`,
         details: `${Math.floor(gps.durationSeconds / 60)}m • ${gps.avgPaceMinKm} • +${gps.elevationGainMeters || 0}m`,
         gpsActivityId: gps.id,
         includedInPost: true
@@ -78,7 +79,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
       items.push({
         id: `comp_w_${w.id}`,
         category: 'calisthenics',
-        title: w.exerciseName,
+        title: `💪 ${w.exerciseName}`,
         details: `${w.setsCompleted} Sets (${w.repsCompleted.join(', ')} reps) • ${totalReps} Reps`,
         workoutLogId: w.id,
         includedInPost: true
@@ -91,10 +92,15 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const [activities, setActivities] = useState<CompiledActivityItem[]>(buildInitialCompiledItems);
   const [postTitle, setPostTitle] = useState<string>(() => {
     if (initialPost) return initialPost.title;
-    if (todayGpsActivities.length > 0 && todayWorkoutLogs.length > 0) {
-      return 'Outdoor Run & Calisthenics Combo';
+    const hasWalk = todayGpsActivities.some(g => g.activityType === 'walk');
+    const hasRun = todayGpsActivities.some(g => g.activityType === 'run');
+    if (hasWalk && hasRun) {
+      return 'Park Run & Commute Walk Triathlon 🏃🚶';
+    } else if (todayGpsActivities.length > 0 && todayWorkoutLogs.length > 0) {
+      return 'Outdoor Cardio & Calisthenics Combo 💪';
     } else if (todayGpsActivities.length > 0) {
-      return `${todayGpsActivities[0].distanceKm} km ${todayGpsActivities[0].activityType === 'run' ? 'Tempo Run' : 'Cycling Session'}`;
+      const first = todayGpsActivities[0];
+      return `${first.distanceKm} km ${first.activityType === 'run' ? 'Tempo Run' : first.activityType === 'walk' ? 'Mindful Walk' : 'Cycling Session'}`;
     } else if (todayWorkoutLogs.length > 0) {
       return 'Explosive Calisthenics Session';
     }

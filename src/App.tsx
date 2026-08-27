@@ -490,7 +490,7 @@ export function App() {
       )}
 
       <footer className="app-footer">
-        <p>&copy; {new Date().getFullYear()} Sughosh Dixit &bull; Everything App &bull; Performance & Discipline Suite</p>
+        <p>&copy; {new Date().getFullYear()} Sughosh Dixit &bull; Kuchh Bhii App &bull; Performance & Discipline Suite</p>
       </footer>
     </div>
   );
