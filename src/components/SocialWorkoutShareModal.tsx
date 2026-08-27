@@ -101,6 +101,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
 
+  const [customQuoteText, setCustomQuoteText] = useState<string>(initialData.motivationalQuote || '');
+  const [customQuoteAuthor, setCustomQuoteAuthor] = useState<string>(initialData.quoteAuthor || (initialData.persona === 'women' ? 'Shreya' : 'Sughosh'));
+  const [useCustomQuote, setUseCustomQuote] = useState<boolean>(!!initialData.motivationalQuote);
+
   const defaultQuotes = [
     { text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.', author: 'Aristotle' },
     { text: 'Do not pray for an easy life, pray for the strength to endure a difficult one.', author: 'Bruce Lee' },
@@ -110,7 +114,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   ];
 
   const activeQuotes = quotesList && quotesList.length > 0 ? quotesList : defaultQuotes;
-  const currentQuote = activeQuotes[currentQuoteIndex % activeQuotes.length];
+  const defaultQuote = activeQuotes[currentQuoteIndex % activeQuotes.length];
+  const currentQuote = useCustomQuote && customQuoteText.trim()
+    ? { text: customQuoteText.trim(), author: customQuoteAuthor.trim() || (initialData.persona === 'women' ? 'Shreya' : 'Sughosh') }
+    : defaultQuote;
 
   // Route Points for animated video
   const routePoints: GpsLocationPoint[] = useMemo(() => {
@@ -1066,15 +1073,73 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   Rendering HD Strava Poster...
                 </div>
               )}
+            </div>
 
-              <button
-                className="absolute bottom-3 right-3 bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md text-amber-400 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-700 flex items-center gap-1.5 shadow-xl transition-all cursor-pointer"
-                onClick={handleNextQuote}
-                title="Cycle Motivational Quote"
-              >
-                <RefreshCw size={12} />
-                <span>Shuffle Quote</span>
-              </button>
+            {/* Custom Quote & Feeling Editor */}
+            <div className="p-3 rounded-xl bg-card border border-glass flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-sub uppercase tracking-wider flex items-center gap-1">
+                  <span>✍️ Workout Feeling / Custom Quote</span>
+                </span>
+                <div className="flex items-center gap-1 bg-black/20 p-0.5 rounded-full border border-glass">
+                  <button
+                    type="button"
+                    onClick={() => setUseCustomQuote(true)}
+                    className={`text-[10px] font-bold py-1 px-2 rounded-full transition-all ${
+                      useCustomQuote ? 'bg-amber-500 text-black shadow-sm' : 'text-sub hover:text-main'
+                    }`}
+                  >
+                    Custom Quote
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUseCustomQuote(false)}
+                    className={`text-[10px] font-bold py-1 px-2 rounded-full transition-all ${
+                      !useCustomQuote ? 'bg-[#55198B] text-white shadow-sm' : 'text-sub hover:text-main'
+                    }`}
+                  >
+                    Preset Quotes
+                  </button>
+                </div>
+              </div>
+
+              {useCustomQuote ? (
+                <div className="flex flex-col gap-1.5 animate-fade-in">
+                  <textarea
+                    value={customQuoteText}
+                    onChange={(e) => setCustomQuoteText(e.target.value)}
+                    placeholder="Type what you're feeling after your workout..."
+                    rows={2}
+                    className="w-full bg-slate-900/60 border border-amber-500/40 rounded-xl p-2 text-xs text-main font-medium placeholder-zinc-500 outline-none focus:border-amber-400 transition-all resize-none"
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <span className="text-[10px] font-bold text-sub">Author:</span>
+                      <input
+                        type="text"
+                        value={customQuoteAuthor}
+                        onChange={(e) => setCustomQuoteAuthor(e.target.value)}
+                        placeholder="Author"
+                        className="bg-slate-900/60 border border-glass rounded-lg px-2 py-0.5 text-[11px] text-amber-400 font-bold outline-none flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-2 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-xs font-medium text-main italic truncate flex-1">
+                    "{defaultQuote.text}"
+                  </p>
+                  <button
+                    className="btn-google-tonal text-xs py-1 px-2.5 flex items-center gap-1 rounded-full shrink-0"
+                    onClick={handleNextQuote}
+                    title="Cycle Motivational Quote"
+                  >
+                    <RefreshCw size={11} />
+                    <span>Shuffle</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Custom Photo Management */}

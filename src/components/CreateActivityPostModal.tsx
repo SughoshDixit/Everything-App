@@ -128,14 +128,21 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const [selectedPhotoIdx, setSelectedPhotoIdx] = useState<number>(0);
   const [customMediaUrl, setCustomMediaUrl] = useState<string | undefined>(initialPost?.customMediaUrl);
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
+  const [customQuoteText, setCustomQuoteText] = useState<string>(initialPost?.motivationalQuote || '');
+  const [customQuoteAuthor, setCustomQuoteAuthor] = useState<string>(initialPost?.quoteAuthor || (currentProfile === 'men' ? 'Sughosh' : 'Shreya'));
+  const [useCustomQuote, setUseCustomQuote] = useState<boolean>(!!initialPost?.motivationalQuote);
   const [format, setFormat] = useState<'story' | 'square'>('story');
   const [isSharing, setIsSharing] = useState<boolean>(false);
   const [savedBadge, setSavedBadge] = useState<boolean>(false);
 
-  const activeQuote = quotesList[quoteIndex % Math.max(1, quotesList.length)] || {
+  const defaultActiveQuote = quotesList[quoteIndex % Math.max(1, quotesList.length)] || {
     text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.',
     author: 'Aristotle'
   };
+
+  const activeQuote = useCustomQuote && customQuoteText.trim()
+    ? { text: customQuoteText.trim(), author: customQuoteAuthor.trim() || (currentProfile === 'men' ? 'Sughosh' : 'Shreya') }
+    : defaultActiveQuote;
 
   const handleToggleActivity = (id: string) => {
     setActivities((prev) =>
@@ -492,21 +499,74 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         </div>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 4. MOTIVATIONAL QUOTE */}
+        {/* 4. POST QUOTE & ATHLETE FEELING */}
         {/* ------------------------------------------------------------------- */}
-        <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl flex items-center justify-between gap-3">
-          <p className="text-xs font-medium text-main italic truncate flex-1">
-            "{activeQuote.text}"
-          </p>
+        <div className="bg-card border border-glass p-3.5 rounded-2xl flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-sub uppercase tracking-wider flex items-center gap-1">
+              <span>✍️ Post Quote & Feeling</span>
+            </span>
+            <div className="flex items-center gap-1 bg-black/20 p-0.5 rounded-full border border-glass">
+              <button
+                type="button"
+                onClick={() => setUseCustomQuote(true)}
+                className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all ${
+                  useCustomQuote ? 'bg-amber-500 text-black shadow-sm' : 'text-sub hover:text-main'
+                }`}
+              >
+                My Own Quote
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseCustomQuote(false)}
+                className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all ${
+                  !useCustomQuote ? 'bg-[#55198B] text-white shadow-sm' : 'text-sub hover:text-main'
+                }`}
+              >
+                Preset Quotes
+              </button>
+            </div>
+          </div>
 
-          <button
-            className="btn-google-tonal text-xs py-1.5 px-3 flex items-center gap-1 shrink-0"
-            onClick={() => setQuoteIndex((prev) => prev + 1)}
-            title="Cycle Quote"
-          >
-            <RefreshCw size={12} />
-            <span>Shuffle</span>
-          </button>
+          {useCustomQuote ? (
+            <div className="flex flex-col gap-2 animate-fade-in">
+              <textarea
+                value={customQuoteText}
+                onChange={(e) => setCustomQuoteText(e.target.value)}
+                placeholder="Type your own quote, workout feeling, or thought (e.g. Legs were on fire, but the mind stayed peaceful!)..."
+                rows={2}
+                className="w-full bg-slate-900/60 border border-amber-500/40 rounded-xl p-2.5 text-xs text-main font-medium placeholder-zinc-500 outline-none focus:border-amber-400 transition-all resize-none"
+              />
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-1">
+                  <span className="text-[10px] font-bold text-sub">Author:</span>
+                  <input
+                    type="text"
+                    value={customQuoteAuthor}
+                    onChange={(e) => setCustomQuoteAuthor(e.target.value)}
+                    placeholder="Your Name / Sughosh"
+                    className="bg-slate-900/60 border border-glass rounded-lg px-2 py-1 text-[11px] text-amber-400 font-bold outline-none flex-1"
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-400 font-medium">Will appear on poster & video ✨</span>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
+              <p className="text-xs font-medium text-main italic truncate flex-1">
+                "{defaultActiveQuote.text}"
+              </p>
+              <button
+                type="button"
+                className="btn-google-tonal text-xs py-1 px-2.5 flex items-center gap-1 shrink-0 rounded-full"
+                onClick={() => setQuoteIndex((prev) => prev + 1)}
+                title="Cycle Quote"
+              >
+                <RefreshCw size={11} />
+                <span>Shuffle</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ------------------------------------------------------------------- */}
