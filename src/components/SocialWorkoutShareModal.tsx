@@ -474,58 +474,95 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     }
     ctx.restore();
 
-    // 6. HUD & Overlays: Telemetry, Quotes, Brand & "Made with Love"
+    // 6. HUD & Overlays: Telemetry, Quotes, Brand & "Made with intention doing Kuchh Bhii"
     const progressRatio = totalPoints > 1 ? videoCurrentIndex / (totalPoints - 1) : 1;
     const currentDist = (totalDistNum * progressRatio).toFixed(2);
     const speedVal = currentPoint.speed ? (currentPoint.speed * 3.6).toFixed(1) : (isDrive ? '72.5' : isCycle ? '26.4' : '11.8');
 
+    // Aesthetic Top Gradient Scrim for Story View
+    const topGrad = ctx.createLinearGradient(0, 0, 0, 220);
+    topGrad.addColorStop(0, 'rgba(5, 10, 20, 0.85)');
+    topGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, w, 220);
+
+    // Aesthetic Bottom Gradient Scrim
+    const btmGrad = ctx.createLinearGradient(0, h - 260, 0, h);
+    btmGrad.addColorStop(0, 'transparent');
+    btmGrad.addColorStop(1, 'rgba(5, 10, 20, 0.92)');
+    ctx.fillStyle = btmGrad;
+    ctx.fillRect(0, h - 260, w, 260);
+
     if (showVideoTelemetry) {
-      ctx.fillStyle = 'rgba(10, 15, 26, 0.9)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
-      ctx.lineWidth = 1.5;
+      // Sleek Glassmorphic Top Telemetry Card
+      const cardW = w - 64;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(16, 16, 320, 72, 16);
+      ctx.roundRect(32, 48, cardW, 140, 24);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 20px Montserrat, sans-serif';
-      ctx.fillText(`⚡ ${currentDist} km`, 32, 44);
-
+      // Top Accent glow bar
       ctx.fillStyle = primaryColor;
-      ctx.font = '700 13px Montserrat, sans-serif';
-      ctx.fillText(`${speedVal} km/h · ${initialData.workoutType.toUpperCase()} · ${timeStat}`, 32, 66);
+      ctx.beginPath();
+      ctx.roundRect(32, 48, 10, 140, 5);
+      ctx.fill();
+
+      // Big Live Metric: Distance
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 48px "Montserrat", sans-serif';
+      ctx.fillText(`⚡ ${currentDist} km`, 60, 110);
+
+      // Sub-metrics: Speed, Activity Type, Time
+      ctx.fillStyle = primaryColor;
+      ctx.font = '800 24px "Montserrat", sans-serif';
+      ctx.fillText(`${speedVal} km/h · ${initialData.workoutType.toUpperCase()} · ${timeStat}`, 60, 154);
     }
 
     if (showVideoQuote) {
-      const quoteBoxW = w - 32;
-      ctx.fillStyle = 'rgba(10, 15, 26, 0.88)';
-      ctx.strokeStyle = 'rgba(255, 215, 0, 0.35)';
-      ctx.lineWidth = 1.5;
+      // Sleek Bottom Glassmorphic Quote Card
+      const quoteBoxW = w - 64;
+      const quoteBoxH = 150;
+      const quoteBoxY = h - 200;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(16, h - 85, quoteBoxW, 58, 14);
+      ctx.roundRect(32, quoteBoxY, quoteBoxW, quoteBoxH, 24);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = 'italic 600 12px Montserrat, sans-serif';
-      const quoteSnippet = currentQuote.text.length > 68 ? currentQuote.text.substring(0, 65) + '...' : currentQuote.text;
-      ctx.fillText(`"${quoteSnippet}"`, 32, h - 57);
-
+      // Left Gold Bar
       ctx.fillStyle = '#FFD700';
-      ctx.font = '800 10px Montserrat, sans-serif';
-      ctx.fillText(`— ${currentQuote.author.toUpperCase()}`, 32, h - 40);
+      ctx.beginPath();
+      ctx.roundRect(32, quoteBoxY, 8, quoteBoxH, 4);
+      ctx.fill();
 
-      ctx.fillStyle = '#f43f5e';
-      ctx.font = '700 10px Montserrat, sans-serif';
-      ctx.fillText('❤️ Made with Love on The Everything App', quoteBoxW - 220, h - 40);
+      // Motivational Quote Text
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'italic 700 22px "Montserrat", sans-serif';
+      const quoteSnippet = currentQuote.text.length > 75 ? currentQuote.text.substring(0, 72) + '...' : currentQuote.text;
+      ctx.fillText(`"${quoteSnippet}"`, 56, quoteBoxY + 50);
+
+      // Author
+      ctx.fillStyle = '#FFD700';
+      ctx.font = '800 18px "Montserrat", sans-serif';
+      ctx.fillText(`— ${currentQuote.author.toUpperCase()}`, 56, quoteBoxY + 92);
+
+      // Witty Signature
+      ctx.fillStyle = '#06b6d4';
+      ctx.font = '700 17px "Montserrat", sans-serif';
+      ctx.fillText('⚡ Made with an intention of doing Kuchh Bhii by Sughosh 😉', 56, quoteBoxY + 125);
     }
 
-    // Bottom Progress Bar
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.fillRect(0, h - 6, w, 6);
+    // Bottom Animated Neon Progress Bar
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fillRect(0, h - 12, w, 12);
     ctx.fillStyle = primaryColor;
-    ctx.fillRect(0, h - 6, w * progressRatio, 6);
+    ctx.fillRect(0, h - 12, w * progressRatio, 12);
 
   }, [studioMode, videoCurrentIndex, routePoints, totalPoints, videoMapTheme, initialData, customVideoUrl, photos, selectedPhotoIdx, scrimIntensity, showVideoTelemetry, showVideoQuote, currentQuote, mapTilesCache, mapTilesReady, timeStat, totalDistNum]);
 
@@ -649,7 +686,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       setIsVideoPlaying(false);
 
       const canvas = videoCanvasRef.current;
-      const canvasStream = canvas.captureStream(30);
+      const canvasStream = canvas.captureStream(60);
 
       // Mix Audio Track if user uploaded local audio or custom video has audio
       let combinedStream = canvasStream;
@@ -676,7 +713,11 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
         : 'video/webm';
 
       recordedChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
+      const mediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType,
+        videoBitsPerSecond: 6_000_000,
+        audioBitsPerSecond: 192_000
+      });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -1178,13 +1219,13 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               </div>
             </div>
 
-            {/* Video Canvas Stage */}
+            {/* Video Canvas Stage (Instagram Story 9:16 Aspect Ratio) */}
             <div className="relative flex items-center justify-center bg-black/95 p-1 rounded-2xl border border-glass overflow-hidden shadow-2xl">
               <canvas
                 ref={videoCanvasRef}
-                width={640}
-                height={360}
-                className="w-full max-h-[300px] object-contain rounded-xl"
+                width={720}
+                height={1280}
+                className="w-full max-h-[390px] aspect-[9/16] object-contain rounded-xl"
               />
 
               {/* Video Playback Floating Overlay Bar */}
@@ -1210,14 +1251,15 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   </button>
                 </div>
 
+                {/* Speed Selector: 0.5x, 1x, 2x, 5x */}
                 <div className="flex items-center gap-1">
-                  {[1, 2, 5].map((spd) => (
+                  {[0.5, 1, 2, 5].map((spd) => (
                     <button
                       key={spd}
                       onClick={() => setVideoPlaybackSpeed(spd)}
                       className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-all ${
                         videoPlaybackSpeed === spd
-                          ? 'bg-[#55198B] text-white'
+                          ? 'bg-[#55198B] text-white shadow-sm'
                           : 'text-zinc-400 hover:text-white'
                       }`}
                     >
