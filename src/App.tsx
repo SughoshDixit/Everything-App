@@ -476,6 +476,10 @@ export function App() {
           currentProfile={currentProfile}
           quotesList={quotes}
           onSavePost={handleSaveStravaPost}
+          onOpenShareStudio={(cardData) => {
+            setEditingPost(undefined);
+            setActiveShareCardData(cardData);
+          }}
           onClose={() => setEditingPost(undefined)}
         />
       )}

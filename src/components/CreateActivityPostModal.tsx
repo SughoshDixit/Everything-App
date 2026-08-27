@@ -25,7 +25,8 @@ import {
   X,
   Sparkles,
   Zap,
-  Layers
+  Layers,
+  Video
 } from 'lucide-react';
 
 interface CreateActivityPostModalProps {
@@ -36,6 +37,7 @@ interface CreateActivityPostModalProps {
   currentProfile: UserProfile;
   quotesList: MotivationalQuote[];
   onSavePost: (post: StravaActivityPost) => void;
+  onOpenShareStudio?: (data: SocialShareCardData) => void;
   onClose: () => void;
 }
 
@@ -46,6 +48,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   currentProfile,
   quotesList,
   onSavePost,
+  onOpenShareStudio,
   onClose
 }) => {
   const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -499,6 +502,28 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
             </button>
           </div>
 
+          {/* Video Studio CTA Banner */}
+          <div className="p-3 rounded-2xl bg-gradient-to-r from-[#55198B]/20 to-cyan-500/20 border border-glass flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-[#55198B] text-white">
+                <Video size={16} />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-main block">Create Video Clip with Audio</span>
+                <span className="text-[10px] text-sub">Satellite / Map animated track + add local song/BGM</span>
+              </div>
+            </div>
+            {onOpenShareStudio && (
+              <button
+                type="button"
+                className="btn-google-primary text-xs py-1.5 px-3 rounded-full font-bold shadow-md"
+                onClick={() => onOpenShareStudio(cardData)}
+              >
+                Open Studio &rarr;
+              </button>
+            )}
+          </div>
+
           {/* Main Action Buttons Grid */}
           <div className="grid grid-cols-3 gap-2.5">
             <button
@@ -515,7 +540,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
               disabled={isSharing}
             >
               <Share2 size={16} />
-              <span>{isSharing ? 'Sharing...' : 'Share'}</span>
+              <span>{isSharing ? 'Sharing...' : 'Share Poster'}</span>
             </button>
 
             <button
@@ -523,7 +548,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
               onClick={handleDownload}
             >
               <Download size={16} />
-              <span>PNG</span>
+              <span>Download PNG</span>
             </button>
           </div>
         </div>
