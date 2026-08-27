@@ -306,25 +306,33 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       {/* 3. 1-TAP QUICK ACTION ACTIVITY LAUNCHER */}
       {/* ------------------------------------------------------------------- */}
       <div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
           <button
-            className="google-card p-4 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
             onClick={() => onOpenGpsTracker('run')}
           >
             <span className="text-2xl">🏃</span>
-            <span className="text-xs font-bold text-main">Run (GPS)</span>
+            <span className="text-xs font-bold text-main">Run</span>
           </button>
 
           <button
-            className="google-card p-4 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
+            onClick={() => onOpenGpsTracker('walk')}
+          >
+            <span className="text-2xl">🚶</span>
+            <span className="text-xs font-bold text-main">Walk</span>
+          </button>
+
+          <button
+            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
             onClick={() => onOpenGpsTracker('cycle')}
           >
             <span className="text-2xl">🚴</span>
-            <span className="text-xs font-bold text-main">Ride (GPS)</span>
+            <span className="text-xs font-bold text-main">Ride</span>
           </button>
 
           <button
-            className="google-card p-4 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
             onClick={onOpenCalisthenics}
           >
             <span className="text-2xl">⚡</span>
@@ -332,7 +340,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
           </button>
 
           <button
-            className="google-card p-4 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02]"
+            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
             onClick={onOpenFootball}
           >
             <span className="text-2xl">⚽</span>
