@@ -24,7 +24,8 @@ import {
   Play,
   Pause,
   RotateCcw,
-  Music
+  Music,
+  Layers
 } from 'lucide-react';
 
 interface SocialWorkoutShareModalProps {
@@ -38,9 +39,10 @@ type VideoMapTheme = 'dark_canvas' | 'osm' | 'satellite' | 'neon' | 'custom_medi
 
 // Tile URLs for photorealistic and real-time map views
 const TILE_URL_MAP: Record<string, string> = {
-  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  osm: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-  dark_canvas: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+  satellite: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+  osm: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+  dark_canvas: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+  esri: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 };
 
 export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = ({
@@ -72,6 +74,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
   // Video Mode State
   const [videoMapTheme, setVideoMapTheme] = useState<VideoMapTheme>('satellite');
+  const [mapOverlayOpacity, setMapOverlayOpacity] = useState<number>(0.65); // 0.0 to 1.0 (Google Map layer transparency)
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
   const [videoPlaybackSpeed, setVideoPlaybackSpeed] = useState<number>(2);
   const [videoCurrentIndex, setVideoCurrentIndex] = useState<number>(0);
@@ -100,6 +103,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   const lastTimeRef = useRef<number>(performance.now());
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const photoImageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
   const [customQuoteText, setCustomQuoteText] = useState<string>(initialData.motivationalQuote || '');
   const [customQuoteAuthor, setCustomQuoteAuthor] = useState<string>(initialData.quoteAuthor || (initialData.persona === 'women' ? 'Shreya' : 'Sughosh'));
@@ -151,6 +155,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
   const totalPoints = routePoints.length;
 
+  const [is4k, setIs4k] = useState<boolean>(true);
+
   const cardData: SocialShareCardData = {
     ...initialData,
     motivationalQuote: currentQuote.text,
@@ -159,7 +165,9 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     selectedPhotoIndex: selectedPhotoIdx,
     scrimIntensity,
     showRouteOverlay,
-    templateStyle: template
+    templateStyle: template,
+    splits: initialData.splits,
+    is4k
   };
 
   // Calculated stats
@@ -190,7 +198,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
   // 0. Pre-fetch Real Map Tiles for current Route & Theme
   useEffect(() => {
-    if (studioMode !== 'video' || videoMapTheme === 'neon' || videoMapTheme === 'custom_media' || !TILE_URL_MAP[videoMapTheme]) {
+    if (studioMode !== 'video' || videoMapTheme === 'neon') {
       setMapTilesReady(true);
       return;
     }
@@ -219,7 +227,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     const maxTile = latLngToTile(minLat, maxLng, zoom);
 
     const tilePromises: Promise<{ key: string; img: HTMLImageElement; bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number } }>[] = [];
-    const urlPattern = TILE_URL_MAP[videoMapTheme];
+    const activeMapKey = videoMapTheme === 'custom_media' ? 'satellite' : videoMapTheme;
+    const urlPattern = TILE_URL_MAP[activeMapKey] || TILE_URL_MAP.satellite;
 
     // Fetch bounding tiles with margin
     const startX = Math.max(0, minTile.x - 1);
@@ -229,7 +238,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
     for (let tx = startX; tx <= endX; tx++) {
       for (let ty = startY; ty <= endY; ty++) {
-        const key = `${videoMapTheme}_${zoom}_${tx}_${ty}`;
+        const key = `${activeMapKey}_${zoom}_${tx}_${ty}`;
         const url = urlPattern.replace('{z}', zoom.toString()).replace('{x}', tx.toString()).replace('{y}', ty.toString());
         const bounds = tileToBoundingBox(tx, ty, zoom);
 
@@ -339,23 +348,39 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     const toX = (lng: number) => ((lng - routeMinLng) / lngR) * w;
     const toY = (lat: number) => h - ((lat - routeMinLat) / latR) * h;
 
-    // 1. Draw Background: Real Tiles vs Custom Media vs Neon
+    // 1. Draw Base Media Layer (Photo or Video or Dark Surface)
     if (customVideoUrl && userVideoElementRef.current && userVideoElementRef.current.readyState >= 2) {
       ctx.drawImage(userVideoElementRef.current, 0, 0, w, h);
       ctx.fillStyle = `rgba(5, 7, 13, ${scrimIntensity})`;
       ctx.fillRect(0, 0, w, h);
     } else if (photos.length > 0 && photos[selectedPhotoIdx]) {
-      const bgImg = new Image();
-      bgImg.src = photos[selectedPhotoIdx];
+      const pUrl = photos[selectedPhotoIdx];
+      let bgImg = photoImageCacheRef.current.get(pUrl);
+      if (!bgImg) {
+        bgImg = new Image();
+        bgImg.crossOrigin = 'anonymous';
+        bgImg.src = pUrl;
+        photoImageCacheRef.current.set(pUrl, bgImg);
+      }
       if (bgImg.complete && bgImg.width > 0) {
         ctx.drawImage(bgImg, 0, 0, w, h);
         ctx.fillStyle = `rgba(5, 7, 13, ${scrimIntensity})`;
         ctx.fillRect(0, 0, w, h);
       } else {
-        renderRealisticMapBackground(ctx, w, h, videoMapTheme, routeMinLat, routeMaxLat, routeMinLng, routeMaxLng, toX, toY);
+        ctx.fillStyle = '#080b12';
+        ctx.fillRect(0, 0, w, h);
       }
     } else {
+      ctx.fillStyle = '#080b12';
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // 1b. Blend Google Map Satellite / Roadmap Layer on Top with Custom Opacity!
+    if (mapOverlayOpacity > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = mapOverlayOpacity;
       renderRealisticMapBackground(ctx, w, h, videoMapTheme, routeMinLat, routeMaxLat, routeMinLng, routeMaxLng, toX, toY);
+      ctx.restore();
     }
 
     // 2. Planned Route Base Path
@@ -658,9 +683,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       const minTile = latLngToTile(maxLat, minLng, zoom);
       const maxTile = latLngToTile(minLat, maxLng, zoom);
 
+      const activeMapKey = theme === 'custom_media' ? 'satellite' : theme;
       for (let tx = minTile.x - 1; tx <= maxTile.x + 1; tx++) {
         for (let ty = minTile.y - 1; ty <= maxTile.y + 1; ty++) {
-          const key = `${theme}_${zoom}_${tx}_${ty}`;
+          const key = `${activeMapKey}_${zoom}_${tx}_${ty}`;
           const img = mapTilesCache.get(key);
           if (img && img.complete && img.width > 1) {
             const b = tileToBoundingBox(tx, ty, zoom);
@@ -677,8 +703,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       }
     }
 
-    // If tiles are still loading or offline, draw rich atmospheric vector fallback
-    if (tilesRendered === 0) {
+    // If tiles are still loading or offline, draw rich atmospheric vector fallback ONLY if no photo/video is drawn
+    if (tilesRendered === 0 && photos.length === 0 && !customVideoUrl) {
       if (theme === 'satellite') {
         const satGrad = ctx.createLinearGradient(0, 0, w, h);
         satGrad.addColorStop(0, '#041019');
@@ -1041,6 +1067,17 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   <Square size={13} className="inline mr-1" />
                   <span>Square 1:1</span>
                 </button>
+                <button
+                  onClick={() => setIs4k(!is4k)}
+                  className={`text-xs py-1 px-2.5 rounded-full font-bold transition-all cursor-pointer ${
+                    is4k
+                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                      : 'text-sub hover:text-main'
+                  }`}
+                  title="Toggle 4K Ultra-HD 2160p Export Resolution"
+                >
+                  ⚡ {is4k ? '4K UHD' : 'HD'}
+                </button>
               </div>
 
               <div className="flex items-center gap-1 bg-black/20 p-1 rounded-full border border-glass">
@@ -1387,6 +1424,106 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   <div className="w-48 bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
                     <div className="bg-cyan-400 h-full transition-all duration-100" style={{ width: `${recordProgress}%` }} />
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Map & Photo Blending Controls */}
+            <div className="flex flex-col gap-2.5 p-3 rounded-2xl bg-card border border-glass text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-main flex items-center gap-1.5 text-xs">
+                  <Layers size={14} className="text-cyan-400" />
+                  <span>Map & Photo Blend Studio</span>
+                </span>
+                <div className="flex items-center gap-1 bg-black/20 p-0.5 rounded-lg border border-glass text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setVideoMapTheme('satellite')}
+                    className={`px-2 py-0.5 rounded font-bold transition-all ${
+                      videoMapTheme === 'satellite' ? 'bg-[#55198B] text-white' : 'text-sub hover:text-main'
+                    }`}
+                  >
+                    Google Sat
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoMapTheme('osm')}
+                    className={`px-2 py-0.5 rounded font-bold transition-all ${
+                      videoMapTheme === 'osm' ? 'bg-cyan-600 text-white' : 'text-sub hover:text-main'
+                    }`}
+                  >
+                    Google Roads
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoMapTheme('dark_canvas')}
+                    className={`px-2 py-0.5 rounded font-bold transition-all ${
+                      videoMapTheme === 'dark_canvas' ? 'bg-slate-700 text-white' : 'text-sub hover:text-main'
+                    }`}
+                  >
+                    Dark
+                  </button>
+                </div>
+              </div>
+
+              {/* Photo Selector Thumbnail Carousel */}
+              {photos.length > 0 && (
+                <div className="flex items-center gap-2 overflow-x-auto py-1">
+                  <span className="text-[10px] text-sub font-semibold whitespace-nowrap">Photo Background:</span>
+                  {photos.map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedPhotoIdx(idx)}
+                      className={`relative w-10 h-10 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 cursor-pointer ${
+                        selectedPhotoIdx === idx ? 'border-cyan-400 scale-105 shadow-md shadow-cyan-500/30' : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={p} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Map Transparency Slider */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-[11px] font-bold">
+                  <span className="text-sub flex items-center gap-1">
+                    <span>🗺️</span>
+                    <span>Google Map Layer Opacity</span>
+                  </span>
+                  <span className="text-cyan-400 font-mono">{Math.round(mapOverlayOpacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={mapOverlayOpacity}
+                  onChange={(e) => setMapOverlayOpacity(Number(e.target.value))}
+                  className="w-full h-1.5 bg-black/40 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                />
+              </div>
+
+              {/* Photo Scrim / Darken Slider */}
+              {photos.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-[11px] font-bold">
+                    <span className="text-sub flex items-center gap-1">
+                      <span>🖼️</span>
+                      <span>Photo Darkening (Scrim)</span>
+                    </span>
+                    <span className="text-amber-400 font-mono">{Math.round(scrimIntensity * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="0.9"
+                    step="0.05"
+                    value={scrimIntensity}
+                    onChange={(e) => setScrimIntensity(Number(e.target.value))}
+                    className="w-full h-1.5 bg-black/40 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                  />
                 </div>
               )}
             </div>

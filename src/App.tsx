@@ -18,6 +18,19 @@ import { SettingsVaultTab } from './components/SettingsVaultTab';
 import { GpsActivityTrackerModal } from './components/GpsActivityTrackerModal';
 import { SocialWorkoutShareModal } from './components/SocialWorkoutShareModal';
 import { StravaRouteFlybyPlayer } from './components/StravaRouteFlybyPlayer';
+import {
+  fetchFeedPostsFromFirestore,
+  fetchGpsActivitiesFromFirestore,
+  fetchMilestonesFromFirestore,
+  saveGpsActivityToFirestore,
+  saveMilestonesToFirestore,
+  saveActivityPostToFirestore,
+  deleteActivityPostFromFirestore,
+  saveWorkoutLogToFirestore,
+  saveRoutinesToFirestore,
+  togglePostLikeInFirestore,
+  addCommentToPostInFirestore
+} from './services/firestoreService';
 
 import type {
   UserProfile,
@@ -147,11 +160,34 @@ export function App() {
     saveToStorage(KEYS.PERIOD_SETTINGS, periodSettings);
   }, [periodSettings]);
 
+  // Sync state with Cloud Firestore on mount
+  useEffect(() => {
+    fetchFeedPostsFromFirestore().then((remotePosts) => {
+      if (remotePosts && remotePosts.length > 0) {
+        setStravaPosts(remotePosts);
+      }
+    }).catch(console.error);
+
+    fetchGpsActivitiesFromFirestore().then((remoteActs) => {
+      if (remoteActs && remoteActs.length > 0) {
+        setGpsActivities(remoteActs);
+      }
+    }).catch(console.error);
+
+    fetchMilestonesFromFirestore().then((remoteMilestones) => {
+      if (remoteMilestones) {
+        setMilestones(remoteMilestones);
+      }
+    }).catch(console.error);
+  }, []);
+
   // Handlers
   const handleToggleRoutine = (id: string) => {
-    setRoutines((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, completed: !r.completed } : r))
-    );
+    setRoutines((prev) => {
+      const updated = prev.map((r) => (r.id === id ? { ...r, completed: !r.completed } : r));
+      saveRoutinesToFirestore(updated).catch(console.error);
+      return updated;
+    });
   };
 
   const handleAddRoutine = (newRoutine: Omit<RoutineItem, 'id' | 'completed'>) => {
@@ -160,7 +196,11 @@ export function App() {
       id: 'r_' + Date.now(),
       completed: false
     };
-    setRoutines((prev) => [created, ...prev]);
+    setRoutines((prev) => {
+      const updated = [created, ...prev];
+      saveRoutinesToFirestore(updated).catch(console.error);
+      return updated;
+    });
   };
 
   const handleAddQuote = (newQuote: Omit<MotivationalQuote, 'id'>) => {
@@ -178,11 +218,14 @@ export function App() {
       date: new Date().toISOString().split('T')[0]
     };
     setWorkoutLogs((prev) => [newLog, ...prev]);
+    saveWorkoutLogToFirestore(newLog).catch(console.error);
   };
 
   const handleSaveGpsActivity = (log: GpsActivityLog, updatedMilestones: PersonalMilestones) => {
     setGpsActivities((prev) => [log, ...prev]);
     setMilestones(updatedMilestones);
+    saveGpsActivityToFirestore(log).catch(console.error);
+    saveMilestonesToFirestore(updatedMilestones).catch(console.error);
   };
 
   const handleSaveStravaPost = (post: StravaActivityPost) => {
@@ -193,27 +236,41 @@ export function App() {
       }
       return [post, ...prev];
     });
+    saveActivityPostToFirestore(post).catch(console.error);
   };
 
   const handleDeletePost = (id: string) => {
     setStravaPosts((prev) => prev.filter((p) => p.id !== id));
+    deleteActivityPostFromFirestore(id).catch(console.error);
   };
 
   const handleLikePost = (id: string) => {
+    const post = stravaPosts.find((p) => p.id === id);
+    const willBeLiked = post ? !post.isLiked : true;
+
     setStravaPosts((prev) =>
       prev.map((p) =>
         p.id === id
-          ? { ...p, isLiked: !p.isLiked, likesCount: (p.likesCount || 0) + (p.isLiked ? -1 : 1) }
+          ? { ...p, isLiked: willBeLiked, likesCount: (p.likesCount || 0) + (willBeLiked ? 1 : -1) }
           : p
       )
     );
+    togglePostLikeInFirestore(
+      id,
+      {
+        userId: currentProfile === 'women' ? 'women' : 'men',
+        userName: currentProfile === 'women' ? 'Shreya Dixit' : 'Sughosh Dixit'
+      },
+      willBeLiked
+    ).catch(console.error);
+
     if (selectedStravaActivityDetail && selectedStravaActivityDetail.id === id) {
       setSelectedStravaActivityDetail((prev) =>
         prev
           ? {
               ...prev,
-              isLiked: !prev.isLiked,
-              likesCount: (prev.likesCount || 0) + (prev.isLiked ? -1 : 1)
+              isLiked: willBeLiked,
+              likesCount: (prev.likesCount || 0) + (willBeLiked ? 1 : -1)
             }
           : null
       );
@@ -229,6 +286,8 @@ export function App() {
       text,
       timestamp: Date.now()
     };
+    addCommentToPostInFirestore(activityId, newComment).catch(console.error);
+
     setStravaPosts((prev) =>
       prev.map((p) =>
         p.id === activityId

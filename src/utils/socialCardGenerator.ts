@@ -21,19 +21,22 @@ export async function generateSocialCardCanvas(
   format: 'story' | 'square' = 'story'
 ): Promise<HTMLCanvasElement> {
   const canvas = document.createElement('canvas');
-  const width = 1080;
-  const height = format === 'story' ? 1920 : 1080;
-  canvas.width = width;
-  canvas.height = height;
+  const scale = data.is4k ? 2 : 1;
+  const logicalWidth = 1080;
+  const logicalHeight = format === 'story' ? 1920 : 1080;
+  canvas.width = logicalWidth * scale;
+  canvas.height = logicalHeight * scale;
 
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get Canvas context');
+  if (scale !== 1) {
+    ctx.scale(scale, scale);
+  }
+  const width = logicalWidth;
+  const height = logicalHeight;
 
   // ---------------------------------------------------------------------------
   // 1. MESMERIZING BACKGROUND THEME OR CUSTOM USER PHOTO
-  // ---------------------------------------------------------------------------
-  // ---------------------------------------------------------------------------
-  // 1. BACKGROUND: MULTI-PHOTO USER UPLOAD OR ATHLETIC PRESET
   // ---------------------------------------------------------------------------
   const theme = data.backgroundTheme || 'cyber_neon';
   const customPhotoSrc = (data.photos && data.photos.length > 0 && data.selectedPhotoIndex !== undefined && data.photos[data.selectedPhotoIndex])
@@ -81,10 +84,11 @@ export async function generateSocialCardCanvas(
   }
 
   // ---------------------------------------------------------------------------
-  // 1.5 GPS ROUTE POLYLINE OVERLAY (STRAVA SIGNATURE FEATURE)
+  // 1.5 GPS ROUTE POLYLINE OVERLAY & ELEVATION CHART (STRAVA SIGNATURE FEATURE)
   // ---------------------------------------------------------------------------
   if (data.showRouteOverlay && data.routePoints && data.routePoints.length > 1) {
     drawGpsRouteOverlay(ctx, data.routePoints, width, height, format);
+    drawElevationProfileChart(ctx, data.routePoints, width, height, format);
   }
 
   // ---------------------------------------------------------------------------
@@ -440,6 +444,75 @@ function drawGpsRouteOverlay(
   ctx.lineWidth = 3;
   ctx.stroke();
 
+  ctx.restore();
+}
+
+/**
+ * Draws Strava-style burned-in elevation gradient profile chart.
+ */
+function drawElevationProfileChart(
+  ctx: CanvasRenderingContext2D,
+  points: { altitude?: number }[],
+  canvasWidth: number,
+  canvasHeight: number,
+  format: 'story' | 'square'
+) {
+  const altPoints = points.filter((p) => typeof p.altitude === 'number') as { altitude: number }[];
+  if (altPoints.length < 5) return;
+
+  const minAlt = Math.min(...altPoints.map((p) => p.altitude));
+  const maxAlt = Math.max(...altPoints.map((p) => p.altitude));
+  const altSpan = Math.max(5, maxAlt - minAlt);
+
+  const chartW = canvasWidth - 150;
+  const chartH = format === 'story' ? 90 : 70;
+  const chartX = 75;
+  const chartY = format === 'story' ? canvasHeight * 0.44 : canvasHeight * 0.41;
+
+  ctx.save();
+  // Chart background
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth = 1.5;
+  drawRoundedRect(ctx, chartX, chartY, chartW, chartH, 16);
+  ctx.fill();
+  ctx.stroke();
+
+  // Gradient area
+  const areaGrad = ctx.createLinearGradient(0, chartY, 0, chartY + chartH);
+  areaGrad.addColorStop(0, 'rgba(252, 76, 2, 0.45)');
+  areaGrad.addColorStop(1, 'rgba(252, 76, 2, 0.02)');
+
+  ctx.beginPath();
+  altPoints.forEach((p, idx) => {
+    const x = chartX + 16 + (idx / (altPoints.length - 1)) * (chartW - 32);
+    const y = chartY + chartH - 12 - ((p.altitude - minAlt) / altSpan) * (chartH - 28);
+    if (idx === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(chartX + chartW - 16, chartY + chartH - 10);
+  ctx.lineTo(chartX + 16, chartY + chartH - 10);
+  ctx.closePath();
+  ctx.fillStyle = areaGrad;
+  ctx.fill();
+
+  // Stroke line
+  ctx.beginPath();
+  altPoints.forEach((p, idx) => {
+    const x = chartX + 16 + (idx / (altPoints.length - 1)) * (chartW - 32);
+    const y = chartY + chartH - 12 - ((p.altitude - minAlt) / altSpan) * (chartH - 28);
+    if (idx === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#FC4C02';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Elevation labels
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 13px "Montserrat", sans-serif';
+  ctx.fillText(`▲ MAX ${Math.round(maxAlt)}m`, chartX + 20, chartY + 22);
+  ctx.fillText(`▼ MIN ${Math.round(minAlt)}m`, chartX + chartW - 110, chartY + 22);
   ctx.restore();
 }
 

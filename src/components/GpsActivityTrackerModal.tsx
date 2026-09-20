@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { GpsActivityLog, GpsLocationPoint, PersonalMilestones, UserProfile } from '../types';
 import {
-  calculateDistanceKm,
   formatDuration,
   formatPace,
   calculateFitMetrics,
@@ -14,6 +13,13 @@ import {
   generateSampleGpsActivity
 } from '../utils/milestonesTracker';
 import { playBeepTone } from '../utils/audioCoach';
+import {
+  createGpsFilterState,
+  processRawGpsPoint,
+  evaluateGpsSignalQuality,
+  type GpsFilterState,
+  type GpsSignalQuality
+} from '../utils/gpsFilter';
 import {
   Play,
   Pause,
@@ -56,10 +62,13 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [unlockedMilestones, setUnlockedMilestones] = useState<string[]>([]);
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
+  const [signalQuality, setSignalQuality] = useState<GpsSignalQuality>('good');
+  const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
 
   const watchIdRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
+  const filterStateRef = useRef<GpsFilterState>(createGpsFilterState());
 
   // ---------------------------------------------------------------------------
   // 1. DURATION TIMER
@@ -78,7 +87,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   }, [isTracking, isPaused]);
 
   // ---------------------------------------------------------------------------
-  // 2. REAL-TIME GPS WATCH POSITION
+  // 2. REAL-TIME GPS WATCH POSITION WITH KALMAN ACCURACY FILTERING
   // ---------------------------------------------------------------------------
   const startGpsTracking = () => {
     if (!('geolocation' in navigator)) {
@@ -90,49 +99,42 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
     setIsTracking(true);
     setIsPaused(false);
     startTimeRef.current = Date.now();
+    filterStateRef.current = createGpsFilterState();
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const newPoint: GpsLocationPoint = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          altitude: pos.coords.altitude ?? undefined,
-          timestamp: pos.timestamp,
-          speed: pos.coords.speed ?? undefined,
-          accuracy: pos.coords.accuracy
-        };
+        const accuracy = pos.coords.accuracy;
+        setAccuracyMeters(Math.round(accuracy));
+        setSignalQuality(evaluateGpsSignalQuality(accuracy));
 
-        setRoutePoints((prev) => {
-          if (prev.length > 0) {
-            const lastPoint = prev[prev.length - 1];
-            const segmentDist = calculateDistanceKm(
-              lastPoint.latitude,
-              lastPoint.longitude,
-              newPoint.latitude,
-              newPoint.longitude
-            );
+        const result = processRawGpsPoint(
+          filterStateRef.current,
+          {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            altitude: pos.coords.altitude ?? undefined,
+            timestamp: pos.timestamp,
+            speed: pos.coords.speed ?? undefined,
+            accuracy: accuracy
+          },
+          activityType
+        );
 
-            // Filter GPS jitter (< 2 meters)
-            if (segmentDist > 0.002) {
-              setDistanceKm((d) => Number((d + segmentDist).toFixed(3)));
+        if (result.accepted) {
+          setDistanceKm(filterStateRef.current.totalDistanceKm);
+          setRoutePoints([...filterStateRef.current.points]);
 
-              // Calculate speed (km/h)
-              const timeDiffHours = (newPoint.timestamp - lastPoint.timestamp) / (1000 * 3600);
-              if (timeDiffHours > 0) {
-                const speed = segmentDist / timeDiffHours;
-                const maxAllowedSpeed = activityType === 'drive' ? 220 : 70;
-                if (speed < maxAllowedSpeed) {
-                  setCurrentSpeedKmh(Number(speed.toFixed(1)));
-                  setTopSpeedKmh((top) => Math.max(top, Number(speed.toFixed(1))));
-                }
-              }
-            }
+          setCurrentSpeedKmh(result.calculatedSpeedKmh);
+          if (result.calculatedSpeedKmh > 0) {
+            setTopSpeedKmh((top) => Math.max(top, result.calculatedSpeedKmh));
           }
-          return [...prev, newPoint];
-        });
+        } else {
+          setCurrentSpeedKmh(0);
+        }
       },
       (err) => {
         setGpsError(`GPS Signal Notice: ${err.message}. Ensure location permissions are enabled.`);
+        setSignalQuality('invalid');
       },
       {
         enableHighAccuracy: true,
@@ -233,6 +235,26 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
             <h3 className="text-sm md:text-base font-black text-main mt-0.5 uppercase tracking-wide">
               {activityType === 'run' ? '🏃 Outdoor Run' : activityType === 'cycle' ? '🚴 Outdoor Cycling' : activityType === 'drive' ? '🚗 Car Road Trip' : '🚶 Fitness Walk'}
             </h3>
+            {isTracking && (
+              <div className="flex items-center justify-center gap-1.5 mt-1">
+                <span
+                  className={`inline-block w-2 h-2 rounded-full ${
+                    signalQuality === 'excellent'
+                      ? 'bg-emerald-500 animate-pulse'
+                      : signalQuality === 'good'
+                      ? 'bg-amber-400'
+                      : 'bg-rose-500'
+                  }`}
+                />
+                <span className="text-[10px] font-bold text-sub">
+                  {signalQuality === 'excellent'
+                    ? `GPS Locked (±${accuracyMeters || 5}m)`
+                    : signalQuality === 'good'
+                    ? `GPS Good (±${accuracyMeters || 12}m)`
+                    : 'Weak GPS (Noise Filter Active)'}
+                </span>
+              </div>
+            )}
           </div>
 
           <button

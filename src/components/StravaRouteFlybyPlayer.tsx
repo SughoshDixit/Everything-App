@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
-import type { GpsActivityLog } from '../types';
+import type { GpsActivityLog, GpsLocationPoint } from '../types';
 import { formatDuration, generateSampleGpsActivity } from '../utils/milestonesTracker';
 import {
   Play,
@@ -18,7 +18,15 @@ import {
   Gauge
 } from 'lucide-react';
 
-export type MapTileProvider = 'dark_canvas' | 'osm_standard' | 'esri_satellite' | 'esri_topo';
+import { GoogleMaps3DRoutePlayer } from './GoogleMaps3DRoutePlayer';
+
+export type MapTileProvider =
+  | 'google_hybrid'
+  | 'google_roadmap'
+  | 'google_terrain'
+  | 'esri_satellite'
+  | 'dark_canvas'
+  | 'osm_standard';
 export type CameraTrackingMode = 'follow_drone' | 'overview' | 'perspective_3d';
 
 interface StravaRouteFlybyPlayerProps {
@@ -35,7 +43,8 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
   onClose
 }) => {
   const [currentActivity, setCurrentActivity] = useState<GpsActivityLog>(initialActivity);
-  const [tileProvider, setTileProvider] = useState<MapTileProvider>('dark_canvas');
+  const [tileProvider, setTileProvider] = useState<MapTileProvider>('google_hybrid');
+  const [useGoogle3DMode, setUseGoogle3DMode] = useState<boolean>(false);
   const [cameraMode, setCameraMode] = useState<CameraTrackingMode>('follow_drone');
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(2); // 1x, 2x, 5x, 10x
@@ -68,26 +77,42 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
   // ---------------------------------------------------------------------------
   const getTileConfig = (provider: MapTileProvider) => {
     switch (provider) {
-      case 'osm_standard':
+      case 'google_hybrid':
+      default:
         return {
-          url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          attribution: '&copy; OpenStreetMap contributors'
+          url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+          subdomains: '0123',
+          attribution: '&copy; Google Hybrid Satellite'
         };
-      case 'esri_topo':
+      case 'google_roadmap':
         return {
-          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-          attribution: '&copy; Esri World Topo Map'
+          url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+          subdomains: '0123',
+          attribution: '&copy; Google Maps'
+        };
+      case 'google_terrain':
+        return {
+          url: 'https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+          subdomains: '0123',
+          attribution: '&copy; Google Maps Terrain'
         };
       case 'esri_satellite':
         return {
           url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          subdomains: 'abcd',
           attribution: '&copy; Esri World Imagery'
         };
       case 'dark_canvas':
-      default:
         return {
           url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+          subdomains: 'abcd',
           attribution: '&copy; Esri Dark Gray Canvas'
+        };
+      case 'osm_standard':
+        return {
+          url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          subdomains: 'abc',
+          attribution: '&copy; OpenStreetMap contributors'
         };
     }
   };
@@ -114,8 +139,8 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
 
     const tileConfig = getTileConfig(tileProvider);
     const tileLayer = L.tileLayer(tileConfig.url, {
-      maxZoom: 19,
-      subdomains: 'abcd',
+      maxZoom: 20,
+      subdomains: tileConfig.subdomains || '0123',
       attribution: tileConfig.attribution
     }).addTo(map);
     tileLayerRef.current = tileLayer;
@@ -223,8 +248,8 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
     }
     const tileConfig = getTileConfig(tileProvider);
     const newTileLayer = L.tileLayer(tileConfig.url, {
-      maxZoom: 19,
-      subdomains: 'abcd',
+      maxZoom: 20,
+      subdomains: tileConfig.subdomains || '0123',
       attribution: tileConfig.attribution
     }).addTo(mapInstanceRef.current);
     tileLayerRef.current = newTileLayer;
@@ -333,10 +358,66 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
   };
 
   // ---------------------------------------------------------------------------
-  // 6. EXPORT ANIMATED FLYBY VIDEO CLIP (MediaRecorder API)
   // ---------------------------------------------------------------------------
+  // 5.5 CATMULL-ROM SPLINE INTERPOLATION FOR CINEMATIC DRONE FLIGHT
+  // ---------------------------------------------------------------------------
+  const interpolateRouteSpline = (
+    rawPoints: GpsLocationPoint[],
+    stepsPerSegment: number = 6
+  ): { lat: number; lng: number; alt: number; speed: number }[] => {
+    if (rawPoints.length < 2) {
+      return rawPoints.map((p) => ({
+        lat: p.latitude,
+        lng: p.longitude,
+        alt: p.altitude || 0,
+        speed: p.speed || 0
+      }));
+    }
+    const result: { lat: number; lng: number; alt: number; speed: number }[] = [];
+
+    for (let i = 0; i < rawPoints.length - 1; i++) {
+      const p0 = rawPoints[Math.max(0, i - 1)];
+      const p1 = rawPoints[i];
+      const p2 = rawPoints[i + 1];
+      const p3 = rawPoints[Math.min(rawPoints.length - 1, i + 2)];
+
+      for (let s = 0; s < stepsPerSegment; s++) {
+        const t = s / stepsPerSegment;
+        const t2 = t * t;
+        const t3 = t2 * t;
+
+        const lat =
+          0.5 *
+          (2 * p1.latitude +
+            (-p0.latitude + p2.latitude) * t +
+            (2 * p0.latitude - 5 * p1.latitude + 4 * p2.latitude - p3.latitude) * t2 +
+            (-p0.latitude + 3 * p1.latitude - 3 * p2.latitude + p3.latitude) * t3);
+
+        const lng =
+          0.5 *
+          (2 * p1.longitude +
+            (-p0.longitude + p2.longitude) * t +
+            (2 * p0.longitude - 5 * p1.longitude + 4 * p2.longitude - p3.longitude) * t2 +
+            (-p0.longitude + 3 * p1.longitude - 3 * p2.longitude + p3.longitude) * t3);
+
+        const alt = (p1.altitude || 0) * (1 - t) + (p2.altitude || 0) * t;
+        const speed = (p1.speed || 0) * (1 - t) + (p2.speed || 0) * t;
+
+        result.push({ lat, lng, alt, speed });
+      }
+    }
+    const last = rawPoints[rawPoints.length - 1];
+    result.push({ lat: last.latitude, lng: last.longitude, alt: last.altitude || 0, speed: last.speed || 0 });
+    return result;
+  };
+
+  // ---------------------------------------------------------------------------
+  // 6. EXPORT CINEMATIC STABILIZED 1080p HD FLYBY VIDEO CLIP (18 Mbps)
+  // ---------------------------------------------------------------------------
+  const [videoOrientation, setVideoOrientation] = useState<'vertical' | 'horizontal'>('vertical');
+
   const handleExportAnimatedVideo = () => {
-    if (isRecordingVideo) return;
+    if (isRecordingVideo || points.length < 2) return;
 
     try {
       setIsRecordingVideo(true);
@@ -344,20 +425,38 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
       setCurrentIndex(0);
       setIsPlaying(false);
 
-      // Create a background recording canvas
+      // 1080p High-Definition canvas dimensions
+      const isVertical = videoOrientation === 'vertical';
+      const width = isVertical ? 1080 : 1920;
+      const height = isVertical ? 1920 : 1080;
+
       const recCanvas = document.createElement('canvas');
-      recCanvas.width = 640;
-      recCanvas.height = 360;
+      recCanvas.width = width;
+      recCanvas.height = height;
       const ctx = recCanvas.getContext('2d');
       if (!ctx) return;
 
-      const stream = recCanvas.captureStream(30);
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-        ? 'video/webm;codecs=vp9'
-        : 'video/webm';
+      // High-density Catmull-Rom spline smoothed trajectory
+      const smoothedTrajectory = interpolateRouteSpline(points, 6);
+      const totalSmoothSteps = smoothedTrajectory.length;
+
+      // Capture at 60fps
+      const stream = recCanvas.captureStream(60);
+
+      // Select highest quality mimeType available
+      const mimeCandidates = [
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=h264',
+        'video/mp4;codecs=avc1',
+        'video/webm'
+      ];
+      const selectedMime = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m)) || 'video/webm';
 
       recordedChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: selectedMime,
+        videoBitsPerSecond: 18_000_000 // 18 Mbps high-bitrate crisp video
+      });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -367,29 +466,54 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
       };
 
       mediaRecorder.onstop = async () => {
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const isMp4 = selectedMime.includes('mp4');
+        const extension = isMp4 ? 'mp4' : 'webm';
+        const blob = new Blob(recordedChunksRef.current, { type: selectedMime });
         const url = URL.createObjectURL(blob);
-        const fileName = `Strava_Flyby_${currentActivity.distanceKm}km_${currentActivity.activityType}_${Date.now()}.webm`;
-        const videoFile = new File([blob], fileName, { type: 'video/webm' });
+        const fileName = `Strava_HD_Flyby_${currentActivity.distanceKm}km_${Date.now()}.${extension}`;
+        const videoFile = new File([blob], fileName, { type: selectedMime });
 
-        // Direct Download to Files / Phone Storage
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        // Save directly to Android Gallery via Native Bridge if on Android
+        if ((window as any).AndroidBridge?.downloadBase64File) {
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = () => {
+            const base64data = reader.result as string;
+            (window as any).AndroidBridge.downloadBase64File(base64data, fileName, selectedMime);
+          };
+        } else {
+          // Direct browser download
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
 
-        // Native Social Media Share if available
-        if (navigator.canShare && navigator.canShare({ files: [videoFile] })) {
+        // Native Share Sheet (Instagram, WhatsApp, Telegram)
+        if ((window as any).AndroidBridge?.shareBase64Media) {
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = () => {
+            const base64data = reader.result as string;
+            (window as any).AndroidBridge.shareBase64Media(
+              base64data,
+              fileName,
+              selectedMime,
+              `${currentActivity.activityType.toUpperCase()} Ground Track Flyby`,
+              `Check out my ${currentActivity.distanceKm} km route animation! 🚀`
+            );
+          };
+        } else if (navigator.canShare && navigator.canShare({ files: [videoFile] })) {
           try {
             await navigator.share({
               title: `${currentActivity.activityType.toUpperCase()} Ground Track Flyby`,
-              text: `Check out my ${currentActivity.distanceKm} km ${currentActivity.activityType} route animation on Everything App! 🚀`,
+              text: `Check out my ${currentActivity.distanceKm} km route animation! 🚀`,
               files: [videoFile]
             });
           } catch (_err) {
-            // User cancelled or completed share
+            // User cancelled share
           }
         }
 
@@ -397,74 +521,191 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         setRecordProgress(100);
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(100);
 
-      let stepIndex = 0;
-      const stepInterval = setInterval(() => {
-        stepIndex += 2;
-        if (stepIndex >= totalPoints) {
-          clearInterval(stepInterval);
-          setCurrentIndex(totalPoints - 1);
-          setRecordProgress(100);
+      // Compute bounding box for projection
+      let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+      points.forEach((p) => {
+        if (p.latitude < minLat) minLat = p.latitude;
+        if (p.latitude > maxLat) maxLat = p.latitude;
+        if (p.longitude < minLng) minLng = p.longitude;
+        if (p.longitude > maxLng) maxLng = p.longitude;
+      });
+      const latR = maxLat - minLat || 0.001;
+      const lngR = maxLng - minLng || 0.001;
+
+      // Coordinate mapping with padding
+      const padX = isVertical ? 90 : 180;
+      const padTop = isVertical ? 320 : 200;
+      const padBottom = isVertical ? 420 : 250;
+      const drawWidth = width - padX * 2;
+      const drawHeight = height - padTop - padBottom;
+
+      const toX = (lng: number) => padX + ((lng - minLng) / lngR) * drawWidth;
+      const toY = (lat: number) => padTop + drawHeight - ((lat - minLat) / latR) * drawHeight;
+
+      let currentStep = 0;
+      const stepIncrement = Math.max(1, Math.round(totalSmoothSteps / 180)); // ~3 seconds at 60fps
+
+      const frameInterval = setInterval(() => {
+        currentStep = Math.min(totalSmoothSteps - 1, currentStep + stepIncrement);
+        const progress = currentStep / (totalSmoothSteps - 1);
+        setRecordProgress(Math.round(progress * 100));
+
+        // 1. Dark Futuristic Map Canvas Background
+        const bgGrad = ctx.createRadialGradient(width / 2, height / 2, 100, width / 2, height / 2, width);
+        bgGrad.addColorStop(0, '#111726');
+        bgGrad.addColorStop(0.6, '#090d16');
+        bgGrad.addColorStop(1, '#05070c');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, width, height);
+
+        // Subtle topographic grid lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.lineWidth = 1.5;
+        const gridGap = isVertical ? 120 : 150;
+        for (let gx = 0; gx < width; gx += gridGap) {
+          ctx.beginPath();
+          ctx.moveTo(gx, 0);
+          ctx.lineTo(gx, height);
+          ctx.stroke();
+        }
+        for (let gy = 0; gy < height; gy += gridGap) {
+          ctx.beginPath();
+          ctx.moveTo(0, gy);
+          ctx.lineTo(width, gy);
+          ctx.stroke();
+        }
+
+        // 2. Full Planned Route (Faint Trail)
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = isVertical ? 10 : 8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        for (let i = 0; i < totalSmoothSteps; i++) {
+          const px = toX(smoothedTrajectory[i].lng);
+          const py = toY(smoothedTrajectory[i].lat);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // 3. Traversed Route (High-Voltage Glowing Path)
+        const primaryColor = currentActivity.activityType === 'cycle' ? '#FC4C02' : '#00F5D4';
+        const secondaryColor = currentActivity.activityType === 'cycle' ? '#FF8C00' : '#c084fc';
+
+        ctx.shadowColor = primaryColor;
+        ctx.shadowBlur = 24;
+        ctx.beginPath();
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = isVertical ? 14 : 10;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        for (let i = 0; i <= currentStep; i++) {
+          const px = toX(smoothedTrajectory[i].lng);
+          const py = toY(smoothedTrajectory[i].lat);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0; // Reset shadow
+
+        // 4. Athlete Beacon & Drone Target
+        const activePt = smoothedTrajectory[currentStep];
+        const ax = toX(activePt.lng);
+        const ay = toY(activePt.lat);
+
+        // Outer pulsing ripple
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.beginPath();
+        ctx.arc(ax, ay, isVertical ? 32 : 24, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Glowing core
+        ctx.fillStyle = primaryColor;
+        ctx.beginPath();
+        ctx.arc(ax, ay, isVertical ? 18 : 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(ax, ay, isVertical ? 9 : 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 5. Cinematic Telemetry HUD (Glassmorphism Header)
+        ctx.fillStyle = 'rgba(12, 17, 29, 0.82)';
+        const hudH = isVertical ? 190 : 130;
+        ctx.fillRect(40, 40, width - 80, hudH);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(40, 40, width - 80, hudH);
+
+        // Activity Tag
+        ctx.fillStyle = secondaryColor;
+        ctx.font = 'bold 24px Montserrat, sans-serif';
+        ctx.fillText(
+          `${currentActivity.activityType.toUpperCase()} GROUND FLYBY • HD 60FPS`,
+          70,
+          isVertical ? 95 : 85
+        );
+
+        // Title
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 36px Montserrat, sans-serif';
+        ctx.fillText(currentActivity.notes || `${currentActivity.distanceKm} km Performance Session`, 70, isVertical ? 150 : 130);
+
+        // Live Distance Telemetry (Center/Bottom Left)
+        const currentDistKm = (currentActivity.distanceKm * progress).toFixed(2);
+        const odoY = height - (isVertical ? 220 : 160);
+
+        ctx.fillStyle = 'rgba(12, 17, 29, 0.88)';
+        ctx.fillRect(40, odoY - 80, 440, 180);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.strokeRect(40, odoY - 80, 440, 180);
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = 'bold 22px Montserrat, sans-serif';
+        ctx.fillText('DISTANCE', 70, odoY - 35);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 72px "Bebas Neue", Montserrat, sans-serif';
+        ctx.fillText(`${currentDistKm}`, 70, odoY + 45);
+
+        ctx.fillStyle = primaryColor;
+        ctx.font = 'bold 32px Montserrat, sans-serif';
+        ctx.fillText('KM', 70 + ctx.measureText(`${currentDistKm} `).width, odoY + 40);
+
+        // Live Speedometer & Pace (Bottom Right)
+        const curSpeedKmh = activePt.speed ? (activePt.speed * 3.6).toFixed(1) : currentActivity.avgSpeedKmh.toFixed(1);
+        const speedX = width - 480;
+
+        ctx.fillStyle = 'rgba(12, 17, 29, 0.88)';
+        ctx.fillRect(speedX, odoY - 80, 440, 180);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.strokeRect(speedX, odoY - 80, 440, 180);
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = 'bold 22px Montserrat, sans-serif';
+        ctx.fillText('SPEED / PACE', speedX + 30, odoY - 35);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 72px "Bebas Neue", Montserrat, sans-serif';
+        ctx.fillText(`${curSpeedKmh}`, speedX + 30, odoY + 45);
+
+        ctx.fillStyle = secondaryColor;
+        ctx.font = 'bold 26px Montserrat, sans-serif';
+        ctx.fillText('KM/H', speedX + 30 + ctx.measureText(`${curSpeedKmh} `).width, odoY + 40);
+
+        if (currentStep >= totalSmoothSteps - 1) {
+          clearInterval(frameInterval);
           setTimeout(() => {
             if (mediaRecorder.state === 'recording') {
               mediaRecorder.stop();
             }
-          }, 400);
-        } else {
-          setCurrentIndex(stepIndex);
-          setRecordProgress(Math.round((stepIndex / totalPoints) * 100));
-
-          // Draw video frame
-          ctx.fillStyle = '#0a0d14';
-          ctx.fillRect(0, 0, 640, 360);
-
-          // Route projection on video frame
-          let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-          points.forEach((p) => {
-            if (p.latitude < minLat) minLat = p.latitude;
-            if (p.latitude > maxLat) maxLat = p.latitude;
-            if (p.longitude < minLng) minLng = p.longitude;
-            if (p.longitude > maxLng) maxLng = p.longitude;
-          });
-          const latR = maxLat - minLat || 0.001;
-          const lngR = maxLng - minLng || 0.001;
-          const toX = (lng: number) => 40 + ((lng - minLng) / lngR) * 560;
-          const toY = (lat: number) => 320 - ((lat - minLat) / latR) * 280;
-
-          // Traversed glowing path
-          ctx.beginPath();
-          ctx.strokeStyle = currentActivity.activityType === 'cycle' ? '#FC4C02' : '#c084fc';
-          ctx.lineWidth = 6;
-          ctx.lineCap = 'round';
-          for (let i = 0; i <= stepIndex; i++) {
-            const px = toX(points[i].longitude);
-            const py = toY(points[i].latitude);
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-          }
-          ctx.stroke();
-
-          // Athlete point
-          const currPt = points[stepIndex];
-          const ax = toX(currPt.longitude);
-          const ay = toY(currPt.latitude);
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(ax, ay, 9, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Video HUD overlay
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-          ctx.fillRect(20, 20, 220, 60);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 16px Montserrat, sans-serif';
-          ctx.fillText(`${(currentActivity.distanceKm * (stepIndex / totalPoints)).toFixed(2)} km`, 35, 48);
-          ctx.fillStyle = '#c084fc';
-          ctx.font = 'bold 12px Montserrat, sans-serif';
-          ctx.fillText(`OpenStreetMap Ground Track`, 35, 68);
+          }, 500);
         }
-      }, 33);
+      }, 16); // 60fps render tick (~16ms)
     } catch (err) {
       console.error('Video recording error:', err);
       setIsRecordingVideo(false);
@@ -478,11 +719,21 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
     setIsPlaying(true);
   };
 
+  if (useGoogle3DMode) {
+    return (
+      <GoogleMaps3DRoutePlayer
+        activity={currentActivity}
+        onClose={onClose}
+        onSwitchToLeaflet={() => setUseGoogle3DMode(false)}
+      />
+    );
+  }
+
   return (
     <div className="modal-backdrop" style={{ zIndex: 10000 }}>
       <div className="modal-content google-card animate-scale-up max-w-2xl w-full max-h-[96vh] overflow-y-auto p-4 md:p-6 flex flex-col justify-between">
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-glass pb-3 mb-2">
+        <div className="flex items-center justify-between border-b border-glass pb-3 mb-2 flex-wrap gap-2">
           <button
             className="btn-google-outlined text-xs py-1.5 px-3 flex items-center gap-1"
             onClick={onClose}
@@ -493,16 +744,26 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
 
           <div className="text-center">
             <span className="text-[10px] font-bold text-[#55198B] dark:text-[#c084fc] uppercase tracking-widest block">
-              OPENSTREETMAP 3D GROUND TRACKING
+              SATELLITE 3D GROUND TRACKING
             </span>
             <h3 className="text-sm md:text-base font-black text-main mt-0.5 uppercase tracking-wide">
               {currentActivity.distanceKm} km {currentActivity.activityType === 'run' ? 'Running Flyby' : currentActivity.activityType === 'cycle' ? 'Cycling Flyby' : currentActivity.activityType === 'drive' ? '🚗 Road Trip Flyby' : 'Walking Flyby'}
             </h3>
           </div>
 
-          <button className="btn-google-icon" onClick={onClose} aria-label="Close">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setUseGoogle3DMode(true)}
+              className="text-xs py-1.5 px-2.5 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-white transition-all font-bold flex items-center gap-1 cursor-pointer border border-amber-500/30"
+              title="Launch Google Maps 3D Vector Drone Camera"
+            >
+              <Sparkles size={13} className="text-amber-300" />
+              <span>Google 3D Vector</span>
+            </button>
+            <button className="btn-google-icon" onClick={onClose} aria-label="Close">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Preset Sample Activity Switcher */}
@@ -597,31 +858,40 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
             {/* Map Tiles Switcher */}
             <div className="flex items-center gap-1 bg-slate-950/85 backdrop-blur-md p-1 rounded-lg border border-slate-800 shadow-md">
               <button
-                onClick={() => setTileProvider('dark_canvas')}
+                onClick={() => setTileProvider('google_hybrid')}
                 className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all ${
-                  tileProvider === 'dark_canvas' ? 'bg-[#55198B] text-white' : 'text-slate-400 hover:text-white'
+                  tileProvider === 'google_hybrid' ? 'bg-[#55198B] text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
-                title="Tactical Dark Map"
+                title="Google Hybrid Satellite + Street Names"
               >
-                Dark
+                Google Sat
               </button>
               <button
-                onClick={() => setTileProvider('osm_standard')}
+                onClick={() => setTileProvider('google_roadmap')}
                 className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all ${
-                  tileProvider === 'osm_standard' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+                  tileProvider === 'google_roadmap' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
-                title="OpenStreetMap Standard"
+                title="Google Vector Roads"
               >
-                OSM Streets
+                Google Roads
               </button>
               <button
                 onClick={() => setTileProvider('esri_satellite')}
                 className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all ${
-                  tileProvider === 'esri_satellite' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                  tileProvider === 'esri_satellite' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Esri Real Satellite Imagery"
               >
-                Satellite
+                Esri Sat
+              </button>
+              <button
+                onClick={() => setTileProvider('dark_canvas')}
+                className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all ${
+                  tileProvider === 'dark_canvas' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                }`}
+                title="Tactical Dark Map"
+              >
+                Dark
               </button>
             </div>
 
@@ -745,16 +1015,40 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Video Orientation Selector */}
+              <div className="flex items-center rounded-lg border border-glass p-0.5 bg-black/20 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setVideoOrientation('vertical')}
+                  className={`px-2 py-1 rounded-md font-bold transition-all ${
+                    videoOrientation === 'vertical' ? 'bg-[#55198B] text-white' : 'text-sub hover:text-main'
+                  }`}
+                  title="9:16 Vertical Story (Reels / Status / Shorts)"
+                >
+                  📱 9:16
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVideoOrientation('horizontal')}
+                  className={`px-2 py-1 rounded-md font-bold transition-all ${
+                    videoOrientation === 'horizontal' ? 'bg-[#55198B] text-white' : 'text-sub hover:text-main'
+                  }`}
+                  title="16:9 Widescreen (Strava / YouTube)"
+                >
+                  🖥️ 16:9
+                </button>
+              </div>
+
               {/* Record & Export Animated Video Button */}
               <button
                 onClick={handleExportAnimatedVideo}
                 disabled={isRecordingVideo}
                 className="btn-google-tonal text-xs py-1.5 px-3 flex items-center gap-1 text-red-500 border-red-500/30 hover:bg-red-500/10"
-                title="Export MP4/WebM Video Clip of this Route Animation"
+                title="Export 1080p 60fps HD Video Clip of this Route Animation"
               >
                 <Video size={14} className="text-red-500" />
-                <span>{isRecordingVideo ? 'Recording...' : 'Export Video Clip'}</span>
+                <span>{isRecordingVideo ? `HD Recording ${recordProgress}%` : '🎬 Export 1080p Video'}</span>
               </button>
 
               {/* Toggle Splits Table */}

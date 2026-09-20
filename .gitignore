@@ -21,3 +21,14 @@ android_app/*.iml
 # System files
 .DS_Store
 Thumbs.db
+
+# Raw data archives & dumps
+GFit Data/
+Strava Data/
+Takeout/
+posters/
+activities.csv
+bikes.csv
+shoes.csv
+public/media/
+android-app/app/src/main/assets/web/media/

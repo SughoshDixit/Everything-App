@@ -236,6 +236,8 @@ export interface GpsActivityLog {
   milestonesReached: string[];
   userId: 'men' | 'women';
   notes?: string;
+  mediaUrls?: string[];
+  videoUrls?: string[];
 }
 
 export interface WeeklyHeartPointsSummary {
@@ -403,5 +405,7 @@ export interface SocialShareCardData {
   showRouteOverlay?: boolean;
   scrimIntensity?: number; // 0 to 1 (default 0.7)
   templateStyle?: SocialCardTemplate;
+  splits?: ActivitySplit[];
+  is4k?: boolean;
 }
 

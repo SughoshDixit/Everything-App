@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "318042636199",
+    "project_id": "kuchh-bhii",
+    "storage_bucket": "kuchh-bhii.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318042636199:android:34484e939976aebd85c082",
+        "android_client_info": {
+          "package_name": "com.example.everythingapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqFK-bZfMhrr3g1ocEubKgYXOIerda7EM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

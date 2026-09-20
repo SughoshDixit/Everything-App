@@ -19,6 +19,7 @@ import {
   Film,
   Plus
 } from 'lucide-react';
+import { HistoricalTrendsDashboard } from './HistoricalTrendsDashboard';
 
 interface GoogleFitHomeDashboardProps {
   currentProfile: UserProfile;
@@ -423,6 +424,11 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* ------------------------------------------------------------------- */}
+      {/* 4b. MULTI-YEAR HISTORICAL TRENDS & ANALYTICS (2019 - 2026) */}
+      {/* ------------------------------------------------------------------- */}
+      <HistoricalTrendsDashboard gpsActivities={gpsActivities} milestones={milestones} />
 
       {/* ------------------------------------------------------------------- */}
       {/* 5. RECENT ACTIVITIES WITH QUICK POST & FLYBY */}
