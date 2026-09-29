@@ -569,14 +569,7 @@ function wrapText(
   ctx.fillText(line, x, y);
 }
 
-declare global {
-  interface Window {
-    AndroidBridge?: {
-      downloadBase64File: (base64Data: string, fileName: string, mimeType: string) => boolean;
-      shareBase64Media: (base64Data: string, fileName: string, mimeType: string, title: string, text: string) => boolean;
-    };
-  }
-}
+
 
 /**
  * Exports Canvas as a downloadable PNG image.

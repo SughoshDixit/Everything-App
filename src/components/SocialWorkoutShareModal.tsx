@@ -36,6 +36,61 @@ interface SocialWorkoutShareModalProps {
 
 type ShareStudioMode = 'poster' | 'video';
 type VideoMapTheme = 'dark_canvas' | 'osm' | 'satellite' | 'neon' | 'custom_media';
+type VideoResolution = '4k' | '1080p' | '720p';
+
+const RESOLUTION_CONFIG: Record<VideoResolution, { width: number; height: number; label: string; bitrate: number }> = {
+  '4k': { width: 2160, height: 3840, label: '4K Ultra-HD (2160p)', bitrate: 30_000_000 },
+  '1080p': { width: 1080, height: 1920, label: 'Full HD (1080p)', bitrate: 16_000_000 },
+  '720p': { width: 720, height: 1280, label: 'HD (720p)', bitrate: 6_000_000 }
+};
+
+function getCatmullRomPoint(
+  p0: GpsLocationPoint,
+  p1: GpsLocationPoint,
+  p2: GpsLocationPoint,
+  p3: GpsLocationPoint,
+  t: number
+): GpsLocationPoint {
+  const t2 = t * t;
+  const t3 = t2 * t;
+
+  const interp = (v0: number, v1: number, v2: number, v3: number) => {
+    return 0.5 * (
+      (2 * v1) +
+      (-v0 + v2) * t +
+      (2 * v0 - 5 * v1 + 4 * v2 - v3) * t2 +
+      (-v0 + 3 * v1 - 3 * v2 + v3) * t3
+    );
+  };
+
+  return {
+    latitude: interp(p0.latitude, p1.latitude, p2.latitude, p3.latitude),
+    longitude: interp(p0.longitude, p1.longitude, p2.longitude, p3.longitude),
+    altitude: interp(p0.altitude ?? 0, p1.altitude ?? 0, p2.altitude ?? 0, p3.altitude ?? 0),
+    speed: interp(p0.speed ?? 0, p1.speed ?? 0, p2.speed ?? 0, p3.speed ?? 0),
+    timestamp: p1.timestamp + (p2.timestamp - p1.timestamp) * t
+  };
+}
+
+function smoothRouteCatmullRom(points: GpsLocationPoint[]): GpsLocationPoint[] {
+  if (!points || points.length < 3) return points || [];
+  const subDivisions = points.length > 300 ? 2 : points.length > 100 ? 3 : 5;
+  const result: GpsLocationPoint[] = [];
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(points.length - 1, i + 2)];
+
+    for (let step = 0; step < subDivisions; step++) {
+      const t = step / subDivisions;
+      result.push(getCatmullRomPoint(p0, p1, p2, p3, t));
+    }
+  }
+  result.push(points[points.length - 1]);
+  return result;
+}
 
 // Tile URLs for photorealistic and real-time map views
 const TILE_URL_MAP: Record<string, string> = {
@@ -74,6 +129,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
   // Video Mode State
   const [videoMapTheme, setVideoMapTheme] = useState<VideoMapTheme>('satellite');
+  const [videoResolution, setVideoResolution] = useState<VideoResolution>('4k');
   const [mapOverlayOpacity, setMapOverlayOpacity] = useState<number>(0.65); // 0.0 to 1.0 (Google Map layer transparency)
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
   const [videoPlaybackSpeed, setVideoPlaybackSpeed] = useState<number>(2);
@@ -123,8 +179,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     ? { text: customQuoteText.trim(), author: customQuoteAuthor.trim() || (initialData.persona === 'women' ? 'Shreya' : 'Sughosh') }
     : defaultQuote;
 
-  // Route Points for animated video
-  const routePoints: GpsLocationPoint[] = useMemo(() => {
+  // Raw Route Points
+  const rawRoutePoints: GpsLocationPoint[] = useMemo(() => {
     if (initialData.routePoints && initialData.routePoints.length > 1) {
       return initialData.routePoints;
     }
@@ -152,6 +208,11 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     }
     return pts;
   }, [initialData.routePoints, initialData.stats, initialData.workoutType]);
+
+  // Spline-smoothed route points for fluid, graceful animation
+  const routePoints: GpsLocationPoint[] = useMemo(() => {
+    return smoothRouteCatmullRom(rawRoutePoints);
+  }, [rawRoutePoints]);
 
   const totalPoints = routePoints.length;
 
@@ -297,12 +358,14 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
     const animateVideo = (time: number) => {
       const delta = time - lastTimeRef.current;
-      if (delta > 30 / videoPlaybackSpeed) {
+      const intervalMs = Math.max(16, 25 / videoPlaybackSpeed);
+      if (delta >= intervalMs) {
         setVideoCurrentIndex((prev) => {
           if (prev >= totalPoints - 1) {
             return 0;
           }
-          return prev + 1;
+          const stepAdv = Math.max(1, Math.round(videoPlaybackSpeed));
+          return Math.min(totalPoints - 1, prev + stepAdv);
         });
         lastTimeRef.current = time;
       }
@@ -315,7 +378,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     };
   }, [studioMode, isVideoPlaying, videoPlaybackSpeed, totalPoints]);
 
-  // Render Video Frame on Canvas
+  // Render Video Frame on Canvas with 4K UHD Scaling & Bloom
   useEffect(() => {
     if (studioMode !== 'video' || !videoCanvasRef.current || totalPoints < 2) return;
 
@@ -325,6 +388,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
     const w = canvas.width;
     const h = canvas.height;
+    const scale = w / 720; // 1.0 for 720p, 1.5 for 1080p, 3.0 for 4K UHD
 
     // Coordinate Normalization
     let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
@@ -386,8 +450,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     // 2. Planned Route Base Path
     ctx.beginPath();
     ctx.strokeStyle = videoMapTheme === 'satellite' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.25)';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([6, 6]);
+    ctx.lineWidth = 3 * scale;
+    ctx.setLineDash([6 * scale, 6 * scale]);
     routePoints.forEach((p, idx) => {
       const px = toX(p.longitude);
       const py = toY(p.latitude);
@@ -429,14 +493,18 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     }
 
     const primaryColor = activeStageColor;
-    const glowColor = `${primaryColor}80`;
 
-    // Draw Glowing Path
-    ctx.beginPath();
-    ctx.strokeStyle = glowColor;
-    ctx.lineWidth = 14;
+    // Draw Glowing Path with Multi-layered bloom
+    ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+
+    // Outer soft glow bloom
+    ctx.shadowColor = primaryColor;
+    ctx.shadowBlur = 18 * scale;
+    ctx.beginPath();
+    ctx.strokeStyle = `${primaryColor}66`;
+    ctx.lineWidth = 16 * scale;
     for (let i = 0; i <= videoCurrentIndex; i++) {
       const px = toX(routePoints[i].longitude);
       const py = toY(routePoints[i].latitude);
@@ -445,9 +513,11 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     }
     ctx.stroke();
 
+    // Inner vibrant stroke
+    ctx.shadowBlur = 6 * scale;
     ctx.beginPath();
     ctx.strokeStyle = primaryColor;
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 6 * scale;
     for (let i = 0; i <= videoCurrentIndex; i++) {
       const px = toX(routePoints[i].longitude);
       const py = toY(routePoints[i].latitude);
@@ -455,6 +525,20 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       else ctx.lineTo(px, py);
     }
     ctx.stroke();
+
+    // Crisp high-intensity white core
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = 2 * scale;
+    for (let i = 0; i <= videoCurrentIndex; i++) {
+      const px = toX(routePoints[i].longitude);
+      const py = toY(routePoints[i].latitude);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.restore();
 
     // 4. Start & Finish Point Pins
     const startPt = routePoints[0];
@@ -463,19 +547,19 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     // Start Pin (Green)
     ctx.fillStyle = '#10B981';
     ctx.beginPath();
-    ctx.arc(toX(startPt.longitude), toY(startPt.latitude), 8, 0, Math.PI * 2);
+    ctx.arc(toX(startPt.longitude), toY(startPt.latitude), 9 * scale, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.5 * scale;
     ctx.stroke();
 
     // Finish Pin (Red)
     ctx.fillStyle = '#EF4444';
     ctx.beginPath();
-    ctx.arc(toX(endPt.longitude), toY(endPt.latitude), 8, 0, Math.PI * 2);
+    ctx.arc(toX(endPt.longitude), toY(endPt.latitude), 9 * scale, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.5 * scale;
     ctx.stroke();
 
     // 5. Active Moving Athlete / Vehicle Marker
@@ -496,44 +580,51 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     ctx.rotate(heading);
 
     const isCurrentDrive = activeStageName.toLowerCase().includes('drive') || activeStageName.toLowerCase().includes('car');
-    const isCurrentCycle = activeStageName.toLowerCase().includes('cycle') || activeStageName.toLowerCase().includes('ride');
 
     if (isCurrentDrive) {
-      const coneGrad = ctx.createRadialGradient(0, -10, 5, 0, -90, 75);
+      const coneGrad = ctx.createRadialGradient(0, -10 * scale, 5 * scale, 0, -90 * scale, 75 * scale);
       coneGrad.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
       coneGrad.addColorStop(0.4, 'rgba(250, 204, 21, 0.4)');
       coneGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = coneGrad;
       ctx.beginPath();
-      ctx.moveTo(-6, -10);
-      ctx.lineTo(-45, -90);
-      ctx.lineTo(45, -90);
-      ctx.lineTo(6, -10);
+      ctx.moveTo(-6 * scale, -10 * scale);
+      ctx.lineTo(-45 * scale, -90 * scale);
+      ctx.lineTo(45 * scale, -90 * scale);
+      ctx.lineTo(6 * scale, -10 * scale);
       ctx.closePath();
       ctx.fill();
 
       ctx.fillStyle = '#0284c7';
       ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 * scale;
       ctx.beginPath();
-      ctx.roundRect(-8, -14, 16, 28, 4);
+      ctx.roundRect(-8 * scale, -14 * scale, 16 * scale, 28 * scale, 4 * scale);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = '#bae6fd';
       ctx.beginPath();
-      ctx.roundRect(-6, -8, 12, 6, 2);
+      ctx.roundRect(-6 * scale, -8 * scale, 12 * scale, 6 * scale, 2 * scale);
       ctx.fill();
     } else {
+      // Graceful pulsing ripple ring
+      const pulsePhase = (Date.now() % 1200) / 1200; // 0 to 1
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 2 * scale;
+      ctx.beginPath();
+      ctx.arc(0, 0, (14 + pulsePhase * 10) * scale, 0, Math.PI * 2);
+      ctx.stroke();
+
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.arc(0, 0, 9 * scale, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 3.5 * scale;
       ctx.beginPath();
-      ctx.arc(0, 0, 15, 0, Math.PI * 2);
+      ctx.arc(0, 0, 15 * scale, 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.restore();
@@ -541,98 +632,164 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     // 6. HUD & Overlays: Telemetry, Quotes, Brand & "Made with intention doing Kuchh Bhii"
     const progressRatio = totalPoints > 1 ? videoCurrentIndex / (totalPoints - 1) : 1;
     const currentDist = (totalDistNum * progressRatio).toFixed(2);
-    const speedVal = currentPoint.speed ? (currentPoint.speed * 3.6).toFixed(1) : (isCurrentDrive ? '72.5' : isCurrentCycle ? '26.4' : '11.8');
+    const speedVal = currentPoint.speed ? (currentPoint.speed * 3.6).toFixed(1) : (isCurrentDrive ? '72.5' : '11.8');
 
     // Aesthetic Top Gradient Scrim for Story View
-    const topGrad = ctx.createLinearGradient(0, 0, 0, 220);
-    topGrad.addColorStop(0, 'rgba(5, 10, 20, 0.85)');
+    const topGrad = ctx.createLinearGradient(0, 0, 0, 240 * scale);
+    topGrad.addColorStop(0, 'rgba(5, 10, 20, 0.88)');
     topGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = topGrad;
-    ctx.fillRect(0, 0, w, 220);
+    ctx.fillRect(0, 0, w, 240 * scale);
 
     // Aesthetic Bottom Gradient Scrim
-    const btmGrad = ctx.createLinearGradient(0, h - 260, 0, h);
+    const btmGrad = ctx.createLinearGradient(0, h - 300 * scale, 0, h);
     btmGrad.addColorStop(0, 'transparent');
-    btmGrad.addColorStop(1, 'rgba(5, 10, 20, 0.92)');
+    btmGrad.addColorStop(1, 'rgba(5, 10, 20, 0.94)');
     ctx.fillStyle = btmGrad;
-    ctx.fillRect(0, h - 260, w, 260);
+    ctx.fillRect(0, h - 300 * scale, w, 300 * scale);
 
     if (showVideoTelemetry) {
       // Sleek Glassmorphic Top Telemetry Card
-      const cardW = w - 64;
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      const cardW = w - 64 * scale;
+      const cardH = 145 * scale;
+      const cardX = 32 * scale;
+      const cardY = 48 * scale;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 * scale;
       ctx.beginPath();
-      ctx.roundRect(32, 48, cardW, 140, 24);
+      ctx.roundRect(cardX, cardY, cardW, cardH, 24 * scale);
       ctx.fill();
       ctx.stroke();
 
       // Top Accent glow bar
       ctx.fillStyle = primaryColor;
       ctx.beginPath();
-      ctx.roundRect(32, 48, 10, 140, 5);
+      ctx.roundRect(cardX, cardY, 10 * scale, cardH, 5 * scale);
       ctx.fill();
 
-      // Big Live Metric: Distance + Stage indicator
+      // Big Live Metric: Distance + 4K badge
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 44px "Montserrat", sans-serif';
-      ctx.fillText(`⚡ ${currentDist} km`, 60, 105);
+      ctx.font = `900 ${Math.round(44 * scale)}px "Montserrat", sans-serif`;
+      ctx.fillText(`⚡ ${currentDist} km`, cardX + 28 * scale, cardY + 54 * scale);
 
       // Stage Pill & Details
       ctx.fillStyle = primaryColor;
-      ctx.font = '800 22px "Montserrat", sans-serif';
+      ctx.font = `800 ${Math.round(20 * scale)}px "Montserrat", sans-serif`;
       const stagePill = hasStages ? `STAGE ${currentStageIndex}/${totalStagesCount}: ${activeStageName.toUpperCase()}` : activeStageName.toUpperCase();
-      ctx.fillText(`${stagePill} · ${speedVal} km/h`, 60, 145);
+      ctx.fillText(`${stagePill} · ${speedVal} km/h`, cardX + 28 * scale, cardY + 95 * scale);
       ctx.fillStyle = '#94a3b8';
-      ctx.font = '600 16px "Montserrat", sans-serif';
-      ctx.fillText(`⏱️ Active Elapsed: ${timeStat}`, 60, 172);
+      ctx.font = `600 ${Math.round(15 * scale)}px "Montserrat", sans-serif`;
+      ctx.fillText(`⏱️ Active Elapsed: ${timeStat}  |  Elevation: ${Math.round(currentPoint.altitude ?? 0)}m`, cardX + 28 * scale, cardY + 125 * scale);
     }
+
+    // Elevation Area Mini-Profile Ribbon
+    const elevBoxW = w - 64 * scale;
+    const elevBoxH = 44 * scale;
+    const elevBoxX = 32 * scale;
+    const elevBoxY = h - 256 * scale;
+
+    let minElev = Infinity, maxElev = -Infinity;
+    routePoints.forEach(p => {
+      const alt = p.altitude ?? 0;
+      if (alt < minElev) minElev = alt;
+      if (alt > maxElev) maxElev = alt;
+    });
+    const elevRange = maxElev - minElev > 2 ? maxElev - minElev : 10;
+
+    // Draw elevation box background
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 1.5 * scale;
+    ctx.beginPath();
+    ctx.roundRect(elevBoxX, elevBoxY, elevBoxW, elevBoxH, 12 * scale);
+    ctx.fill();
+    ctx.stroke();
+
+    // Elevation fill area
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(elevBoxX, elevBoxY, elevBoxW, elevBoxH, 12 * scale);
+    ctx.clip();
+
+    ctx.beginPath();
+    routePoints.forEach((p, idx) => {
+      const ex = elevBoxX + (idx / (totalPoints - 1)) * elevBoxW;
+      const alt = p.altitude ?? minElev;
+      const ey = elevBoxY + elevBoxH - ((alt - minElev) / elevRange) * (elevBoxH - 12 * scale) - 6 * scale;
+      if (idx === 0) ctx.moveTo(ex, ey);
+      else ctx.lineTo(ex, ey);
+    });
+    ctx.lineTo(elevBoxX + elevBoxW, elevBoxY + elevBoxH);
+    ctx.lineTo(elevBoxX, elevBoxY + elevBoxH);
+    ctx.closePath();
+
+    const elevGrad = ctx.createLinearGradient(0, elevBoxY, 0, elevBoxY + elevBoxH);
+    elevGrad.addColorStop(0, `${primaryColor}66`);
+    elevGrad.addColorStop(1, `${primaryColor}05`);
+    ctx.fillStyle = elevGrad;
+    ctx.fill();
+
+    // Elevation current position vertical marker
+    const currElevX = elevBoxX + (videoCurrentIndex / (totalPoints - 1)) * elevBoxW;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2 * scale;
+    ctx.beginPath();
+    ctx.moveTo(currElevX, elevBoxY);
+    ctx.lineTo(currElevX, elevBoxY + elevBoxH);
+    ctx.stroke();
+    ctx.restore();
+
+    // Small elevation badge text
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = `700 ${Math.round(11 * scale)}px "Montserrat", sans-serif`;
+    ctx.fillText(`⛰️ Elevation: ${Math.round(currentPoint.altitude ?? 0)}m`, elevBoxX + 12 * scale, elevBoxY + 16 * scale);
 
     if (showVideoQuote) {
       // Sleek Bottom Glassmorphic Quote Card
-      const quoteBoxW = w - 64;
-      const quoteBoxH = 150;
-      const quoteBoxY = h - 200;
+      const quoteBoxW = w - 64 * scale;
+      const quoteBoxH = 145 * scale;
+      const quoteBoxX = 32 * scale;
+      const quoteBoxY = h - 195 * scale;
 
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
       ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 * scale;
       ctx.beginPath();
-      ctx.roundRect(32, quoteBoxY, quoteBoxW, quoteBoxH, 24);
+      ctx.roundRect(quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 24 * scale);
       ctx.fill();
       ctx.stroke();
 
       // Left Gold Bar
       ctx.fillStyle = '#FFD700';
       ctx.beginPath();
-      ctx.roundRect(32, quoteBoxY, 8, quoteBoxH, 4);
+      ctx.roundRect(quoteBoxX, quoteBoxY, 8 * scale, quoteBoxH, 4 * scale);
       ctx.fill();
 
       // Motivational Quote Text
       ctx.fillStyle = '#f8fafc';
-      ctx.font = 'italic 700 22px "Montserrat", sans-serif';
+      ctx.font = `italic 700 ${Math.round(20 * scale)}px "Montserrat", sans-serif`;
       const quoteSnippet = currentQuote.text.length > 75 ? currentQuote.text.substring(0, 72) + '...' : currentQuote.text;
-      ctx.fillText(`"${quoteSnippet}"`, 56, quoteBoxY + 50);
+      ctx.fillText(`"${quoteSnippet}"`, quoteBoxX + 24 * scale, quoteBoxY + 46 * scale);
 
       // Author
       ctx.fillStyle = '#FFD700';
-      ctx.font = '800 18px "Montserrat", sans-serif';
-      ctx.fillText(`— ${currentQuote.author.toUpperCase()}`, 56, quoteBoxY + 92);
+      ctx.font = `800 ${Math.round(16 * scale)}px "Montserrat", sans-serif`;
+      ctx.fillText(`— ${currentQuote.author.toUpperCase()}`, quoteBoxX + 24 * scale, quoteBoxY + 86 * scale);
 
       // Witty Signature
       ctx.fillStyle = '#06b6d4';
-      ctx.font = '700 17px "Montserrat", sans-serif';
-      ctx.fillText('⚡ Made with an intention of doing Kuchh Bhii by Sughosh 😉', 56, quoteBoxY + 125);
+      ctx.font = `700 ${Math.round(15 * scale)}px "Montserrat", sans-serif`;
+      ctx.fillText('⚡ Made with an intention of doing Kuchh Bhii by Sughosh 😉', quoteBoxX + 24 * scale, quoteBoxY + 118 * scale);
     }
 
     // Bottom Animated Neon Progress Bar
     ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.fillRect(0, h - 12, w, 12);
+    ctx.fillRect(0, h - 12 * scale, w, 12 * scale);
     ctx.fillStyle = primaryColor;
-    ctx.fillRect(0, h - 12, w * progressRatio, 12);
+    ctx.fillRect(0, h - 12 * scale, w * progressRatio, 12 * scale);
 
-  }, [studioMode, videoCurrentIndex, routePoints, totalPoints, videoMapTheme, initialData, customVideoUrl, photos, selectedPhotoIdx, scrimIntensity, showVideoTelemetry, showVideoQuote, currentQuote, mapTilesCache, mapTilesReady, timeStat, totalDistNum]);
+  }, [studioMode, videoCurrentIndex, routePoints, totalPoints, videoMapTheme, videoResolution, initialData, customVideoUrl, photos, selectedPhotoIdx, scrimIntensity, showVideoTelemetry, showVideoQuote, currentQuote, mapTilesCache, mapTilesReady, timeStat, totalDistNum]);
 
   // Realistic Map Background Drawer with Cached Satellite / OSM Tiles
   function renderRealisticMapBackground(
@@ -782,11 +939,22 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
         : 'video/webm';
 
       recordedChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType,
-        videoBitsPerSecond: 6_000_000,
-        audioBitsPerSecond: 192_000
-      });
+      const targetBitrate = RESOLUTION_CONFIG[videoResolution].bitrate;
+      let mediaRecorder: MediaRecorder;
+      try {
+        mediaRecorder = new MediaRecorder(combinedStream, {
+          mimeType,
+          videoBitsPerSecond: targetBitrate,
+          audioBitsPerSecond: 192_000
+        });
+      } catch (err) {
+        console.warn('Fallback to standard bitrate for MediaRecorder:', err);
+        mediaRecorder = new MediaRecorder(combinedStream, {
+          mimeType,
+          videoBitsPerSecond: 12_000_000,
+          audioBitsPerSecond: 192_000
+        });
+      }
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -800,9 +968,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
           userAudioElementRef.current.pause();
         }
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-        const fileName = `KuchhBhii_Track_${initialData.title.replace(/\s+/g, '_')}_${Date.now()}.webm`;
-        const shareTitle = `${initialData.title} Video Track 🚀`;
-        const shareText = `Check out my ${initialData.workoutType} track on Kuchh Bhii App! 🔥 "${currentQuote.text}" — Made with an intention of doing Kuchh Bhii by Sughosh 😉⚡`;
+        const resTag = videoResolution === '4k' ? '4K_UHD' : videoResolution.toUpperCase();
+        const fileName = `KuchhBhii_Track_${resTag}_${initialData.title.replace(/\s+/g, '_')}_${Date.now()}.webm`;
+        const shareTitle = `${initialData.title} (${resTag}) Video Track 🚀`;
+        const shareText = `Check out my ${initialData.workoutType} track in ${RESOLUTION_CONFIG[videoResolution].label} on Kuchh Bhii App! 🔥 "${currentQuote.text}" — Made with an intention of doing Kuchh Bhii by Sughosh 😉⚡`;
 
         // Convert blob to Base64 for AndroidBridge native file saving / sharing
         const reader = new FileReader();
@@ -1365,12 +1534,36 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               </div>
             </div>
 
+            {/* Quality & Resolution Switcher Bar */}
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-bold text-sub flex items-center gap-1">
+                <span>Quality:</span>
+                <span className="text-amber-400 font-extrabold">{RESOLUTION_CONFIG[videoResolution].label}</span>
+              </span>
+              <div className="flex items-center gap-1 bg-black/30 p-0.5 rounded-full border border-glass">
+                {(['4k', '1080p', '720p'] as VideoResolution[]).map((res) => (
+                  <button
+                    key={res}
+                    type="button"
+                    onClick={() => setVideoResolution(res)}
+                    className={`text-[10px] py-1 px-2.5 rounded-full font-bold transition-all cursor-pointer ${
+                      videoResolution === res
+                        ? 'bg-amber-500 text-black shadow-md'
+                        : 'text-sub hover:text-main'
+                    }`}
+                  >
+                    {res === '4k' ? '⚡ 4K UHD' : res.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Video Canvas Stage (Instagram Story 9:16 Aspect Ratio) */}
             <div className="relative flex items-center justify-center bg-black/95 p-1 rounded-2xl border border-glass overflow-hidden shadow-2xl">
               <canvas
                 ref={videoCanvasRef}
-                width={720}
-                height={1280}
+                width={RESOLUTION_CONFIG[videoResolution].width}
+                height={RESOLUTION_CONFIG[videoResolution].height}
                 className="w-full max-h-[390px] aspect-[9/16] object-contain rounded-xl"
               />
 

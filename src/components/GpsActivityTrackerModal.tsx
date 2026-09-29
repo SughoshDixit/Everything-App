@@ -69,14 +69,25 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const filterStateRef = useRef<GpsFilterState>(createGpsFilterState());
+  const isTrackingRef = useRef<boolean>(false);
+  const isPausedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isTrackingRef.current = isTracking;
+  }, [isTracking]);
+
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
 
   // ---------------------------------------------------------------------------
-  // 1. DURATION TIMER
+  // 1. DURATION TIMER (Physical timestamp based to prevent clock freezing)
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (isTracking && !isPaused) {
       timerRef.current = setInterval(() => {
-        setDurationSeconds((prev) => prev + 1);
+        const elapsed = Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000));
+        setDurationSeconds(elapsed);
       }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -86,65 +97,151 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
     };
   }, [isTracking, isPaused]);
 
+  // Common ingest handler for both native Android background service and browser geolocation
+  const handleIngestGpsPoint = (
+    lat: number,
+    lng: number,
+    altitude: number | undefined,
+    speedKmh: number | undefined,
+    accuracy: number,
+    _bearing: number | undefined,
+    timestamp: number
+  ) => {
+    setAccuracyMeters(Math.round(accuracy));
+    setSignalQuality(evaluateGpsSignalQuality(accuracy));
+
+    const result = processRawGpsPoint(
+      filterStateRef.current,
+      {
+        latitude: lat,
+        longitude: lng,
+        altitude,
+        timestamp,
+        speed: speedKmh !== undefined ? speedKmh / 3.6 : undefined,
+        accuracy
+      },
+      activityType
+    );
+
+    if (result.accepted) {
+      setDistanceKm(filterStateRef.current.totalDistanceKm);
+      setRoutePoints([...filterStateRef.current.points]);
+
+      setCurrentSpeedKmh(result.calculatedSpeedKmh);
+      if (result.calculatedSpeedKmh > 0) {
+        setTopSpeedKmh((top) => Math.max(top, result.calculatedSpeedKmh));
+      }
+    } else {
+      setCurrentSpeedKmh(0);
+    }
+  };
+
+  // Catch up on any points recorded by Android Foreground Service when screen is unlocked
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isTrackingRef.current) {
+        if (!isPausedRef.current) {
+          const elapsed = Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000));
+          setDurationSeconds(elapsed);
+        }
+
+        if (window.AndroidBridge && typeof window.AndroidBridge.getBufferedGpsPoints === 'function') {
+          try {
+            const rawJson = window.AndroidBridge.getBufferedGpsPoints();
+            const points: any[] = JSON.parse(rawJson);
+            if (Array.isArray(points) && points.length > 0) {
+              points.forEach((p) => {
+                handleIngestGpsPoint(
+                  p.latitude,
+                  p.longitude,
+                  p.altitude,
+                  p.speed,
+                  p.accuracy ?? 5,
+                  p.bearing,
+                  p.timestamp || Date.now()
+                );
+              });
+            }
+          } catch (e) {
+            console.warn('Error reading buffered points from Android service:', e);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [activityType]);
+
   // ---------------------------------------------------------------------------
-  // 2. REAL-TIME GPS WATCH POSITION WITH KALMAN ACCURACY FILTERING
+  // 2. REAL-TIME GPS WATCH POSITION WITH BACKGROUND SERVICE & FILTERING
   // ---------------------------------------------------------------------------
   const startGpsTracking = () => {
-    if (!('geolocation' in navigator)) {
-      setGpsError('Geolocation is not supported by your browser.');
-      return;
-    }
-
     setGpsError(null);
     setIsTracking(true);
     setIsPaused(false);
+    isTrackingRef.current = true;
+    isPausedRef.current = false;
     startTimeRef.current = Date.now();
     filterStateRef.current = createGpsFilterState();
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const accuracy = pos.coords.accuracy;
-        setAccuracyMeters(Math.round(accuracy));
-        setSignalQuality(evaluateGpsSignalQuality(accuracy));
+    // 1. Android Native Background Location Service (Keeps CPU awake & tracks when locked)
+    if (window.AndroidBridge && typeof window.AndroidBridge.startLocationTracking === 'function') {
+      window.AndroidBridge.startLocationTracking(activityType);
+    }
 
-        const result = processRawGpsPoint(
-          filterStateRef.current,
-          {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            altitude: pos.coords.altitude ?? undefined,
-            timestamp: pos.timestamp,
-            speed: pos.coords.speed ?? undefined,
-            accuracy: accuracy
-          },
-          activityType
-        );
+    // Register global callback for native Android service
+    window.onNativeGpsUpdate = (pos: any) => {
+      if (!isTrackingRef.current || isPausedRef.current) return;
+      handleIngestGpsPoint(
+        pos.latitude,
+        pos.longitude,
+        pos.altitude,
+        pos.speed,
+        pos.accuracy ?? 5,
+        pos.bearing,
+        pos.timestamp || Date.now()
+      );
+    };
 
-        if (result.accepted) {
-          setDistanceKm(filterStateRef.current.totalDistanceKm);
-          setRoutePoints([...filterStateRef.current.points]);
-
-          setCurrentSpeedKmh(result.calculatedSpeedKmh);
-          if (result.calculatedSpeedKmh > 0) {
-            setTopSpeedKmh((top) => Math.max(top, result.calculatedSpeedKmh));
-          }
-        } else {
-          setCurrentSpeedKmh(0);
+    // 2. Web Geolocation watchPosition (Fallback for browser / desktop)
+    if ('geolocation' in navigator) {
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          if (!isTrackingRef.current || isPausedRef.current) return;
+          handleIngestGpsPoint(
+            pos.coords.latitude,
+            pos.coords.longitude,
+            pos.coords.altitude ?? undefined,
+            pos.coords.speed !== null && pos.coords.speed !== undefined ? pos.coords.speed * 3.6 : undefined,
+            pos.coords.accuracy,
+            pos.coords.heading ?? undefined,
+            pos.timestamp
+          );
+        },
+        (err) => {
+          console.warn('Browser geolocation notice:', err.message);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
-      },
-      (err) => {
-        setGpsError(`GPS Signal Notice: ${err.message}. Ensure location permissions are enabled.`);
-        setSignalQuality('invalid');
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    );
+      );
+    }
   };
 
   const stopGpsTracking = () => {
+    isTrackingRef.current = false;
+
+    // Stop native Android Foreground Service
+    if (window.AndroidBridge && typeof window.AndroidBridge.stopLocationTracking === 'function') {
+      window.AndroidBridge.stopLocationTracking();
+    }
+    window.onNativeGpsUpdate = undefined;
+
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -152,7 +249,9 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   };
 
   const handlePauseResume = () => {
-    setIsPaused(!isPaused);
+    const nextPaused = !isPaused;
+    setIsPaused(nextPaused);
+    isPausedRef.current = nextPaused;
   };
 
   const handleFinishAndSave = () => {

@@ -252,6 +252,50 @@ class AndroidNativeBridge(private val context: Context) {
             false
         }
     }
+
+    @JavascriptInterface
+    fun startLocationTracking(activityType: String): Boolean {
+        return try {
+            val intent = Intent(context, LocationTrackingService::class.java).apply {
+                action = LocationTrackingService.ACTION_START
+                putExtra(LocationTrackingService.EXTRA_ACTIVITY_TYPE, activityType)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+            true
+        } catch (e: Exception) {
+            Log.e("AndroidNativeBridge", "Failed to start location service", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun stopLocationTracking(): String {
+        return try {
+            val points = LocationTrackingService.getBufferedPointsJson()
+            val intent = Intent(context, LocationTrackingService::class.java).apply {
+                action = LocationTrackingService.ACTION_STOP
+            }
+            context.stopService(intent)
+            points
+        } catch (e: Exception) {
+            Log.e("AndroidNativeBridge", "Failed to stop location service", e)
+            "[]"
+        }
+    }
+
+    @JavascriptInterface
+    fun getBufferedGpsPoints(): String {
+        return LocationTrackingService.getBufferedPointsJson()
+    }
+
+    @JavascriptInterface
+    fun isLocationTrackingActive(): Boolean {
+        return LocationTrackingService.isRunning()
+    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -409,6 +453,12 @@ fun AppWebView(
 
                 loadUrl("https://appassets.androidplatform.net/assets/web/index.html")
                 onWebViewCreated(this)
+
+                LocationTrackingService.registerUpdateListener { pointJson ->
+                    (context as? ComponentActivity)?.runOnUiThread {
+                        this.evaluateJavascript("window.onNativeGpsUpdate && window.onNativeGpsUpdate($pointJson);", null)
+                    }
+                }
             }
         }
     )

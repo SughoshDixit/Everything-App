@@ -19,9 +19,9 @@ import { GpsActivityTrackerModal } from './components/GpsActivityTrackerModal';
 import { SocialWorkoutShareModal } from './components/SocialWorkoutShareModal';
 import { StravaRouteFlybyPlayer } from './components/StravaRouteFlybyPlayer';
 import {
-  fetchFeedPostsFromFirestore,
-  fetchGpsActivitiesFromFirestore,
   fetchMilestonesFromFirestore,
+  subscribeFeedPosts,
+  subscribeGpsActivities,
   saveGpsActivityToFirestore,
   saveMilestonesToFirestore,
   saveActivityPostToFirestore,
@@ -160,25 +160,30 @@ export function App() {
     saveToStorage(KEYS.PERIOD_SETTINGS, periodSettings);
   }, [periodSettings]);
 
-  // Sync state with Cloud Firestore on mount
+  // Sync state with Cloud Firestore in real time (with offline persistence)
   useEffect(() => {
-    fetchFeedPostsFromFirestore().then((remotePosts) => {
+    const unsubFeed = subscribeFeedPosts((remotePosts) => {
       if (remotePosts && remotePosts.length > 0) {
         setStravaPosts(remotePosts);
       }
-    }).catch(console.error);
+    });
 
-    fetchGpsActivitiesFromFirestore().then((remoteActs) => {
+    const unsubGps = subscribeGpsActivities('sughosh', (remoteActs) => {
       if (remoteActs && remoteActs.length > 0) {
         setGpsActivities(remoteActs);
       }
-    }).catch(console.error);
+    });
 
     fetchMilestonesFromFirestore().then((remoteMilestones) => {
       if (remoteMilestones) {
         setMilestones(remoteMilestones);
       }
     }).catch(console.error);
+
+    return () => {
+      unsubFeed();
+      unsubGps();
+    };
   }, []);
 
   // Handlers
@@ -222,9 +227,78 @@ export function App() {
   };
 
   const handleSaveGpsActivity = (log: GpsActivityLog, updatedMilestones: PersonalMilestones) => {
+    // 1. Update GPS activities state & Cloud Firestore
     setGpsActivities((prev) => [log, ...prev]);
-    setMilestones(updatedMilestones);
     saveGpsActivityToFirestore(log).catch(console.error);
+
+    // 2. Convert and publish as StravaActivityPost so it immediately shows up in the Activity Feed & Cloud Firestore!
+    const postDate = new Date(log.startTime || Date.now());
+    const dateStr = postDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const movingTimeMin = Math.max(1, Math.round(log.durationSeconds / 60));
+
+    const sportLabel = log.activityType === 'run' ? 'Morning Run 🏃'
+      : log.activityType === 'cycle' ? 'Outdoor Ride 🚴'
+      : log.activityType === 'walk' ? 'Fitness Walk 🚶'
+      : 'Road Trip 🚗';
+
+    const newPost: StravaActivityPost = {
+      id: log.id,
+      date: dateStr,
+      timestamp: log.startTime || Date.now(),
+      userId: currentProfile === 'women' ? 'women' : 'men',
+      title: log.title || sportLabel,
+      description: log.notes || `Completed ${log.distanceKm} km in ${Math.floor(log.durationSeconds / 60)}m ${log.durationSeconds % 60}s with average pace ${log.avgPaceMinKm}.`,
+      sportType: log.activityType,
+      rpe: 7,
+      activities: [
+        {
+          id: 'item_' + log.id,
+          category: log.activityType === 'run' ? 'gps_run' : log.activityType === 'cycle' ? 'gps_cycle' : 'gps_walk',
+          title: log.title || sportLabel,
+          details: `${log.distanceKm} km • ${movingTimeMin} mins • Pace ${log.avgPaceMinKm}`,
+          gpsActivityId: log.id,
+          includedInPost: true
+        }
+      ],
+      gpsActivity: log,
+      backgroundTheme: 'strava_sunset',
+      motivationalQuote: quotes[0]?.text || 'Consistency is what transforms average into excellence.',
+      quoteAuthor: currentProfile === 'women' ? 'Shreya Dixit' : 'Sughosh Dixit',
+      totalHeartPoints: log.heartPointsEarned || Math.round(movingTimeMin * (log.activityType === 'run' ? 2 : 1)),
+      totalMoveMinutes: movingTimeMin,
+      totalCalories: log.caloriesBurned || Math.round(log.distanceKm * 65),
+      totalDistanceKm: log.distanceKm,
+      avgPaceMinKm: log.avgPaceMinKm,
+      avgSpeedKmh: log.durationSeconds > 0 ? Number((log.distanceKm / (log.durationSeconds / 3600)).toFixed(1)) : 0,
+      maxSpeedKmh: log.maxSpeedKmh || 0,
+      elevationGainMeters: log.elevationGainMeters || 0,
+      likesCount: 1,
+      isLiked: true,
+      kudosUsers: [{ userId: currentProfile === 'women' ? 'women' : 'men', userName: currentProfile === 'women' ? 'Shreya Dixit' : 'Sughosh Dixit' }],
+      gearName: log.activityType === 'cycle' ? 'Road Bike' : 'Nike Running',
+      splits: log.splits || []
+    };
+
+    setStravaPosts((prev) => [newPost, ...prev]);
+    saveActivityPostToFirestore(newPost).catch((err) => console.error('Error saving post to firestore:', err));
+
+    // 3. Save as WorkoutSessionLog for GoogleFit Dashboard stats
+    const workoutLog: WorkoutSessionLog = {
+       id: 'session_' + log.id,
+       date: new Date().toISOString().split('T')[0],
+       userId: currentProfile === 'women' ? 'women' : 'men',
+       exerciseId: log.activityType,
+       exerciseName: sportLabel,
+       setsCompleted: 1,
+       repsCompleted: [Math.round(log.distanceKm * 1000)],
+       perceivedExertion: 7,
+       personalRecordBroken: !!(log.milestonesReached && log.milestonesReached.length > 0)
+    };
+    setWorkoutLogs((prev) => [workoutLog, ...prev]);
+    saveWorkoutLogToFirestore(workoutLog).catch(console.error);
+
+    // 4. Update milestones
+    setMilestones(updatedMilestones);
     saveMilestonesToFirestore(updatedMilestones).catch(console.error);
   };
 

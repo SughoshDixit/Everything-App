@@ -44,6 +44,22 @@ export interface DailyMetricDoc {
   footballDurationMs?: number;
 }
 
+// Recursively sanitizes objects to remove `undefined` values that Firestore rejects
+export function cleanForFirestore<T>(data: T): any {
+  if (data === null || data === undefined) return null;
+  if (typeof data !== 'object') return data;
+  if (Array.isArray(data)) {
+    return data.map(cleanForFirestore);
+  }
+  const cleanObj: Record<string, any> = {};
+  for (const [k, v] of Object.entries(data as Record<string, any>)) {
+    if (v !== undefined) {
+      cleanObj[k] = cleanForFirestore(v);
+    }
+  }
+  return cleanObj;
+}
+
 // =============================================================================
 // GPS ACTIVITIES
 // =============================================================================
@@ -52,7 +68,8 @@ export async function saveGpsActivityToFirestore(
   userId: string = DEFAULT_USER_ID
 ): Promise<void> {
   const docRef = doc(db, 'users', userId, 'gps_activities', activity.id);
-  await setDoc(docRef, activity, { merge: true });
+  const clean = cleanForFirestore(activity);
+  await setDoc(docRef, clean, { merge: true });
 }
 
 export async function fetchGpsActivitiesFromFirestore(
@@ -142,7 +159,8 @@ export async function fetchGearFromFirestore(
 // =============================================================================
 export async function saveActivityPostToFirestore(post: StravaActivityPost): Promise<void> {
   const docRef = doc(db, 'activity_feed_posts', post.id);
-  await setDoc(docRef, post, { merge: true });
+  const clean = cleanForFirestore(post);
+  await setDoc(docRef, clean, { merge: true });
 }
 
 export async function deleteActivityPostFromFirestore(postId: string): Promise<void> {
@@ -204,7 +222,8 @@ export async function saveWorkoutLogToFirestore(
   userId: string = DEFAULT_USER_ID
 ): Promise<void> {
   const docRef = doc(db, 'users', userId, 'workout_logs', log.id);
-  await setDoc(docRef, log, { merge: true });
+  const clean = cleanForFirestore(log);
+  await setDoc(docRef, clean, { merge: true });
 }
 
 export async function fetchWorkoutLogsFromFirestore(

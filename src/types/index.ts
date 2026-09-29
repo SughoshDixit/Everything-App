@@ -75,6 +75,7 @@ export interface WorkoutSessionLog {
   videoFileUrl?: string;
   perceivedExertion: number; // 1-10 RPE
   notes?: string;
+  personalRecordBroken?: boolean;
 }
 
 export interface FootballDrill {
@@ -218,6 +219,7 @@ export interface ActivitySplit {
 
 export interface GpsActivityLog {
   id: string;
+  title?: string;
   activityType: 'run' | 'cycle' | 'walk' | 'drive';
   date: string;
   startTime: number;
@@ -226,6 +228,7 @@ export interface GpsActivityLog {
   distanceKm: number;
   avgSpeedKmh: number;
   topSpeedKmh: number;
+  maxSpeedKmh?: number;
   avgPaceMinKm: string; // e.g. "5:12 /km"
   elevationGainMeters: number;
   caloriesBurned: number;
@@ -409,3 +412,15 @@ export interface SocialShareCardData {
   is4k?: boolean;
 }
 
+declare global {
+  interface Window {
+    AndroidBridge?: {
+      downloadBase64File: (base64Data: string, fileName: string, mimeType: string) => boolean;
+      shareBase64Media: (base64Data: string, fileName: string, mimeType: string, title: string, text: string) => boolean;
+      startLocationTracking?: (activityType: string) => boolean;
+      stopLocationTracking?: () => boolean;
+      getBufferedGpsPoints?: () => string;
+    };
+    onNativeGpsUpdate?: (pos: any) => void;
+  }
+}

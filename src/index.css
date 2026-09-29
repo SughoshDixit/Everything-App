@@ -19,33 +19,33 @@
 
 :root,
 :root[data-theme="dark"] {
-  --bg-dark: #1a1a1a;
-  --bg-card: #212529;
-  --bg-card-hover: #2b3035;
-  --border-glass: rgba(255, 255, 255, 0.1);
-  --border-glow: rgba(140, 67, 206, 0.4);
+  --bg-dark: #0f1217;
+  --bg-card: #181c24;
+  --bg-card-hover: #222834;
+  --border-glass: rgba(255, 255, 255, 0.12);
+  --border-glow: rgba(140, 67, 206, 0.5);
 
-  --text-main: #ffffff;
-  --text-sub: #adb5bd;
-  --text-muted: #6c757d;
+  --text-main: #f8fafc;
+  --text-sub: #cbd5e1;
+  --text-muted: #94a3b8;
 
   --accent-purple: #55198B;
   --accent-purple-light: #8c43ce;
-  --accent-cyan: #007ACC;
-  --accent-emerald: #228B22;
-  --accent-amber: #FFD700;
-  --accent-rose: #8B0000;
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #ef4444;
   --accent-orange: #FF6B35;
   --accent-violet: #8c43ce;
   --accent-indigo: #007ACC;
-  --accent-lime: #228B22;
-  --bg-oled: #111417;
+  --accent-lime: #22c55e;
+  --bg-oled: #080a0d;
 
   /* Google Fit & Metric Ring Colors (Dark) */
-  --ring-heart-track: rgba(85, 25, 139, 0.25);
-  --ring-heart-fill: #8c43ce;
-  --ring-move-track: rgba(34, 139, 34, 0.25);
-  --ring-move-fill: #228B22;
+  --ring-heart-track: rgba(85, 25, 139, 0.3);
+  --ring-heart-fill: #a855f7;
+  --ring-move-track: rgba(16, 185, 129, 0.25);
+  --ring-move-fill: #10b981;
 
   --font-heading: 'Montserrat', sans-serif;
   --font-body: 'Montserrat', sans-serif;
@@ -57,33 +57,33 @@
 }
 
 :root[data-theme="light"] {
-  --bg-dark: #f8f9fa;
+  --bg-dark: #f8fafc;
   --bg-card: #ffffff;
-  --bg-card-hover: #f1f3f5;
-  --border-glass: rgba(108, 117, 125, 0.15);
-  --border-glow: rgba(85, 25, 139, 0.3);
+  --bg-card-hover: #f1f5f9;
+  --border-glass: rgba(15, 23, 42, 0.12);
+  --border-glow: rgba(85, 25, 139, 0.35);
 
-  --text-main: #1a1a1a;
-  --text-sub: #5a6c7d;
-  --text-muted: #7f8c8d;
+  --text-main: #0f172a;
+  --text-sub: #334155;
+  --text-muted: #64748b;
 
   --accent-purple: #55198B;
   --accent-purple-light: #8c43ce;
-  --accent-cyan: #007ACC;
-  --accent-emerald: #228B22;
-  --accent-amber: #FFD700;
-  --accent-rose: #8B0000;
-  --accent-orange: #FF6B35;
+  --accent-cyan: #0284c7;
+  --accent-emerald: #059669;
+  --accent-amber: #d97706;
+  --accent-rose: #dc2626;
+  --accent-orange: #ea580c;
   --accent-violet: #55198B;
-  --accent-indigo: #007ACC;
-  --accent-lime: #228B22;
+  --accent-indigo: #0284c7;
+  --accent-lime: #16a34a;
   --bg-oled: #ffffff;
 
   /* Google Fit & Metric Ring Colors (Light) */
   --ring-heart-track: rgba(85, 25, 139, 0.15);
   --ring-heart-fill: #55198B;
-  --ring-move-track: rgba(34, 139, 34, 0.15);
-  --ring-move-fill: #228B22;
+  --ring-move-track: rgba(16, 185, 129, 0.2);
+  --ring-move-fill: #059669;
 
   --font-heading: 'Montserrat', sans-serif;
   --font-body: 'Montserrat', sans-serif;
@@ -92,6 +92,48 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-full: 9999px;
+}
+
+/* Universal High-Contrast Utility Classes for Razor-Sharp Text in All Themes */
+.text-main {
+  color: var(--text-main) !important;
+}
+
+.text-sub {
+  color: var(--text-sub) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.bg-card {
+  background-color: var(--bg-card) !important;
+}
+
+.bg-dark {
+  background-color: var(--bg-dark) !important;
+}
+
+.border-glass {
+  border-color: var(--border-glass) !important;
+}
+
+/* Form inputs, select dropdowns, textareas styling across both themes */
+input, select, textarea {
+  color: var(--text-main) !important;
+  background-color: var(--bg-card) !important;
+  border: 1px solid var(--border-glass);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.85;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-purple-light) !important;
+  outline: none;
 }
 
 * {
