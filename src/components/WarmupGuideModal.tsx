@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, ChevronLeft } from 'lucide-react';
+import { speakText, cancelSpeech } from '../utils/audioCoach';
 
 interface WarmupGuideModalProps {
   onClose: () => void;
@@ -48,14 +49,9 @@ export const WarmupGuideModal: React.FC<WarmupGuideModalProps> = ({ onClose, onC
 
   const currentStep = warmupSteps[currentStepIndex];
 
-  // Speech Helper
+  // Speech Helper via unified audio coach
   const speakStep = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9; // Humane, relaxed speed
-      window.speechSynthesis.speak(utterance);
-    }
+    speakText(text, 0.9);
   };
 
   // Trigger speech when step changes
@@ -63,6 +59,13 @@ export const WarmupGuideModal: React.FC<WarmupGuideModalProps> = ({ onClose, onC
     speakStep(currentStep.speech);
     setSecondsLeft(currentStep.durationSeconds);
   }, [currentStepIndex]);
+
+  // Cancel speech on unmount
+  useEffect(() => {
+    return () => {
+      cancelSpeech();
+    };
+  }, []);
 
   // Humane Tempo Timer Interval
   useEffect(() => {
@@ -93,10 +96,10 @@ export const WarmupGuideModal: React.FC<WarmupGuideModalProps> = ({ onClose, onC
   const handleTogglePlayPause = () => {
     if (isPlaying) {
       setIsPlaying(false);
-      if ('speechSynthesis' in window) window.speechSynthesis.pause();
+      cancelSpeech();
     } else {
       setIsPlaying(true);
-      if ('speechSynthesis' in window) window.speechSynthesis.resume();
+      speakStep(currentStep.speech);
     }
   };
 

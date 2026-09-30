@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Volume2, VolumeX, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { HumanGraphicModel } from './HumanGraphicModel';
+import { speakText, cancelSpeech } from '../utils/audioCoach';
 
 interface AnimatedExerciseGuideModalProps {
   exerciseName: string;
@@ -58,27 +59,23 @@ export const AnimatedExerciseGuideModal: React.FC<AnimatedExerciseGuideModalProp
 
   const youtubeUrl = getYoutubeEmbedUrl(exerciseName);
 
-  // Speech Helper
+  // Speech Helper via unified audio coach (Native Android TTS on phone + Web Speech on desktop)
   const handleToggleVoice = () => {
-    if ('speechSynthesis' in window) {
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-      } else {
-        const text = `
-          Instructions for ${exerciseName}.
-          Target is ${targetSets} sets of ${targetReps}.
-          Stand in position, control your breathwork by inhaling as you lower and exhaling as you push.
-        `;
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.95;
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
-        window.speechSynthesis.speak(utterance);
-      }
+    if (isSpeaking) {
+      cancelSpeech();
+      setIsSpeaking(false);
+    } else {
+      const text = `Instructions for ${exerciseName}. Target is ${targetSets} sets of ${targetReps}. Stand in position, control your breathwork by inhaling as you lower and exhaling as you push.`;
+      setIsSpeaking(true);
+      speakText(text, 0.95, () => setIsSpeaking(false));
     }
   };
+
+  useEffect(() => {
+    return () => {
+      cancelSpeech();
+    };
+  }, []);
 
   // Exercise Details per tab (Leap Fitness design)
   const getExerciseDetails = (name: string) => {

@@ -38,8 +38,13 @@ export function toggleAudioMute(): boolean {
 }
 
 export function cancelSpeech(): void {
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
+  if (typeof window !== 'undefined') {
+    if (window.AndroidBridge && typeof window.AndroidBridge.stopSpeech === 'function') {
+      window.AndroidBridge.stopSpeech();
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
   }
 }
 
@@ -49,34 +54,50 @@ export function speakText(text: string, rate: number = 0.95, onEnd?: () => void)
     return;
   }
 
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel(); // Cancel any ongoing speech
-    const cleanText = text.replace(/[#*_\n\r]/g, ' ').trim();
-    if (!cleanText) {
-      if (onEnd) onEnd();
-      return;
-    }
+  const cleanText = text.replace(/[#*_\n\r]/g, ' ').trim();
+  if (!cleanText) {
+    if (onEnd) onEnd();
+    return;
+  }
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = rate; // 0.95 natural human cadence
-    utterance.pitch = 1.0;
-
-    // Pick English voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const englishVoice = voices.find(
-      (v) => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('David'))
-    ) || voices.find((v) => v.lang.startsWith('en'));
-
-    if (englishVoice) {
-      utterance.voice = englishVoice;
-    }
-
+  // 1. Android Native TTS Engine (100% loud, crisp & reliable on device/headphones)
+  if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.speakText === 'function') {
+    window.AndroidBridge.speakText(cleanText);
     if (onEnd) {
-      utterance.onend = onEnd;
-      utterance.onerror = onEnd;
+      const estimatedMs = Math.max(800, Math.round(cleanText.length * 70));
+      setTimeout(onEnd, estimatedMs);
     }
+    return;
+  }
 
-    window.speechSynthesis.speak(utterance);
+  // 2. Web SpeechSynthesis API fallback (for Desktop / Chrome)
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel(); // Cancel any ongoing speech
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = rate; // 0.95 natural human cadence
+      utterance.pitch = 1.0;
+
+      // Pick English voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(
+        (v) => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('David'))
+      ) || voices.find((v) => v.lang.startsWith('en'));
+
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
+      if (onEnd) {
+        utterance.onend = onEnd;
+        utterance.onerror = onEnd;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('Speech synthesis error:', e);
+      if (onEnd) onEnd();
+    }
   } else {
     if (onEnd) onEnd();
   }
@@ -128,13 +149,24 @@ export function speakCountdown(num: number): void {
   }
 }
 
-// Audio Beep Chime Synthesis using Web Audio API
+// Audio Beep Chime Synthesis (Native Android ToneGenerator + Web Audio API)
 export function playBeepTone(freq: number = 520, durationMs: number = 150): void {
   if (isMutedState) return;
+
+  // 1. Android Native Hardware ToneGenerator
+  if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.playBeepTone === 'function') {
+    window.AndroidBridge.playBeepTone(durationMs);
+    return;
+  }
+
+  // 2. Web Audio API fallback with automatic resume
   try {
     const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 

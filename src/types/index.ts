@@ -420,6 +420,9 @@ declare global {
       startLocationTracking?: (activityType: string) => boolean;
       stopLocationTracking?: () => boolean;
       getBufferedGpsPoints?: () => string;
+      speakText?: (text: string) => boolean;
+      stopSpeech?: () => boolean;
+      playBeepTone?: (durationMs: number) => boolean;
     };
     onNativeGpsUpdate?: (pos: any) => void;
   }

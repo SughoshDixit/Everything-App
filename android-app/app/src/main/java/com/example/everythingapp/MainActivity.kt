@@ -31,6 +31,7 @@ import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
 import android.content.ContentValues
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
@@ -45,11 +46,24 @@ import java.io.FileOutputStream
 import android.webkit.ValueCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import android.speech.tts.TextToSpeech
+import android.media.ToneGenerator
+import android.media.AudioManager
+import java.util.Locale
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
+
+    companion object {
+        var instance: MainActivity? = null
+            private set
+    }
 
     private var webView: WebView? = null
     var fileChooserCallback: ValueCallback<Array<Uri>>? = null
+    private var tts: TextToSpeech? = null
+    private var toneGenerator: ToneGenerator? = null
+    private var isTtsReady = false
+    private val pendingSpeechQueue = mutableListOf<String>()
 
     val filePickerLauncher: ActivityResultLauncher<Intent> = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -74,6 +88,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        instance = this
+
+        try {
+            tts = TextToSpeech(applicationContext, this)
+            toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to initialize TTS or ToneGenerator", e)
+        }
 
         // Request runtime permissions including audio & images for Android 13+ and legacy
         val permissions = mutableListOf(
@@ -135,6 +157,91 @@ class MainActivity : ComponentActivity() {
                 }
             )
         }
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val result = tts?.setLanguage(Locale.US)
+            if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
+                isTtsReady = true
+                tts?.setSpeechRate(0.95f)
+                tts?.setPitch(1.0f)
+                Log.d("MainActivity", "Native TTS successfully initialized and ready")
+            } else {
+                Log.w("MainActivity", "US English language not supported or missing data in TTS, falling back to default locale")
+                tts?.setLanguage(Locale.getDefault())
+                isTtsReady = true
+            }
+
+            synchronized(pendingSpeechQueue) {
+                for (text in pendingSpeechQueue) {
+                    speakTextNative(text)
+                }
+                pendingSpeechQueue.clear()
+            }
+        } else {
+            Log.e("MainActivity", "TTS onInit failed with status: $status")
+        }
+    }
+
+    fun speakTextNative(text: String) {
+        runOnUiThread {
+            try {
+                if (isTtsReady && tts != null) {
+                    tts?.stop()
+                    val params = Bundle().apply {
+                        putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
+                        putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
+                    }
+                    tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "WorkoutVoice_${System.currentTimeMillis()}")
+                } else {
+                    synchronized(pendingSpeechQueue) {
+                        pendingSpeechQueue.clear()
+                        pendingSpeechQueue.add(text)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "TTS speak failed", e)
+            }
+        }
+    }
+
+    fun stopSpeechNative() {
+        runOnUiThread {
+            try {
+                synchronized(pendingSpeechQueue) {
+                    pendingSpeechQueue.clear()
+                }
+                tts?.stop()
+            } catch (e: Exception) {
+                Log.e("MainActivity", "TTS stop failed", e)
+            }
+        }
+    }
+
+    fun playBeepNative(durationMs: Int) {
+        try {
+            if (toneGenerator == null) {
+                toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+            }
+            toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, durationMs)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "ToneGenerator failed", e)
+        }
+    }
+
+    override fun onDestroy() {
+        try {
+            if (instance == this) {
+                instance = null
+            }
+            tts?.stop()
+            tts?.shutdown()
+            toneGenerator?.release()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Cleanup failed", e)
+        }
+        super.onDestroy()
     }
 }
 
@@ -295,6 +402,40 @@ class AndroidNativeBridge(private val context: Context) {
     @JavascriptInterface
     fun isLocationTrackingActive(): Boolean {
         return LocationTrackingService.isRunning()
+    }
+
+    private fun getActivity(): MainActivity? {
+        if (MainActivity.instance != null) return MainActivity.instance
+        if (context is MainActivity) return context
+        var c: Context? = context
+        while (c is ContextWrapper) {
+            if (c is MainActivity) return c
+            c = c.baseContext
+        }
+        return null
+    }
+
+    @JavascriptInterface
+    fun speakText(text: String): Boolean {
+        val act = getActivity()
+        if (act != null) {
+            act.speakTextNative(text)
+            return true
+        }
+        Log.w("AndroidNativeBridge", "speakText called but MainActivity not found")
+        return false
+    }
+
+    @JavascriptInterface
+    fun stopSpeech(): Boolean {
+        getActivity()?.stopSpeechNative()
+        return true
+    }
+
+    @JavascriptInterface
+    fun playBeepTone(durationMs: Int): Boolean {
+        getActivity()?.playBeepNative(durationMs)
+        return true
     }
 }
 
