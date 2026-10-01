@@ -156,6 +156,50 @@ export async function generateSocialCardCanvas(
   ctx.fillText(`📅 ${data.date} · Completed Activity`, marginX, currentY);
 
   // ---------------------------------------------------------------------------
+  // 3.5 PERSONAL RECORDS & MILESTONES BADGE (FASTEST, LONGEST, HARDEST)
+  // ---------------------------------------------------------------------------
+  if (data.recordBadges && data.recordBadges.length > 0) {
+    currentY += 24;
+    const badge = data.recordBadges[0];
+    const badgeW = width - marginX * 2;
+    const badgeH = format === 'story' ? 58 : 48;
+
+    ctx.save();
+    const isGold = badge.category === 'fastest' || badge.tier === 'all_time_record';
+    const bgGrad = ctx.createLinearGradient(marginX, currentY, marginX + badgeW, currentY);
+    if (isGold) {
+      bgGrad.addColorStop(0, 'rgba(234, 179, 8, 0.35)');
+      bgGrad.addColorStop(1, 'rgba(249, 115, 22, 0.22)');
+      ctx.strokeStyle = '#eab308';
+    } else {
+      bgGrad.addColorStop(0, 'rgba(168, 85, 247, 0.35)');
+      bgGrad.addColorStop(1, 'rgba(59, 130, 246, 0.22)');
+      ctx.strokeStyle = '#c084fc';
+    }
+    ctx.fillStyle = bgGrad;
+    ctx.lineWidth = 2.5;
+    drawRoundedRect(ctx, marginX, currentY, badgeW, badgeH, 16);
+    ctx.fill();
+    ctx.stroke();
+
+    // Badge Title & Icon
+    ctx.fillStyle = isGold ? '#fde047' : '#e9d5ff';
+    ctx.font = '900 22px "Montserrat", sans-serif';
+    const badgeTitleText = `${badge.icon || '🏆'} ${badge.title}`;
+    ctx.fillText(badgeTitleText, marginX + 20, currentY + (format === 'story' ? 36 : 32));
+
+    // Badge Stat Value
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 20px "Montserrat", sans-serif';
+    const statText = badge.statLabel;
+    const statW = ctx.measureText(statText).width;
+    ctx.fillText(statText, marginX + badgeW - statW - 20, currentY + (format === 'story' ? 36 : 32));
+    ctx.restore();
+
+    currentY += badgeH + 4;
+  }
+
+  // ---------------------------------------------------------------------------
   // 4. STATS HERO GRID CARDS
   // ---------------------------------------------------------------------------
   currentY += format === 'story' ? 60 : 40;

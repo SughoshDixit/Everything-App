@@ -10,8 +10,11 @@ import {
   TrendingUp,
   Clock,
   Send,
-  ShieldCheck
+  ShieldCheck,
+  Image as ImageIcon,
+  Video as VideoIcon
 } from 'lucide-react';
+import { ZoomableImageModal } from './ZoomableImageModal';
 
 interface StravaActivityDetailModalProps {
   activity: StravaActivityPost;
@@ -32,7 +35,8 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
   onOpenFlyby
 }) => {
   const [commentText, setCommentText] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'splits' | 'analysis'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'splits' | 'analysis' | 'media'>('overview');
+  const [zoomImage, setZoomImage] = useState<{ src: string; title: string } | null>(null);
 
   const sportIcon =
     activity.sportType === 'run'
@@ -77,6 +81,18 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
     onAddComment(activity.id, commentText.trim());
     setCommentText('');
   };
+
+  // Collect all historical & uploaded photos and videos
+  const allPhotos = [
+    ...(activity.photos || []),
+    ...(activity.customMediaUrl && !(activity.photos || []).includes(activity.customMediaUrl) ? [activity.customMediaUrl] : []),
+    ...(activity.gpsActivity?.mediaUrls || [])
+  ].filter((url, idx, self) => url && self.indexOf(url) === idx);
+
+  const allVideos = [
+    ...(activity.videoUrls || []),
+    ...(activity.gpsActivity?.videoUrls || [])
+  ].filter((url, idx, self) => url && self.indexOf(url) === idx);
 
   // Mock splits if not provided
   const splits = activity.splits || (activity.totalDistanceKm > 0 ? [
@@ -127,10 +143,10 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
         </div>
 
         {/* Sub-Navigation Tabs */}
-        <div className="flex border-b border-glass bg-slate-100 dark:bg-[#181c26] px-4 pt-1">
+        <div className="flex border-b border-glass bg-slate-100 dark:bg-[#181c26] px-4 pt-1 overflow-x-auto">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 ${
+            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
               activeTab === 'overview'
                 ? 'border-[#55198B] text-[#55198B] dark:text-[#c084fc]'
                 : 'border-transparent text-sub hover:text-main'
@@ -138,10 +154,23 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           >
             Overview
           </button>
+          {(allPhotos.length > 0 || allVideos.length > 0) && (
+            <button
+              onClick={() => setActiveTab('media')}
+              className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'media'
+                  ? 'border-[#55198B] text-[#55198B] dark:text-[#c084fc]'
+                  : 'border-transparent text-sub hover:text-main'
+              }`}
+            >
+              <ImageIcon size={13} />
+              <span>Media ({allPhotos.length + allVideos.length})</span>
+            </button>
+          )}
           {splits.length > 0 && (
             <button
               onClick={() => setActiveTab('splits')}
-              className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 ${
+              className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'splits'
                   ? 'border-[#55198B] text-[#55198B] dark:text-[#c084fc]'
                   : 'border-transparent text-sub hover:text-main'
@@ -152,7 +181,7 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           )}
           <button
             onClick={() => setActiveTab('analysis')}
-            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 ${
+            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
               activeTab === 'analysis'
                 ? 'border-[#55198B] text-[#55198B] dark:text-[#c084fc]'
                 : 'border-transparent text-sub hover:text-main'
@@ -164,6 +193,22 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
 
         {/* Main Content Area */}
         <div className="p-4 sm:p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          {/* Record & Milestone Badges (Fastest, Longest, Hardest) */}
+          {activity.recordBadges && activity.recordBadges.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {activity.recordBadges.map((badge) => (
+                <div
+                  key={badge.id}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/40 text-amber-500 text-xs font-black shadow-sm"
+                >
+                  <span className="text-sm">{badge.icon}</span>
+                  <span>{badge.title}</span>
+                  <span className="font-mono text-xs opacity-90 font-bold">&bull; {badge.statLabel}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Title & Description */}
           <div className="space-y-1.5">
             <h2 className="text-xl sm:text-2xl font-black text-main leading-tight">
@@ -283,6 +328,63 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                   </div>
                 </div>
               </div>
+
+              {/* Media Showcase Preview in Overview */}
+              {(allPhotos.length > 0 || allVideos.length > 0) && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-sub flex items-center gap-1.5">
+                      <ImageIcon size={14} className="text-[#55198B] dark:text-[#c084fc]" />
+                      <span>Photos &amp; Videos ({allPhotos.length + allVideos.length})</span>
+                    </h4>
+                    <button
+                      onClick={() => setActiveTab('media')}
+                      className="text-[11px] font-bold text-[#55198B] dark:text-[#c084fc] hover:underline cursor-pointer"
+                    >
+                      View All &rarr;
+                    </button>
+                  </div>
+
+                  {/* Video Player */}
+                  {allVideos.length > 0 && (
+                    <div className="rounded-2xl overflow-hidden bg-black max-h-72 flex items-center justify-center border border-glass">
+                      <video
+                        src={allVideos[0]}
+                        controls
+                        playsInline
+                        className="w-full max-h-72 object-contain rounded-2xl"
+                      />
+                    </div>
+                  )}
+
+                  {/* Photos Grid */}
+                  {allPhotos.length > 0 && (
+                    <div className={`grid gap-2 ${allPhotos.length === 1 ? 'grid-cols-1' : allPhotos.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                      {allPhotos.slice(0, 3).map((photoUrl, pIdx) => (
+                        <div
+                          key={pIdx}
+                          onClick={() => setZoomImage({ src: photoUrl, title: activity.title })}
+                          className={`relative rounded-2xl overflow-hidden bg-slate-900 cursor-pointer group border border-glass ${
+                            allPhotos.length === 1 ? 'h-64 sm:h-72' : 'h-36 sm:h-44'
+                          }`}
+                        >
+                          <img
+                            src={photoUrl}
+                            alt={`Activity photo ${pIdx + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                          {pIdx === 2 && allPhotos.length > 3 && (
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-sm">
+                              +{allPhotos.length - 3} More
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Sub-Activities / Exercises List */}
               {activity.activities && activity.activities.length > 0 && (
@@ -435,6 +537,76 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           )}
 
           {/* ----------------------------------------------------------------- */}
+          {/* TAB 4: FULL RESOLUTION MEDIA GALLERY (PHOTOS & VIDEOS) */}
+          {/* ----------------------------------------------------------------- */}
+          {activeTab === 'media' && (
+            <div className="space-y-5">
+              {allVideos.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-main flex items-center gap-1.5">
+                    <VideoIcon size={14} className="text-[#55198B] dark:text-[#c084fc]" />
+                    <span>Workout Videos ({allVideos.length})</span>
+                  </h4>
+                  <div className="space-y-3">
+                    {allVideos.map((videoUrl, vIdx) => (
+                      <div
+                        key={vIdx}
+                        className="rounded-2xl overflow-hidden bg-black border border-glass shadow-lg"
+                      >
+                        <video
+                          src={videoUrl}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          className="w-full max-h-96 object-contain rounded-2xl"
+                        />
+                        <div className="p-2.5 bg-slate-900/80 flex items-center justify-between text-xs text-slate-300">
+                          <span className="font-mono text-[11px]">Video #{vIdx + 1}</span>
+                          <span className="text-[10px] text-slate-400">Recorded Effort Clip</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {allPhotos.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-main flex items-center gap-1.5">
+                    <ImageIcon size={14} className="text-[#55198B] dark:text-[#c084fc]" />
+                    <span>Activity Photos ({allPhotos.length})</span>
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {allPhotos.map((photoUrl, pIdx) => (
+                      <div
+                        key={pIdx}
+                        onClick={() => setZoomImage({ src: photoUrl, title: `${activity.title} (Photo ${pIdx + 1})` })}
+                        className="group relative rounded-2xl overflow-hidden bg-slate-900 aspect-square cursor-pointer border border-glass hover:border-[#55198B] transition-all shadow-md"
+                      >
+                        <img
+                          src={photoUrl}
+                          alt={`Activity photo ${pIdx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                          <span>🔍 Tap to Zoom</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {allVideos.length === 0 && allPhotos.length === 0 && (
+                <div className="p-8 text-center text-sub italic text-xs">
+                  No media attached to this activity.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ----------------------------------------------------------------- */}
           {/* SOCIAL & COMMENTS SECTION (AUTHENTIC STRAVA COMMENTS) */}
           {/* ----------------------------------------------------------------- */}
           <div className="pt-4 border-t border-glass space-y-4">
@@ -513,6 +685,15 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           </div>
         </div>
       </div>
+
+      {/* Lightbox / Zoom Modal for Activity Photos */}
+      {zoomImage && (
+        <ZoomableImageModal
+          imageSrc={zoomImage.src}
+          title={zoomImage.title}
+          onClose={() => setZoomImage(null)}
+        />
+      )}
     </div>
   );
 };

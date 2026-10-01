@@ -66,7 +66,7 @@ import {
 } from './utils/storage';
 
 import { initialCycleLogs, initialCycleSettings } from './utils/cycleTracker';
-import { defaultMilestones } from './utils/milestonesTracker';
+import { defaultMilestones, evaluateActivityRecords } from './utils/milestonesTracker';
 
 export function App() {
   const [currentProfile, setCurrentProfile] = useState<UserProfile>('men');
@@ -276,7 +276,11 @@ export function App() {
       isLiked: true,
       kudosUsers: [{ userId: currentProfile === 'women' ? 'women' : 'men', userName: currentProfile === 'women' ? 'Shreya Dixit' : 'Sughosh Dixit' }],
       gearName: log.activityType === 'cycle' ? 'Road Bike' : 'Nike Running',
-      splits: log.splits || []
+      splits: log.splits || [],
+      recordBadges: log.recordBadges,
+      photos: log.mediaUrls,
+      customMediaUrl: log.mediaUrls?.[0],
+      videoUrls: log.videoUrls
     };
 
     setStravaPosts((prev) => [newPost, ...prev]);
@@ -303,14 +307,25 @@ export function App() {
   };
 
   const handleSaveStravaPost = (post: StravaActivityPost) => {
+    let postToSave = post;
+    const { updatedMilestones, recordBadges } = evaluateActivityRecords(post, milestones);
+    if (recordBadges && recordBadges.length > 0) {
+      postToSave = {
+        ...post,
+        recordBadges: [...(post.recordBadges || []), ...recordBadges]
+      };
+      setMilestones(updatedMilestones);
+      saveMilestonesToFirestore(updatedMilestones).catch(console.error);
+    }
+
     setStravaPosts((prev) => {
-      const exists = prev.some((p) => p.id === post.id);
+      const exists = prev.some((p) => p.id === postToSave.id);
       if (exists) {
-        return prev.map((p) => (p.id === post.id ? post : p));
+        return prev.map((p) => (p.id === postToSave.id ? postToSave : p));
       }
-      return [post, ...prev];
+      return [postToSave, ...prev];
     });
-    saveActivityPostToFirestore(post).catch(console.error);
+    saveActivityPostToFirestore(postToSave).catch(console.error);
   };
 
   const handleDeletePost = (id: string) => {
@@ -397,6 +412,10 @@ export function App() {
       persona: currentProfile,
       routePoints: act.routePoints,
       showRouteOverlay: !!act.routePoints && act.routePoints.length > 1,
+      photos: act.mediaUrls,
+      customMediaUrl: act.mediaUrls?.[0],
+      videoUrls: act.videoUrls,
+      recordBadges: act.recordBadges,
       templateStyle: 'strava_classic'
     });
   };
@@ -424,6 +443,8 @@ export function App() {
       backgroundTheme: post.backgroundTheme,
       customMediaUrl: post.customMediaUrl,
       photos: post.photos,
+      videoUrls: post.videoUrls,
+      recordBadges: post.recordBadges,
       routePoints: post.gpsActivity?.routePoints,
       showRouteOverlay: !!post.gpsActivity?.routePoints && post.gpsActivity.routePoints.length > 1,
       templateStyle: 'strava_classic'

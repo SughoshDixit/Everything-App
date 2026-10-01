@@ -231,7 +231,8 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
     photos,
     selectedPhotoIndex: selectedPhotoIdx,
     routePoints: allSequentialPoints.length > 0 ? allSequentialPoints : (todayGpsActivities[0]?.routePoints || []),
-    multiStageRoutes
+    multiStageRoutes,
+    recordBadges: initialPost?.recordBadges
   };
 
   const handleSave = () => {
@@ -267,7 +268,9 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
       avgPaceMinKm: todayGpsActivities[0]?.avgPaceMinKm || '5:04 /km',
       likesCount: initialPost?.likesCount || 1,
       isLiked: initialPost?.isLiked || false,
-      comments: initialPost?.comments || []
+      comments: initialPost?.comments || [],
+      recordBadges: initialPost?.recordBadges,
+      videoUrls: initialPost?.videoUrls
     };
 
     onSavePost(postToSave);

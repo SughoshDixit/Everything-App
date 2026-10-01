@@ -4,7 +4,7 @@ import {
   formatDuration,
   formatPace,
   calculateFitMetrics,
-  evaluateMilestones,
+  evaluateActivityRecords,
   defaultMilestones,
   generateRouteSvgPath,
   calculateElevationGain,
@@ -286,9 +286,10 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
       userId: currentProfile === 'women' ? 'women' : 'men'
     };
 
-    // Evaluate Personal Bests
-    const { updatedMilestones, unlocked } = evaluateMilestones(activityLog, currentMilestones);
+    // Evaluate Personal Bests & Record Badges
+    const { updatedMilestones, unlocked, recordBadges } = evaluateActivityRecords(activityLog, currentMilestones);
     activityLog.milestonesReached = unlocked;
+    activityLog.recordBadges = recordBadges;
 
     if (unlocked.length > 0) {
       setUnlockedMilestones(unlocked);

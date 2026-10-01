@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type {
   StravaActivityPost,
   GpsActivityLog,
@@ -19,6 +19,8 @@ import {
   Play,
   Send
 } from 'lucide-react';
+import { ZoomableImageModal } from './ZoomableImageModal';
+import { enrichPostsWithMilestones } from '../utils/milestonesTracker';
 
 interface StravaActivityFeedProps {
   currentProfile: UserProfile;
@@ -53,9 +55,15 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
   const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [floatingKudosId, setFloatingKudosId] = useState<string | null>(null);
+  const [zoomImage, setZoomImage] = useState<{ src: string; title: string } | null>(null);
+
+  // Automatically evaluate and enrich posts with all-time personal records and milestones
+  const enrichedPosts = useMemo(() => {
+    return enrichPostsWithMilestones(posts).enrichedPosts;
+  }, [posts]);
 
   // Filter posts by athlete and sport
-  const athletePosts = posts.filter(
+  const athletePosts = enrichedPosts.filter(
     (p) => currentProfile === 'couple' || p.userId === currentProfile || p.userId === 'couple'
   );
 
@@ -304,6 +312,22 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                   </div>
                 </div>
 
+                {/* Record & Milestone Badges (Fastest, Longest, Hardest) */}
+                {post.recordBadges && post.recordBadges.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {post.recordBadges.map((badge) => (
+                      <div
+                        key={badge.id}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/40 text-amber-500 text-[11px] font-black shadow-sm"
+                      >
+                        <span>{badge.icon}</span>
+                        <span>{badge.title}</span>
+                        <span className="font-mono text-[10px] opacity-90 font-bold">&bull; {badge.statLabel}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Activity Title & Description */}
                 <div
                   onClick={() => onSelectActivityDetail?.(post)}
@@ -318,6 +342,66 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                     </p>
                   )}
                 </div>
+
+                {/* Historical & Uploaded Photos & Videos Showcase */}
+                {(() => {
+                  const allPhotos = [
+                    ...(post.photos || []),
+                    ...(post.customMediaUrl && !(post.photos || []).includes(post.customMediaUrl) ? [post.customMediaUrl] : []),
+                    ...(post.gpsActivity?.mediaUrls || [])
+                  ].filter((url, idx, self) => url && self.indexOf(url) === idx);
+
+                  const allVideos = [
+                    ...(post.videoUrls || []),
+                    ...(post.gpsActivity?.videoUrls || [])
+                  ].filter((url, idx, self) => url && self.indexOf(url) === idx);
+
+                  if (allPhotos.length === 0 && allVideos.length === 0) return null;
+
+                  return (
+                    <div className="space-y-2 pt-0.5 pb-1">
+                      {/* Videos */}
+                      {allVideos.map((vidUrl, vIdx) => (
+                        <div key={vIdx} className="relative rounded-2xl overflow-hidden bg-black max-h-72 flex items-center justify-center border border-glass">
+                          <video
+                            src={vidUrl}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="w-full max-h-72 object-contain rounded-2xl"
+                          />
+                        </div>
+                      ))}
+
+                      {/* Photos Grid */}
+                      {allPhotos.length > 0 && (
+                        <div className={`grid gap-2 ${allPhotos.length === 1 ? 'grid-cols-1' : allPhotos.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                          {allPhotos.slice(0, 3).map((photoUrl, pIdx) => (
+                            <div
+                              key={pIdx}
+                              onClick={() => setZoomImage({ src: photoUrl, title: post.title })}
+                              className={`relative rounded-xl overflow-hidden bg-slate-900 cursor-pointer group border border-glass ${
+                                allPhotos.length === 1 ? 'h-60 sm:h-72' : 'h-36 sm:h-44'
+                              }`}
+                            >
+                              <img
+                                src={photoUrl}
+                                alt={`Activity photo ${pIdx + 1}`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                loading="lazy"
+                              />
+                              {pIdx === 2 && allPhotos.length > 3 && (
+                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-sm">
+                                  +{allPhotos.length - 3} More
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Telemetry Stage Preview (Map / Calisthenics Visual Graphic) */}
                 <div
@@ -486,6 +570,15 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
             );
           })}
         </div>
+      )}
+
+      {/* Fullscreen Photo Lightbox */}
+      {zoomImage && (
+        <ZoomableImageModal
+          imageSrc={zoomImage.src}
+          title={zoomImage.title}
+          onClose={() => setZoomImage(null)}
+        />
       )}
     </div>
   );

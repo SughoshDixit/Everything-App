@@ -4,7 +4,9 @@ import type {
   PersonalMilestones,
   ActivitySplit,
   WeeklyHeartPointsSummary,
-  WorkoutSessionLog
+  WorkoutSessionLog,
+  ActivityRecordBadge,
+  StravaActivityPost
 } from '../types';
 
 /**
@@ -232,104 +234,445 @@ export function calculateWeeklyHeartPoints(
 }
 
 /**
- * Default baseline milestones for new users.
+ * Default baseline milestones across all activity types (Running, Cycling, Walking, Football, Calisthenics).
  */
 export const defaultMilestones: PersonalMilestones = {
-  fastest1kRunSeconds: 300, // 5:00 min baseline
-  fastest5kRunSeconds: 1650, // 27:30 min baseline
+  // FASTEST
+  fastest1kRunSeconds: 300,   // 5:00 min baseline
+  fastest5kRunSeconds: 1650,  // 27:30 min baseline
+  fastest10kRunSeconds: 3600, // 60:00 min baseline
+  topSpeedRunKmh: 14.5,
   fastest1kCycleSeconds: 120, // 2:00 min baseline (30 km/h)
   fastest10kCycleSeconds: 1500, // 25:00 min baseline
+  topSpeedCycleKmh: 35.0,
+  fastest1kWalkSeconds: 600,  // 10:00 min baseline
+  topSpeedWalkKmh: 6.5,
+  topSprintSpeedFootballKmh: 26.0,
+
+  // LONGEST
   longestRunKm: 5.0,
   longestCycleKm: 15.0,
-  topSpeedRunKmh: 14.5,
-  topSpeedCycleKmh: 35.0,
+  longestWalkKm: 3.0,
+  longestDurationSeconds: 3600,
+  mostStepsCount: 6500,
+
+  // HARDEST
+  highestElevationGainMeters: 50,
+  highestCaloriesBurned: 400,
+  highestSufferScore: 70,
+  highestHeartPoints: 30,
+  maxStrictPushupsInSet: 15,
+  maxStrictPullupsInSet: 5,
+
+  // Cumulative Totals
   totalDistanceRunKm: 0,
   totalDistanceCycleKm: 0,
+  totalDistanceWalkKm: 0,
+  totalCaloriesBurned: 0,
+  currentStreakDays: 1,
   lastUpdated: new Date().toISOString()
 };
 
 /**
- * Checks an activity against existing milestones, updates records, and returns unlocked milestones.
+ * Universal Activity Record Evaluator.
+ * Identifies whether an activity broke any personal record across:
+ * 1. FASTEST (1k, 5k, 10k, top sprint/burst speed)
+ * 2. LONGEST (distance, duration, step count)
+ * 3. HARDEST (elevation gain, calories, suffer score, heart points, max reps)
+ */
+export function evaluateActivityRecords(
+  activity: {
+    sportType?: string;
+    activityType?: string;
+    distanceKm?: number;
+    durationSeconds?: number;
+    totalMoveMinutes?: number;
+    topSpeedKmh?: number;
+    maxSpeedKmh?: number;
+    avgSpeedKmh?: number;
+    elevationGainMeters?: number;
+    totalCalories?: number;
+    caloriesBurned?: number;
+    sufferScore?: number;
+    totalHeartPoints?: number;
+    heartPointsEarned?: number;
+    stepsCount?: number;
+    totalReps?: number;
+    totalSets?: number;
+    rpe?: number;
+  },
+  currentMilestones: PersonalMilestones = defaultMilestones
+): { updatedMilestones: PersonalMilestones; unlocked: string[]; recordBadges: ActivityRecordBadge[] } {
+  const updated: PersonalMilestones = { ...currentMilestones };
+  const unlocked: string[] = [];
+  const recordBadges: ActivityRecordBadge[] = [];
+
+  const rawSport = (activity.sportType || activity.activityType || 'run').toLowerCase();
+  const isRun = rawSport.includes('run');
+  const isCycle = rawSport.includes('cycle') || rawSport.includes('bike');
+  const isWalk = rawSport.includes('walk') || rawSport.includes('hike');
+  const isFootball = rawSport.includes('foot') || rawSport.includes('soccer');
+  const isCalisthenics = rawSport.includes('calisthenic') || rawSport.includes('workout');
+
+  const dist = activity.distanceKm || 0;
+  const durationSec = activity.durationSeconds || ((activity.totalMoveMinutes || 0) * 60) || 1;
+  const topSpeed = activity.maxSpeedKmh || activity.topSpeedKmh || ((activity.avgSpeedKmh || 0) * 1.25);
+  const elev = activity.elevationGainMeters || 0;
+  const cals = activity.totalCalories || activity.caloriesBurned || 0;
+  const suffer = activity.sufferScore || (activity.rpe ? activity.rpe * 10 : 0);
+  const heartPts = activity.totalHeartPoints || activity.heartPointsEarned || 0;
+  const steps = activity.stepsCount || (isRun ? Math.round(dist * 1250) : isWalk ? Math.round(dist * 1350) : 0);
+
+  // ---------------------------------------------------------------------------
+  // 1. FASTEST EVALUATION
+  // ---------------------------------------------------------------------------
+  if (isRun && dist >= 0.8) {
+    updated.totalDistanceRunKm = (updated.totalDistanceRunKm || 0) + dist;
+
+    // Fastest 1km Run
+    if (dist >= 1.0) {
+      const estimated1kTime = Math.round(durationSec / dist);
+      if (!updated.fastest1kRunSeconds || estimated1kTime < updated.fastest1kRunSeconds) {
+        const prev = updated.fastest1kRunSeconds ? formatDuration(updated.fastest1kRunSeconds) : undefined;
+        updated.fastest1kRunSeconds = estimated1kTime;
+        unlocked.push(`⚡ NEW ALL-TIME RECORD: Fastest 1K Run (${formatDuration(estimated1kTime)})!`);
+        recordBadges.push({
+          id: `pr_fastest_1k_${Date.now()}`,
+          category: 'fastest',
+          tier: 'all_time_record',
+          title: 'ALL-TIME RECORD: FASTEST 1K',
+          statLabel: `${formatDuration(estimated1kTime)} /km`,
+          previousRecord: prev ? `Prev: ${prev}` : undefined,
+          icon: '⚡',
+          color: 'amber'
+        });
+      }
+    }
+
+    // Fastest 5km Run
+    if (dist >= 4.8) {
+      const estimated5kTime = Math.round((durationSec / dist) * 5);
+      if (!updated.fastest5kRunSeconds || estimated5kTime < updated.fastest5kRunSeconds) {
+        const prev = updated.fastest5kRunSeconds ? formatDuration(updated.fastest5kRunSeconds) : undefined;
+        updated.fastest5kRunSeconds = estimated5kTime;
+        unlocked.push(`🏆 NEW ALL-TIME PB: Fastest 5K Run (${formatDuration(estimated5kTime)})!`);
+        recordBadges.push({
+          id: `pr_fastest_5k_${Date.now()}`,
+          category: 'fastest',
+          tier: 'all_time_record',
+          title: 'ALL-TIME RECORD: FASTEST 5K',
+          statLabel: `${formatDuration(estimated5kTime)} (${formatPace(5, estimated5kTime)})`,
+          previousRecord: prev ? `Prev: ${prev}` : undefined,
+          icon: '🏆',
+          color: 'amber'
+        });
+      }
+    }
+
+    // Top Speed Burst (Running)
+    if (topSpeed > (updated.topSpeedRunKmh || 0) && topSpeed < 45) {
+      const prev = updated.topSpeedRunKmh ? `${updated.topSpeedRunKmh} km/h` : undefined;
+      updated.topSpeedRunKmh = Number(topSpeed.toFixed(1));
+      unlocked.push(`🚀 TOP SPRINT BURST: Peak Speed ${updated.topSpeedRunKmh} km/h!`);
+      recordBadges.push({
+        id: `pr_top_speed_run_${Date.now()}`,
+        category: 'fastest',
+        tier: 'season_best',
+        title: 'TOP SPRINT BURST',
+        statLabel: `${updated.topSpeedRunKmh} km/h`,
+        previousRecord: prev ? `Prev: ${prev}` : undefined,
+        icon: '🚀',
+        color: 'rose'
+      });
+    }
+  }
+
+  if (isCycle && dist >= 1.0) {
+    updated.totalDistanceCycleKm = (updated.totalDistanceCycleKm || 0) + dist;
+
+    // Fastest 10k Cycle
+    if (dist >= 9.5) {
+      const est10kTime = Math.round((durationSec / dist) * 10);
+      if (!updated.fastest10kCycleSeconds || est10kTime < updated.fastest10kCycleSeconds) {
+        const prev = updated.fastest10kCycleSeconds ? formatDuration(updated.fastest10kCycleSeconds) : undefined;
+        updated.fastest10kCycleSeconds = est10kTime;
+        unlocked.push(`🏆 NEW PB: Fastest 10K Cycling (${formatDuration(est10kTime)})!`);
+        recordBadges.push({
+          id: `pr_fastest_10k_cycle_${Date.now()}`,
+          category: 'fastest',
+          tier: 'all_time_record',
+          title: 'FASTEST 10K RIDE',
+          statLabel: `${formatDuration(est10kTime)}`,
+          previousRecord: prev ? `Prev: ${prev}` : undefined,
+          icon: '🏆',
+          color: 'amber'
+        });
+      }
+    }
+
+    // Top Speed Cycle
+    if (topSpeed > (updated.topSpeedCycleKmh || 0) && topSpeed < 90) {
+      const prev = updated.topSpeedCycleKmh ? `${updated.topSpeedCycleKmh} km/h` : undefined;
+      updated.topSpeedCycleKmh = Number(topSpeed.toFixed(1));
+      unlocked.push(`🔥 CYCLING SPRINT: Peak Speed ${updated.topSpeedCycleKmh} km/h!`);
+      recordBadges.push({
+        id: `pr_top_speed_cycle_${Date.now()}`,
+        category: 'fastest',
+        tier: 'season_best',
+        title: 'TOP CYCLING SPEED',
+        statLabel: `${updated.topSpeedCycleKmh} km/h`,
+        previousRecord: prev ? `Prev: ${prev}` : undefined,
+        icon: '⚡',
+        color: 'cyan'
+      });
+    }
+  }
+
+  if (isFootball) {
+    if (topSpeed > (updated.topSprintSpeedFootballKmh || 26.0) && topSpeed < 40) {
+      const prev = updated.topSprintSpeedFootballKmh ? `${updated.topSprintSpeedFootballKmh} km/h` : undefined;
+      updated.topSprintSpeedFootballKmh = Number(topSpeed.toFixed(1));
+      unlocked.push(`⚽ ELITE FOOTBALL SPRINT: ${updated.topSprintSpeedFootballKmh} km/h match burst!`);
+      recordBadges.push({
+        id: `pr_football_sprint_${Date.now()}`,
+        category: 'fastest',
+        tier: 'all_time_record',
+        title: 'MATCH PEAK SPRINT SPEED',
+        statLabel: `${updated.topSprintSpeedFootballKmh} km/h`,
+        previousRecord: prev ? `Prev: ${prev}` : undefined,
+        icon: '⚽',
+        color: 'emerald'
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 2. LONGEST EVALUATION
+  // ---------------------------------------------------------------------------
+  if (isRun && dist > (updated.longestRunKm || 0)) {
+    const prev = updated.longestRunKm ? `${updated.longestRunKm} km` : undefined;
+    updated.longestRunKm = Number(dist.toFixed(2));
+    unlocked.push(`🌟 MILESTONE: Longest Run Ever (${updated.longestRunKm} km)!`);
+    recordBadges.push({
+      id: `pr_longest_run_${Date.now()}`,
+      category: 'longest',
+      tier: 'all_time_record',
+      title: 'LONGEST DISTANCE RUN',
+      statLabel: `${updated.longestRunKm} km`,
+      previousRecord: prev ? `Prev: ${prev}` : undefined,
+      icon: '🌟',
+      color: 'purple'
+    });
+  }
+
+  if (isCycle && dist > (updated.longestCycleKm || 0)) {
+    const prev = updated.longestCycleKm ? `${updated.longestCycleKm} km` : undefined;
+    updated.longestCycleKm = Number(dist.toFixed(2));
+    unlocked.push(`🚴 TOUR DISTANCE: Longest Ride Ever (${updated.longestCycleKm} km)!`);
+    recordBadges.push({
+      id: `pr_longest_cycle_${Date.now()}`,
+      category: 'longest',
+      tier: 'all_time_record',
+      title: 'LONGEST CYCLING TOUR',
+      statLabel: `${updated.longestCycleKm} km`,
+      previousRecord: prev ? `Prev: ${prev}` : undefined,
+      icon: '🚴',
+      color: 'cyan'
+    });
+  }
+
+  if (isWalk && dist > (updated.longestWalkKm || 0)) {
+    const prev = updated.longestWalkKm ? `${updated.longestWalkKm} km` : undefined;
+    updated.longestWalkKm = Number(dist.toFixed(2));
+    unlocked.push(`🚶 WALKING MILESTONE: Longest Walk (${updated.longestWalkKm} km)!`);
+    recordBadges.push({
+      id: `pr_longest_walk_${Date.now()}`,
+      category: 'longest',
+      tier: 'all_time_record',
+      title: 'LONGEST ENDURANCE WALK',
+      statLabel: `${updated.longestWalkKm} km`,
+      previousRecord: prev ? `Prev: ${prev}` : undefined,
+      icon: '🚶',
+      color: 'emerald'
+    });
+  }
+
+  if (durationSec > (updated.longestDurationSeconds || 0)) {
+    const prev = updated.longestDurationSeconds ? formatDuration(updated.longestDurationSeconds) : undefined;
+    updated.longestDurationSeconds = Math.round(durationSec);
+    unlocked.push(`⏱️ IRON ENDURANCE: Longest Active Duration (${formatDuration(updated.longestDurationSeconds)})!`);
+    recordBadges.push({
+      id: `pr_longest_duration_${Date.now()}`,
+      category: 'longest',
+      tier: 'season_best',
+      title: 'LONGEST ACTIVE SESSION',
+      statLabel: formatDuration(updated.longestDurationSeconds),
+      previousRecord: prev ? `Prev: ${prev}` : undefined,
+      icon: '⏱️',
+      color: 'purple'
+    });
+  }
+
+  if (steps > (updated.mostStepsCount || 0)) {
+    const prev = updated.mostStepsCount ? `${updated.mostStepsCount.toLocaleString()} steps` : undefined;
+    updated.mostStepsCount = steps;
+    unlocked.push(`👟 STEP RECORD: ${steps.toLocaleString()} steps in a single workout!`);
+    recordBadges.push({
+      id: `pr_most_steps_${Date.now()}`,
+      category: 'longest',
+      tier: 'milestone',
+      title: 'MAX SESSION STEPS',
+      statLabel: `${steps.toLocaleString()} steps`,
+      previousRecord: prev ? `Prev: ${prev}` : undefined,
+      icon: '👟',
+      color: 'emerald'
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3. HARDEST EVALUATION
+  // ---------------------------------------------------------------------------
+  if (elev > (updated.highestElevationGainMeters || 0) && elev > 20) {
+    const prev = updated.highestElevationGainMeters ? `+${updated.highestElevationGainMeters}m` : undefined;
+    updated.highestElevationGainMeters = elev;
+    unlocked.push(`🏔️ QUEEN OF THE MOUNTAIN: Hardest Climb (+${elev}m Elevation Gain)!`);
+    recordBadges.push({
+      id: `pr_hardest_climb_${Date.now()}`,
+      category: 'hardest',
+      tier: 'all_time_record',
+      title: 'HARDEST VERTICAL CLIMB',
+      statLabel: `+${elev}m Ascent`,
+      previousRecord: prev ? `Prev: ${prev}` : undefined,
+      icon: '🏔️',
+      color: 'rose'
+    });
+  }
+
+  if (cals > (updated.highestCaloriesBurned || 0) && cals > 350) {
+    const prev = updated.highestCaloriesBurned ? `${updated.highestCaloriesBurned} kcal` : undefined;
+    updated.highestCaloriesBurned = cals;
+    unlocked.push(`🔥 CALORIE CRUSHER: Highest Energy Burn (${cals} kcal)!`);
+    recordBadges.push({
+      id: `pr_highest_calories_${Date.now()}`,
+      category: 'hardest',
+      tier: 'all_time_record',
+      title: 'MAX CALORIC EXPENDITURE',
+      statLabel: `${cals} kcal`,
+      previousRecord: prev ? `Prev: ${prev}` : undefined,
+      icon: '🔥',
+      color: 'rose'
+    });
+  }
+
+  if (suffer >= (updated.highestSufferScore || 0) && suffer >= 75) {
+    const prev = updated.highestSufferScore ? `${updated.highestSufferScore}/100` : undefined;
+    updated.highestSufferScore = suffer;
+    recordBadges.push({
+      id: `pr_highest_suffer_${Date.now()}`,
+      category: 'hardest',
+      tier: 'season_best',
+      title: 'MAX SUFFER INTENSITY',
+      statLabel: `${suffer}/100 Suffer Score`,
+      previousRecord: prev ? `Prev: ${prev}` : undefined,
+      icon: '🛡️',
+      color: 'rose'
+    });
+  }
+
+  if (heartPts > (updated.highestHeartPoints || 0) && heartPts >= 35) {
+    const prev = updated.highestHeartPoints ? `${updated.highestHeartPoints} pts` : undefined;
+    updated.highestHeartPoints = heartPts;
+    recordBadges.push({
+      id: `pr_highest_heart_points_${Date.now()}`,
+      category: 'hardest',
+      tier: 'milestone',
+      title: 'MAX HEART POINTS',
+      statLabel: `+${heartPts} Heart Points`,
+      previousRecord: prev ? `Prev: ${prev}` : undefined,
+      icon: '❤️',
+      color: 'rose'
+    });
+  }
+
+  if (isCalisthenics && (activity.totalReps || 0) > (updated.maxStrictPushupsInSet || 0) * 4) {
+    recordBadges.push({
+      id: `pr_calisthenics_volume_${Date.now()}`,
+      category: 'hardest',
+      tier: 'milestone',
+      title: 'HIGH-VOLUME ARMOUR',
+      statLabel: `${activity.totalSets || 8} Sets • ${activity.totalReps} Total Reps`,
+      icon: '💪',
+      color: 'amber'
+    });
+  }
+
+  updated.lastUpdated = new Date().toISOString();
+  return { updatedMilestones: updated, unlocked, recordBadges };
+}
+
+/**
+ * Backwards-compatible wrapper for evaluateMilestones.
  */
 export function evaluateMilestones(
   activity: GpsActivityLog,
   currentMilestones: PersonalMilestones
 ): { updatedMilestones: PersonalMilestones; unlocked: string[] } {
-  const updated: PersonalMilestones = { ...currentMilestones };
-  const unlocked: string[] = [];
+  const result = evaluateActivityRecords(activity, currentMilestones);
+  return { updatedMilestones: result.updatedMilestones, unlocked: result.unlocked };
+}
 
-  const durationSec = activity.durationSeconds;
-  const dist = activity.distanceKm;
-  const topSpeed = activity.topSpeedKmh;
+/**
+ * Enriches a collection of activity feed posts by evaluating historical PRs and attaching recordBadges.
+ */
+export function enrichPostsWithMilestones(
+  posts: StravaActivityPost[],
+  baseMilestones: PersonalMilestones = defaultMilestones
+): { enrichedPosts: StravaActivityPost[]; milestones: PersonalMilestones } {
+  // Sort chronologically ascending to evaluate records in real historical sequence
+  const sorted = [...posts].sort((a, b) => a.timestamp - b.timestamp);
+  let runningMilestones = { ...baseMilestones };
 
-  if (activity.activityType === 'run') {
-    updated.totalDistanceRunKm = (updated.totalDistanceRunKm || 0) + dist;
-
-    // Check Fastest 1km
-    if (dist >= 1.0) {
-      const estimated1kTime = (durationSec / dist);
-      if (!updated.fastest1kRunSeconds || estimated1kTime < updated.fastest1kRunSeconds) {
-        updated.fastest1kRunSeconds = Math.round(estimated1kTime);
-        unlocked.push(`⚡ NEW RECORD: Fastest 1 km Run (${formatDuration(updated.fastest1kRunSeconds)})!`);
-      }
+  const enriched = sorted.map((post) => {
+    // If post already has recordBadges with badges, preserve it
+    if (post.recordBadges && post.recordBadges.length > 0) {
+      return post;
     }
 
-    // Check Fastest 5km
-    if (dist >= 5.0) {
-      const estimated5kTime = (durationSec / dist) * 5;
-      if (!updated.fastest5kRunSeconds || estimated5kTime < updated.fastest5kRunSeconds) {
-        updated.fastest5kRunSeconds = Math.round(estimated5kTime);
-        unlocked.push(`🏆 NEW PB: Fastest 5 km Run (${formatDuration(updated.fastest5kRunSeconds)})!`);
-      }
-    }
+    const { updatedMilestones, recordBadges } = evaluateActivityRecords(
+      {
+        sportType: post.sportType,
+        distanceKm: post.totalDistanceKm,
+        totalMoveMinutes: post.totalMoveMinutes,
+        durationSeconds: post.gpsActivity?.durationSeconds || (post.totalMoveMinutes * 60),
+        topSpeedKmh: post.maxSpeedKmh || post.avgSpeedKmh,
+        maxSpeedKmh: post.maxSpeedKmh,
+        avgSpeedKmh: post.avgSpeedKmh,
+        elevationGainMeters: post.elevationGainMeters,
+        totalCalories: post.totalCalories,
+        sufferScore: post.sufferScore || (post.rpe ? post.rpe * 10 : undefined),
+        totalHeartPoints: post.totalHeartPoints,
+        totalReps: post.totalReps,
+        totalSets: post.totalSets,
+        rpe: post.rpe
+      },
+      runningMilestones
+    );
 
-    // Check Longest Run
-    if (dist > (updated.longestRunKm || 0)) {
-      updated.longestRunKm = Number(dist.toFixed(2));
-      unlocked.push(`🌟 MILESTONE: Longest Run Ever (${updated.longestRunKm} km)!`);
-    }
+    runningMilestones = updatedMilestones;
 
-    // Top Speed
-    if (topSpeed > (updated.topSpeedRunKmh || 0)) {
-      updated.topSpeedRunKmh = Number(topSpeed.toFixed(1));
-      unlocked.push(`🚀 SPEED DEMON: Top Sprint Speed (${updated.topSpeedRunKmh} km/h)!`);
+    if (recordBadges.length > 0) {
+      return {
+        ...post,
+        recordBadges
+      };
     }
-  } else if (activity.activityType === 'cycle') {
-    updated.totalDistanceCycleKm = (updated.totalDistanceCycleKm || 0) + dist;
+    return post;
+  });
 
-    // Check Fastest 1km Cycle
-    if (dist >= 1.0) {
-      const estimated1kTime = (durationSec / dist);
-      if (!updated.fastest1kCycleSeconds || estimated1kTime < updated.fastest1kCycleSeconds) {
-        updated.fastest1kCycleSeconds = Math.round(estimated1kTime);
-        unlocked.push(`⚡ NEW RECORD: Fastest 1 km Cycling (${formatDuration(updated.fastest1kCycleSeconds)})!`);
-      }
-    }
+  // Re-sort descending for user feed display (newest first)
+  enriched.sort((a, b) => b.timestamp - a.timestamp);
 
-    // Check Fastest 10km Cycle
-    if (dist >= 10.0) {
-      const estimated10kTime = (durationSec / dist) * 10;
-      if (!updated.fastest10kCycleSeconds || estimated10kTime < updated.fastest10kCycleSeconds) {
-        updated.fastest10kCycleSeconds = Math.round(estimated10kTime);
-        unlocked.push(`🏆 NEW PB: Fastest 10 km Cycling (${formatDuration(updated.fastest10kCycleSeconds)})!`);
-      }
-    }
-
-    // Longest Cycle
-    if (dist > (updated.longestCycleKm || 0)) {
-      updated.longestCycleKm = Number(dist.toFixed(2));
-      unlocked.push(`🚴 TOUR DISTANCE: Longest Ride (${updated.longestCycleKm} km)!`);
-    }
-
-    // Top Speed Cycle
-    if (topSpeed > (updated.topSpeedCycleKmh || 0)) {
-      updated.topSpeedCycleKmh = Number(topSpeed.toFixed(1));
-      unlocked.push(`🔥 MAX SPRINT: Top Cycling Speed (${updated.topSpeedCycleKmh} km/h)!`);
-    }
-  }
-
-  updated.lastUpdated = new Date().toISOString();
-  return { updatedMilestones: updated, unlocked };
+  return { enrichedPosts: enriched, milestones: runningMilestones };
 }
 
 /**

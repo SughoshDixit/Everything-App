@@ -681,6 +681,30 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       ctx.fillStyle = '#94a3b8';
       ctx.font = `600 ${Math.round(15 * scale)}px "Montserrat", sans-serif`;
       ctx.fillText(`⏱️ Active Elapsed: ${timeStat}  |  Elevation: ${Math.round(currentPoint.altitude ?? 0)}m`, cardX + 28 * scale, cardY + 125 * scale);
+
+      // Milestones / PR Pill on Top-Right of Telemetry Card
+      if (initialData.recordBadges && initialData.recordBadges.length > 0) {
+        const topBadge = initialData.recordBadges[0];
+        const badgeW = Math.min(340 * scale, cardW * 0.45);
+        const badgeH = 34 * scale;
+        const badgeX = cardX + cardW - badgeW - 20 * scale;
+        const badgeY = cardY + 18 * scale;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(234, 179, 8, 0.28)';
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.beginPath();
+        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 10 * scale);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fde047';
+        ctx.font = `800 ${Math.round(12 * scale)}px "Montserrat", sans-serif`;
+        const badgeLabel = `${topBadge.icon || '🏆'} ${topBadge.title}`;
+        ctx.fillText(badgeLabel, badgeX + 10 * scale, badgeY + 22 * scale);
+        ctx.restore();
+      }
     }
 
     // Elevation Area Mini-Profile Ribbon

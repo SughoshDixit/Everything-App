@@ -241,6 +241,7 @@ export interface GpsActivityLog {
   notes?: string;
   mediaUrls?: string[];
   videoUrls?: string[];
+  recordBadges?: ActivityRecordBadge[];
 }
 
 export interface WeeklyHeartPointsSummary {
@@ -252,21 +253,163 @@ export interface WeeklyHeartPointsSummary {
   isGoalAchieved: boolean;
 }
 
+// -----------------------------------------------------------------------------
+// Activity Record Badges & Milestones (Fastest, Longest, Hardest)
+// -----------------------------------------------------------------------------
+export interface ActivityRecordBadge {
+  id: string;
+  category: 'fastest' | 'longest' | 'hardest';
+  tier: 'all_time_record' | 'season_best' | 'milestone'; // Gold, Silver, Bronze
+  title: string;           // e.g. "ALL-TIME RECORD: FASTEST 5K"
+  statLabel: string;       // e.g. "21m 45s (4:21 /km)"
+  previousRecord?: string; // e.g. "Previous: 22m 10s"
+  icon: string;            // e.g. "🏆", "⚡", "🏔️", "🔥"
+  color: string;           // 'amber' | 'rose' | 'cyan' | 'emerald' | 'purple'
+}
+
 export interface PersonalMilestones {
+  // FASTEST
   fastest1kRunSeconds?: number;
   fastest5kRunSeconds?: number;
   fastest10kRunSeconds?: number;
-  longestRunKm?: number;
   topSpeedRunKmh?: number;
   fastest1kCycleSeconds?: number;
   fastest10kCycleSeconds?: number;
-  longestCycleKm?: number;
   topSpeedCycleKmh?: number;
+  fastest1kWalkSeconds?: number;
+  topSpeedWalkKmh?: number;
+  topSprintSpeedFootballKmh?: number;
+
+  // LONGEST
+  longestRunKm?: number;
+  longestCycleKm?: number;
+  longestWalkKm?: number;
+  longestDurationSeconds?: number;
+  mostStepsCount?: number;
+
+  // HARDEST
+  highestElevationGainMeters?: number;
+  highestCaloriesBurned?: number;
+  highestSufferScore?: number;
+  highestHeartPoints?: number;
+  maxStrictPushupsInSet?: number;
+  maxStrictPullupsInSet?: number;
+
+  // Cumulative Totals
   totalDistanceRunKm?: number;
   totalDistanceCycleKm?: number;
+  totalDistanceWalkKm?: number;
   totalCaloriesBurned?: number;
   currentStreakDays?: number;
   lastUpdated?: string;
+}
+
+// -----------------------------------------------------------------------------
+// Football (Soccer) Performance Engine Models
+// -----------------------------------------------------------------------------
+export interface FootballPlayerProfile {
+  id: string;
+  displayName: string;
+  primaryPosition: 'Winger' | 'Striker / Forward' | 'Attacking Mid' | 'Central Mid' | 'Fullback' | 'Center Back';
+  dominantFoot: 'Right' | 'Left' | 'Both';
+  targetTopSpeedKmh: number;
+  matchdaySchedule: {
+    primaryMatchDay: 'Saturday' | 'Sunday' | 'Midweek';
+    typicalKickoffTime: string;
+  };
+  injuryWatchAreas: ('Hamstrings' | 'Groin / Adductors' | 'Ankles' | 'Knees')[];
+}
+
+export interface DailyMatchReadiness {
+  date: string;
+  readinessScore: number; // 0 - 100%
+  status: 'Match Ready' | 'Prime for Intensity' | 'Moderate / Maintenance' | 'Active Recovery Required';
+  sorenessLevel: 1 | 2 | 3 | 4 | 5;
+  sleepHours: number;
+  sleepQuality: 'Poor' | 'Fair' | 'Good' | 'Optimal';
+  hydrationStatus: 'Optimal' | 'Under-hydrated';
+  recommendedSessionType: 'pitch_sprints' | 'calisthenics_armour' | 'aerobic_flush' | 'rest_mobility';
+}
+
+export type FootballSessionType =
+  | 'match'
+  | 'pitch_agility_sprints'
+  | 'calisthenics_body_armour'
+  | 'repeated_sprint_intervals'
+  | 'aerobic_recovery_walk';
+
+export interface FootballTrainingSession {
+  id: string;
+  userId: string;
+  date: string;
+  startTime: number;
+  endTime: number;
+  durationMinutes: number;
+  sessionType: FootballSessionType;
+  title: string;
+  rpeIntensity: number; // 1-10
+  warmupCompleted: boolean;
+  warmupProtocol: 'fifa_11_plus' | 'dynamic_pitch' | 'quick_activation';
+  pitchTelemetry?: {
+    totalDistanceKm: number;
+    topSprintSpeedKmh: number;
+    sprintCount: number;
+    highIntensityDistanceMeters: number;
+    accelerationBurstsCount: number;
+    decelerationsCount: number;
+    encodedPolyline?: string;
+    splits?: ActivitySplit[];
+  };
+  calisthenicsArmour?: {
+    focusArea: 'Upper Body Shielding' | 'Anti-Rotational Core' | 'Lower Single-Leg Power';
+    exercises: {
+      name: string;
+      sets: number;
+      reps: string;
+      footballBenefit: string;
+    }[];
+  };
+  drillsCompleted?: {
+    drillId: string;
+    drillTitle: string;
+    category: 'agility' | 'acceleration' | 'finishing' | 'dribbling';
+    repsOrSets: string;
+  }[];
+  matchStats?: {
+    minutesPlayed: number;
+    goals: number;
+    assists: number;
+    keyDuelsWon: number;
+    shotsOnTarget: number;
+  };
+  recordBadges?: ActivityRecordBadge[];
+  notes?: string;
+  mediaUrls?: string[];
+  videoUrls?: string[];
+}
+
+export interface FootballNutritionLog {
+  date: string;
+  dayType: 'Matchday' | 'Heavy Training' | 'Recovery Day';
+  waterLiters: number;
+  electrolytesConsumed: boolean;
+  carbLoadingScore: 'Low' | 'Adequate' | 'Optimal';
+  proteinGrams: number;
+  calories: number;
+  preMatchMealHoursBefore?: number;
+  postMatchProteinWithin30Mins: boolean;
+}
+
+export interface FootballMilestones {
+  allTimeTopSpeedKmh: number;
+  fastest10mSprintSeconds?: number;
+  fastest30mSprintSeconds?: number;
+  longestMatchDistanceKm?: number;
+  maxStrictPushupsInSet: number;
+  maxStrictPullupsInSet: number;
+  consecutiveTrainingStreakWeeks: number;
+  totalCareerMatchesLogged: number;
+  totalGoalsAssistsLogged: number;
 }
 
 export interface MonthlyChallenge {
@@ -374,9 +517,11 @@ export interface StravaActivityPost {
   kudosUsers?: { userId: 'men' | 'women'; userName: string }[];
   comments?: StravaComment[];
   achievements?: StravaAchievement[];
+  recordBadges?: ActivityRecordBadge[];
   gearId?: string;
   gearName?: string;
   splits?: ActivitySplit[];
+  videoUrls?: string[];
 }
 
 export type SocialCardTemplate = 'strava_classic' | 'minimal' | 'cyber_neon' | 'route_hero';
@@ -404,11 +549,13 @@ export interface SocialShareCardData {
   backgroundTheme?: PostBackgroundTheme;
   customMediaUrl?: string;
   photos?: string[];
+  videoUrls?: string[];
   selectedPhotoIndex?: number;
   showRouteOverlay?: boolean;
   scrimIntensity?: number; // 0 to 1 (default 0.7)
   templateStyle?: SocialCardTemplate;
   splits?: ActivitySplit[];
+  recordBadges?: ActivityRecordBadge[];
   is4k?: boolean;
 }
 
