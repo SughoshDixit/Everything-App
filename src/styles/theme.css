@@ -1,34 +1,34 @@
 :root {
   --background: #080b11;
   --foreground: #f4f5f7;
-  --card: #0e131b;
+  --card: #10151d;
   --card-foreground: #f4f5f7;
   --popover: #151b24;
   --popover-foreground: #f4f5f7;
   --primary: #ccff00;
   --primary-foreground: #101500;
-  --secondary: #141923;
+  --secondary: #1a222d;
   --secondary-foreground: #f4f5f7;
   --muted: #171e28;
   --muted-foreground: #929ba9;
   --accent: #fc4c02;
   --accent-foreground: #ffffff;
   --dude: #ffe600;
-  --glass: rgba(14, 19, 27, 0.85);
+  --glass: rgba(18, 24, 38, 0.75);
   --destructive: #f43f5e;
-  --border: rgba(255, 255, 255, 0.12);
-  --input: rgba(255, 255, 255, 0.14);
+  --border: #ffffff12;
+  --input: #ffffff16;
   --ring: #ccff00;
-  --radius: 1rem;
+  --radius: 0.875rem;
 }
 .dark {
   --background: #080b11;
   --foreground: #f4f5f7;
-  --card: #0e131b;
+  --card: #10151d;
   --card-foreground: #f4f5f7;
   --primary: #ccff00;
   --primary-foreground: #101500;
-  --border: rgba(255, 255, 255, 0.12);
+  --border: #ffffff12;
   --ring: #ccff00;
 }
 @theme inline {
