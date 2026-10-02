@@ -190,24 +190,22 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
     // 1. Android Native Background Location Service (Keeps CPU awake & tracks when locked)
     if (window.AndroidBridge && typeof window.AndroidBridge.startLocationTracking === 'function') {
       window.AndroidBridge.startLocationTracking(activityType);
-    }
 
-    // Register global callback for native Android service
-    window.onNativeGpsUpdate = (pos: any) => {
-      if (!isTrackingRef.current || isPausedRef.current) return;
-      handleIngestGpsPoint(
-        pos.latitude,
-        pos.longitude,
-        pos.altitude,
-        pos.speed,
-        pos.accuracy ?? 5,
-        pos.bearing,
-        pos.timestamp || Date.now()
-      );
-    };
-
-    // 2. Web Geolocation watchPosition (Fallback for browser / desktop)
-    if ('geolocation' in navigator) {
+      // Register global callback for native Android service
+      window.onNativeGpsUpdate = (pos: any) => {
+        if (!isTrackingRef.current || isPausedRef.current) return;
+        handleIngestGpsPoint(
+          pos.latitude,
+          pos.longitude,
+          pos.altitude,
+          pos.speed,
+          pos.accuracy ?? 5,
+          pos.bearing,
+          pos.timestamp || Date.now()
+        );
+      };
+    } else if ('geolocation' in navigator) {
+      // 2. Web Geolocation watchPosition (Used when running in browser or PWA mode)
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
           if (!isTrackingRef.current || isPausedRef.current) return;
@@ -313,12 +311,12 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   const liveSteps = estimateSteps(activityType, distanceKm);
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 9999 }}>
-      <div className="modal-content google-card animate-scale-up max-w-md w-full max-h-[94vh] overflow-y-auto p-5 md:p-6 flex flex-col justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4">
+      <div className="w-full max-w-md max-h-[94vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0e131b] p-5 sm:p-6 shadow-2xl text-foreground font-sans flex flex-col justify-between">
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-glass pb-3 mb-2">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-2">
           <button
-            className="btn-google-outlined text-xs py-1.5 px-3 flex items-center gap-1"
+            className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-white hover:border-white/20 transition"
             onClick={() => {
               stopGpsTracking();
               onClose();
@@ -329,24 +327,24 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
           </button>
 
           <div className="text-center">
-            <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">
-              GPS LIVE TRACKER
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary block font-display">
+              GPS SATELLITE ENGINE
             </span>
-            <h3 className="text-sm md:text-base font-black text-main mt-0.5 uppercase tracking-wide">
-              {activityType === 'run' ? '🏃 Outdoor Run' : activityType === 'cycle' ? '🚴 Outdoor Cycling' : activityType === 'drive' ? '🚗 Car Road Trip' : '🚶 Fitness Walk'}
+            <h3 className="text-sm md:text-base font-bold text-white mt-0.5 uppercase tracking-wide font-display">
+              {activityType === 'run' ? '🏃 Outdoor Run' : activityType === 'cycle' ? '🚴 Outdoor Cycling' : activityType === 'drive' ? '🚗 Road Trip' : '🚶 Fitness Walk'}
             </h3>
             {isTracking && (
               <div className="flex items-center justify-center gap-1.5 mt-1">
                 <span
                   className={`inline-block w-2 h-2 rounded-full ${
                     signalQuality === 'excellent'
-                      ? 'bg-emerald-500 animate-pulse'
+                      ? 'bg-primary animate-pulse'
                       : signalQuality === 'good'
-                      ? 'bg-amber-400'
+                      ? 'bg-dude'
                       : 'bg-rose-500'
                   }`}
                 />
-                <span className="text-[10px] font-bold text-sub">
+                <span className="text-[10px] font-bold text-muted-foreground font-mono">
                   {signalQuality === 'excellent'
                     ? `GPS Locked (±${accuracyMeters || 5}m)`
                     : signalQuality === 'good'
@@ -358,50 +356,39 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
           </div>
 
           <button
-            className="btn-google-icon"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white transition"
             onClick={() => {
               stopGpsTracking();
               onClose();
             }}
             aria-label="Close"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Activity Selector & Sample Loader (when not yet started) */}
         {!isTracking && durationSeconds === 0 && (
-          <div className="my-2">
-            <div className="grid grid-cols-4 gap-1.5 mb-2">
-              <button
-                className={activityType === 'run' ? 'btn-google-primary text-xs py-2' : 'btn-google-outlined text-xs py-2'}
-                onClick={() => setActivityType('run')}
-              >
-                🏃 Run
-              </button>
-              <button
-                className={activityType === 'cycle' ? 'btn-google-primary text-xs py-2' : 'btn-google-outlined text-xs py-2'}
-                onClick={() => setActivityType('cycle')}
-              >
-                🚴 Cycle
-              </button>
-              <button
-                className={activityType === 'drive' ? 'btn-google-primary text-xs py-2' : 'btn-google-outlined text-xs py-2'}
-                onClick={() => setActivityType('drive')}
-              >
-                🚗 Drive
-              </button>
-              <button
-                className={activityType === 'walk' ? 'btn-google-primary text-xs py-2' : 'btn-google-outlined text-xs py-2'}
-                onClick={() => setActivityType('walk')}
-              >
-                🚶 Walk
-              </button>
+          <div className="my-2 space-y-2.5">
+            <div className="grid grid-cols-4 gap-1.5">
+              {(['run', 'cycle', 'drive', 'walk'] as const).map((t) => (
+                <button
+                  key={t}
+                  className={`py-2 rounded-xl text-xs font-bold transition ${
+                    activityType === t
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'border border-white/10 bg-white/5 text-muted-foreground hover:text-white'
+                  }`}
+                  onClick={() => setActivityType(t)}
+                >
+                  {t === 'run' ? '🏃 Run' : t === 'cycle' ? '🚴 Ride' : t === 'drive' ? '🚗 Drive' : '🚶 Walk'}
+                </button>
+              ))}
             </div>
 
-            {/* Quick Sample Route Simulator for instant testing */}
-            <div className="flex items-center justify-between p-2 rounded-xl bg-black/20 border border-glass text-xs flex-wrap gap-1">
-              <span className="text-sub text-[11px] font-semibold">Instant Sample Demo:</span>
+            {/* Quick Sample Route Simulator */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#080b11] border border-white/10 text-xs flex-wrap gap-1.5">
+              <span className="text-muted-foreground text-[10px] font-semibold">Demo Route:</span>
               <div className="flex gap-1 flex-wrap">
                 <button
                   onClick={() => {
@@ -410,7 +397,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
                     if (onOpenFlyby) onOpenFlyby(sample);
                     else if (onOpenSocialShare) onOpenSocialShare(sample);
                   }}
-                  className="text-[10px] font-bold py-1 px-2 rounded-full bg-[#55198B]/20 text-[#c084fc] hover:bg-[#55198B] hover:text-white transition-all cursor-pointer"
+                  className="text-[10px] font-bold py-1 px-2.5 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition"
                 >
                   🏃 5.2k Run
                 </button>
@@ -421,7 +408,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
                     if (onOpenFlyby) onOpenFlyby(sample);
                     else if (onOpenSocialShare) onOpenSocialShare(sample);
                   }}
-                  className="text-[10px] font-bold py-1 px-2 rounded-full bg-orange-500/20 text-orange-400 hover:bg-orange-500 hover:text-white transition-all cursor-pointer"
+                  className="text-[10px] font-bold py-1 px-2.5 rounded-lg border border-[#fc4c02]/30 bg-[#fc4c02]/10 text-[#ff9667] hover:bg-[#fc4c02]/20 transition"
                 >
                   🚴 22.5k Ride
                 </button>
@@ -432,7 +419,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
                     if (onOpenFlyby) onOpenFlyby(sample);
                     else if (onOpenSocialShare) onOpenSocialShare(sample);
                   }}
-                  className="text-[10px] font-bold py-1 px-2 rounded-full bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all cursor-pointer"
+                  className="text-[10px] font-bold py-1 px-2.5 rounded-lg border border-sky-400/30 bg-sky-400/10 text-sky-400 hover:bg-sky-400/20 transition"
                 >
                   🚗 48k Drive
                 </button>
@@ -443,132 +430,129 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
 
         {/* GPS Error Alert */}
         {gpsError && (
-          <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl text-[11px] text-amber-600 dark:text-amber-300 my-2 leading-relaxed">
+          <div className="bg-dude/10 border border-dude/30 p-3 rounded-xl text-[11px] text-dude my-2 leading-relaxed">
             {gpsError}
           </div>
         )}
 
-        {/* ------------------------------------------------------------------- */}
-        {/* MAIN LIVE METRICS DISPLAY (GOOGLE FIT INDUSTRIAL STYLE) */}
-        {/* ------------------------------------------------------------------- */}
+        {/* MAIN LIVE METRICS DISPLAY */}
         <div className="text-center my-3">
-          {/* Big Distance Display */}
-          <div className="text-xs font-bold tracking-widest text-sub uppercase mb-0.5">DISTANCE COVERED</div>
-          <div className="text-5xl md:text-6xl font-black text-main font-mono leading-none tracking-tight">
+          <div className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase mb-0.5 font-display">
+            DISTANCE COVERED
+          </div>
+          <div className="text-5xl md:text-6xl font-extrabold text-white font-mono leading-none tracking-tight">
             {distanceKm.toFixed(2)}
-            <span className="text-2xl text-[#55198B] dark:text-[#c084fc] font-normal ml-1">km</span>
+            <span className="text-2xl text-primary font-normal ml-1">km</span>
           </div>
 
           {/* Time & Pace Sub-Grid */}
-          <div className="grid grid-cols-5 gap-1.5 mt-4 bg-card p-2.5 rounded-2xl border border-glass">
+          <div className="grid grid-cols-5 gap-1.5 mt-4 bg-[#121824] p-3 rounded-xl border border-white/5">
             <div>
-              <div className="text-[8px] text-sub font-bold uppercase">TIME</div>
-              <div className="text-xs md:text-sm font-black text-main font-mono mt-0.5">
+              <div className="text-[8px] text-muted-foreground font-bold uppercase">TIME</div>
+              <div className="text-xs md:text-sm font-bold text-white font-mono mt-0.5">
                 {formatDuration(durationSeconds)}
               </div>
             </div>
 
             <div>
-              <div className="text-[8px] text-sub font-bold uppercase">PACE</div>
-              <div className="text-xs md:text-sm font-black text-[#55198B] dark:text-[#c084fc] font-mono mt-0.5">
+              <div className="text-[8px] text-muted-foreground font-bold uppercase">PACE</div>
+              <div className="text-xs md:text-sm font-bold text-primary font-mono mt-0.5">
                 {formatPace(distanceKm, durationSeconds)}
               </div>
             </div>
 
             <div>
-              <div className="text-[8px] text-sub font-bold uppercase">SPEED</div>
-              <div className="text-xs md:text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+              <div className="text-[8px] text-muted-foreground font-bold uppercase">SPEED</div>
+              <div className="text-xs md:text-sm font-bold text-emerald-400 font-mono mt-0.5">
                 {currentSpeedKmh > 0 ? `${currentSpeedKmh}k` : `${avgSpeedDisplay}k`}
               </div>
             </div>
 
             <div>
-              <div className="text-[8px] text-sub font-bold uppercase">ASCENT</div>
-              <div className="text-xs md:text-sm font-black text-amber-600 dark:text-amber-400 font-mono mt-0.5 flex items-center justify-center gap-0.5">
-                <Mountain size={10} className="text-amber-500" />
+              <div className="text-[8px] text-muted-foreground font-bold uppercase">ASCENT</div>
+              <div className="text-xs md:text-sm font-bold text-dude font-mono mt-0.5 flex items-center justify-center gap-0.5">
+                <Mountain size={10} className="text-dude" />
                 <span>+{liveElevationGain}m</span>
               </div>
             </div>
 
             <div>
-              <div className="text-[8px] text-sub font-bold uppercase">STEPS</div>
-              <div className="text-xs md:text-sm font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5 flex items-center justify-center gap-0.5">
-                <Footprints size={10} className="text-indigo-500" />
+              <div className="text-[8px] text-muted-foreground font-bold uppercase">STEPS</div>
+              <div className="text-xs md:text-sm font-bold text-sky-400 font-mono mt-0.5 flex items-center justify-center gap-0.5">
+                <Footprints size={10} className="text-sky-400" />
                 <span>{liveSteps.toLocaleString()}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ------------------------------------------------------------------- */}
-        {/* LIVE ROUTE MINI-MAP (SVG VECTOR PATH) */}
-        {/* ------------------------------------------------------------------- */}
-        <div className="bg-black/95 rounded-2xl border border-glass p-3 my-2 flex flex-col items-center justify-center relative min-h-[140px] overflow-hidden shadow-inner">
+        {/* LIVE ROUTE MINI-MAP */}
+        <div className="bg-[#080b11] rounded-2xl border border-white/10 p-3 my-2 flex flex-col items-center justify-center relative min-h-[140px] overflow-hidden shadow-inner">
           {routePoints.length >= 2 ? (
             <svg width="300" height="130" className="overflow-visible">
               <path
                 d={routeSvgPath}
                 fill="none"
-                stroke="rgba(85, 25, 139, 0.4)"
-                strokeWidth="8"
+                stroke="rgba(204, 255, 0, 0.25)"
+                strokeWidth="7"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
               <path
                 d={routeSvgPath}
                 fill="none"
-                stroke="#c084fc"
-                strokeWidth="4"
+                stroke="#ccff00"
+                strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
           ) : (
             <div className="text-center py-4">
-              <Compass className="icon-md text-[#55198B] dark:text-[#c084fc] mx-auto animate-spin-slow mb-1" />
-              <p className="text-xs text-slate-400 font-semibold">
-                {isTracking ? 'Acquiring GPS Route coordinates...' : 'Press Start to begin tracking your live route.'}
+              <Compass size={24} className="text-primary mx-auto animate-spin mb-1 opacity-70" />
+              <p className="text-xs text-muted-foreground font-semibold">
+                {isTracking ? 'Acquiring GPS coordinates…' : 'Press Start to begin tracking your live route.'}
               </p>
             </div>
           )}
 
           {isTracking && (
-            <div className="absolute top-2 right-2 flex items-center gap-1 bg-slate-900/90 px-2 py-0.5 rounded-full border border-slate-700 text-[10px] text-emerald-400 font-bold">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <div className="absolute top-2 right-2 flex items-center gap-1 bg-[#121824] px-2 py-0.5 rounded-full border border-primary/30 text-[9px] text-primary font-bold">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
               <span>LIVE GPS</span>
             </div>
           )}
         </div>
 
-        {/* ------------------------------------------------------------------- */}
         {/* ACTION CONTROLS */}
-        {/* ------------------------------------------------------------------- */}
         <div className="my-2">
           {!isTracking && durationSeconds === 0 ? (
             <button
-              className="btn-google-primary w-full py-3.5 text-sm uppercase tracking-wider"
+              className="w-full py-3.5 text-xs font-bold uppercase tracking-wider rounded-xl bg-primary text-primary-foreground hover:brightness-110 active:scale-95 transition shadow-[0_0_20px_rgba(204,255,0,0.25)] flex items-center justify-center gap-2"
               onClick={startGpsTracking}
             >
-              <Play size={18} fill="currentColor" />
+              <Play size={16} fill="currentColor" />
               <span>Start Recording {activityType.toUpperCase()}</span>
             </button>
           ) : (
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-2.5">
               <button
-                className={`btn-google-tonal flex-1 py-3 text-xs uppercase tracking-wider ${
-                  isPaused ? 'bg-amber-500/20 text-amber-500 border-amber-500/40' : ''
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl border transition flex items-center justify-center gap-1.5 ${
+                  isPaused
+                    ? 'border-dude bg-dude/10 text-dude'
+                    : 'border-white/10 bg-white/5 text-muted-foreground hover:text-white'
                 }`}
                 onClick={handlePauseResume}
               >
-                {isPaused ? <Play size={16} fill="currentColor" /> : <Pause size={16} />}
+                {isPaused ? <Play size={14} fill="currentColor" /> : <Pause size={14} />}
                 <span>{isPaused ? 'Resume' : 'Pause'}</span>
               </button>
 
               <button
-                className="btn-google-primary flex-1 py-3 text-xs uppercase tracking-wider !bg-rose-600 text-white hover:!bg-rose-500 shadow-md"
+                className="flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition flex items-center justify-center gap-1.5 shadow-md"
                 onClick={handleFinishAndSave}
               >
-                <StopCircle size={16} />
+                <StopCircle size={15} />
                 <span>Finish & Flyby</span>
               </button>
             </div>
@@ -577,10 +561,10 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
 
         {/* Milestone Celebration Banner */}
         {showCelebration && (
-          <div className="bg-amber-500/15 border border-amber-400/40 p-3 rounded-2xl text-center my-2 animate-scale-up">
-            <Trophy className="icon-md text-amber-500 mx-auto mb-1" />
-            <h4 className="text-xs font-black text-amber-600 dark:text-amber-300 uppercase">Personal Record Unlocked!</h4>
-            <div className="text-[11px] text-main mt-1">
+          <div className="bg-dude/15 border border-dude/40 p-3 rounded-2xl text-center my-2 animate-scale-up">
+            <Trophy size={20} className="text-dude mx-auto mb-1" />
+            <h4 className="text-xs font-black text-dude uppercase font-display">Personal Record Unlocked!</h4>
+            <div className="text-[11px] text-white mt-1">
               {unlockedMilestones.map((m, i) => (
                 <div key={i}>{m}</div>
               ))}

@@ -27,7 +27,10 @@ import {
   RotateCcw,
   Sparkles,
   CalendarCheck,
-  AlertCircle
+  AlertCircle,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface PeriodTabProps {
@@ -170,7 +173,7 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
 
   // Load Demo Data
   const handleLoadDemoData = () => {
-    if (confirm('Load 3+ months of realistic mock cycle demo data?')) {
+    if (confirm('Load 3+ months of realistic cycle demo data?')) {
       onUpdateLogs({ ...initialCycleLogs });
       alert('Demo cycle data loaded successfully!');
     }
@@ -199,16 +202,15 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
 
     metrics.predictions.ovulations.forEach((ov, idx) => {
       const ovClean = ov.replace(/-/g, '');
-      icsContent += `BEGIN:VEVENT\r\nSUMMARY:Predicted Ovulation Day (Cycle #${idx + 1})\r\nDTSTART;VALUE=DATE:${ovClean}\r\nDTEND;VALUE=DATE:${ovClean}\r\nDESCRIPTION:Estimated peak fertile day\r\nEND:VEVENT\r\n`;
+      icsContent += `BEGIN:VEVENT\r\nSUMMARY:Estimated Ovulation (Cycle #${idx + 1})\r\nDTSTART;VALUE=DATE:${ovClean}\r\nDESCRIPTION:High fertility window\r\nEND:VEVENT\r\n`;
     });
-
     icsContent += 'END:VCALENDAR\r\n';
 
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'cycle_predictions.ics';
+    link.download = `EverythingApp_Cycle_Predictions_${todayStr}.ics`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -216,15 +218,16 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
   // Export JSON Backup
   const handleExportJSON = () => {
     const backupData = {
-      logs,
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
       settings,
-      exportedAt: new Date().toISOString()
+      logs
     };
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `cycle_tracker_backup_${todayStr}.json`;
+    link.download = `EverythingApp_CycleBackup_${todayStr}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -233,6 +236,7 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -288,7 +292,7 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
     calendarCells.push({ dayNum: day, dateStr, isOtherMonth: true });
   }
 
-  // Insights Data Calculation (Last 90 Days)
+  // Insights Data Calculation
   const symptomCounts: Record<string, number> = {};
   const moodCounts: Record<string, number> = {};
 
@@ -307,96 +311,99 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
   const maxMoodVal = sortedMoods[0]?.[1] || 1;
 
   return (
-    <div className="tab-container animate-fade-in">
+    <div className="space-y-6 animate-fade-in font-sans">
       {/* Hero Header */}
-      <div className="period-hero glass-card flex justify-between items-center flex-wrap gap-3">
-        <div>
-          <div className="badge-pill bg-rose flex items-center gap-1 inline-flex">
-            <Heart className="icon-xs text-rose fill-current" />
-            <span>MENSTRUATION & OVULATION TRACKER</span>
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+            <Heart size={22} />
           </div>
-          <h2 className="mt-1">Cycle Health & Ovulation Tracker</h2>
-          <p className="text-sub text-sm">
-            100% Private, local cycle mathematics & ovulation forecasting for athletic women.
-          </p>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-rose-400 block font-display">
+              CYCLE HEALTH & BIOMETRIC INTELLIGENCE
+            </span>
+            <h2 className="text-base sm:text-lg font-bold text-white font-display">
+              Menstruation, Phase & Ovulation Tracker
+            </h2>
+          </div>
         </div>
 
         <button
-          className="btn-primary btn-large bg-rose hover:bg-rose-600 pulse-glow flex items-center gap-1"
           onClick={() => handleOpenLogModal(todayStr)}
+          className="flex items-center gap-1.5 rounded-xl bg-rose-500 px-4 py-2.5 text-xs font-bold text-white hover:bg-rose-600 transition shadow-sm"
         >
-          <Plus className="icon-sm" />
+          <Plus size={15} />
           <span>Log Today ({todayStr})</span>
         </button>
       </div>
 
-      {/* Subtab Navigation */}
-      <div className="subtab-bar">
-        <button
-          className={`subtab-btn ${activeSubTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('dashboard')}
-        >
-          <CalendarIcon className="icon-xs" />
-          <span>📊 Dashboard</span>
-        </button>
-        <button
-          className={`subtab-btn ${activeSubTab === 'history' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('history')}
-        >
-          <Activity className="icon-xs" />
-          <span>📜 History</span>
-        </button>
-        <button
-          className={`subtab-btn ${activeSubTab === 'insights' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('insights')}
-        >
-          <Sparkles className="icon-xs" />
-          <span>📈 Insights</span>
-        </button>
-        <button
-          className={`subtab-btn ${activeSubTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('settings')}
-        >
-          <Settings className="icon-xs" />
-          <span>⚙️ Settings & Backup</span>
-        </button>
+      {/* Subtab Navigation Pills */}
+      <div className="flex gap-2 border-b border-white/10 pb-2 overflow-x-auto">
+        {[
+          { id: 'dashboard', label: '📊 Calendar & Cycle', icon: CalendarIcon },
+          { id: 'history', label: '📜 Log History', icon: Activity },
+          { id: 'insights', label: '📈 Biometric Insights', icon: Sparkles },
+          { id: 'settings', label: '⚙️ Settings & Backup', icon: Settings }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSubTab(tab.id as any)}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition whitespace-nowrap ${
+              activeSubTab === tab.id
+                ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                : 'text-muted-foreground hover:text-white border border-transparent'
+            }`}
+          >
+            <tab.icon size={14} />
+            <span>{tab.label}</span>
+          </button>
+        ))}
       </div>
 
       {/* 1. DASHBOARD SUBTAB */}
       {activeSubTab === 'dashboard' && (
-        <div className="subtab-content grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left Column: Calendar Card */}
-          <div className="lg:col-span-2 glass-card card-stagger" style={{ animationDelay: '0.05s' }}>
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-xl font-bold text-white">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Calendar Card */}
+          <div className="lg:col-span-2 rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base sm:text-lg font-bold text-white font-display">
                 {monthNames[currentMonth]} {currentYear}
               </h3>
-              <div className="flex gap-1 items-center">
-                <button className="btn-secondary text-xs px-2 py-1" onClick={handlePrevMonth}>
-                  &lt; Prev
+              <div className="flex gap-1.5 items-center">
+                <button
+                  onClick={handlePrevMonth}
+                  className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-muted-foreground hover:text-white"
+                >
+                  <ChevronLeft size={16} />
                 </button>
-                <button className="btn-primary text-xs px-3 py-1" onClick={handleTodayClick}>
+                <button
+                  onClick={handleTodayClick}
+                  className="px-3 py-1 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-white hover:border-white/25"
+                >
                   Today
                 </button>
-                <button className="btn-secondary text-xs px-2 py-1" onClick={handleNextMonth}>
-                  Next &gt;
+                <button
+                  onClick={handleNextMonth}
+                  className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-muted-foreground hover:text-white"
+                >
+                  <ChevronRight size={16} />
                 </button>
               </div>
             </div>
 
             {/* Days of week header */}
-            <div className="grid grid-cols-7 text-center font-bold text-xs text-sub mb-2">
-              <div>Mon</div>
-              <div>Tue</div>
-              <div>Wed</div>
-              <div>Thu</div>
-              <div>Fri</div>
-              <div>Sat</div>
-              <div>Sun</div>
+            <div className="grid grid-cols-7 text-center font-bold text-[10px] text-muted-foreground mb-2">
+              <div>MON</div>
+              <div>TUE</div>
+              <div>WED</div>
+              <div>THU</div>
+              <div>FRI</div>
+              <div>SAT</div>
+              <div>SUN</div>
             </div>
 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-1.5">
               {calendarCells.map((cell, idx) => {
                 const log = logs[cell.dateStr];
                 const isPeriod = log && log.flow && log.flow !== 'none';
@@ -409,15 +416,15 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
                 const isToday = cell.dateStr === todayStr;
                 const isSelected = cell.dateStr === selectedDateStr;
 
-                let cellBgClass = 'bg-slate-900/60 border-slate-800';
+                let cellBgClass = 'bg-[#121824] border-white/5 text-slate-300';
                 if (isPeriod) {
-                  cellBgClass = 'bg-rose-950/80 border-rose-600 text-rose-200';
+                  cellBgClass = 'bg-rose-950/80 border-rose-500 text-rose-200';
                 } else if (isPredictedPeriod) {
                   cellBgClass = 'bg-rose-900/30 border-dashed border-rose-500/60 text-rose-300';
                 } else if (isOvulation) {
-                  cellBgClass = 'bg-amber-950/80 border-amber-500 text-amber-200';
+                  cellBgClass = 'bg-dude/20 border-dude text-dude';
                 } else if (isFertile) {
-                  cellBgClass = 'bg-cyan-950/60 border-cyan-500/50 text-cyan-200';
+                  cellBgClass = 'bg-sky-950/60 border-sky-500/50 text-sky-200';
                 }
 
                 if (cell.isOtherMonth) {
@@ -427,24 +434,24 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
                 return (
                   <button
                     key={idx}
-                    className={`min-h-[64px] p-1 rounded-lg border text-left flex flex-col justify-between transition-all hover:scale-105 ${cellBgClass} ${
-                      isToday ? 'ring-2 ring-cyan-400' : ''
-                    } ${isSelected ? 'ring-2 ring-amber-400' : ''}`}
+                    className={`min-h-[64px] p-1.5 rounded-xl border text-left flex flex-col justify-between transition hover:scale-105 ${cellBgClass} ${
+                      isToday ? 'ring-2 ring-primary' : ''
+                    } ${isSelected ? 'ring-2 ring-dude' : ''}`}
                     onClick={() => handleOpenLogModal(cell.dateStr)}
                   >
                     <div className="flex justify-between items-center w-full">
-                      <span className={`text-xs font-bold ${isToday ? 'text-cyan' : 'text-slate-300'}`}>
+                      <span className={`text-xs font-bold ${isToday ? 'text-primary' : ''}`}>
                         {cell.dayNum}
                       </span>
                       {isPeriod && (
-                        <span className="text-[10px] bg-rose-600/60 text-white px-1 rounded">
+                        <span className="text-[9px] bg-rose-600/60 text-white px-1 rounded font-bold">
                           {log.flow.toUpperCase()}
                         </span>
                       )}
-                      {isOvulation && <span className="text-[10px] text-amber-400 font-bold">★ OV</span>}
+                      {isOvulation && <span className="text-[9px] text-dude font-bold">★ OV</span>}
                     </div>
 
-                    {/* Logged Icons / Emojis */}
+                    {/* Logged Icons */}
                     <div className="flex flex-wrap gap-0.5 mt-1">
                       {log?.symptoms?.slice(0, 2).map((s, i) => (
                         <span key={i} className="text-[11px]" title={s}>
@@ -463,59 +470,59 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 text-xs mt-3 pt-3 border-t border-slate-800 text-sub">
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-rose-600"></span> Period Logged
+            <div className="flex flex-wrap gap-4 text-xs mt-4 pt-3 border-t border-white/5 text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded bg-rose-600"></span> Period Logged
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded border border-dashed border-rose-400 bg-rose-950/40"></span> Predicted Period
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded border border-dashed border-rose-400 bg-rose-950/40"></span> Predicted Period
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-cyan-900 border border-cyan-500"></span> Fertile Window
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded bg-sky-900 border border-sky-500"></span> Fertile Window
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-amber-600"></span> Ovulation Day
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded bg-dude"></span> Ovulation Day
               </div>
             </div>
           </div>
 
-          {/* Right Column: Cycle Status & Highlights */}
+          {/* Right Column: Status Cards */}
           <div className="flex flex-col gap-4">
             {/* Phase & Day Status Card */}
-            <div className="glass-card card-stagger text-center" style={{ animationDelay: '0.1s' }}>
-              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full border-4 border-rose-500/50 bg-rose-950/30 mb-2">
-                <div>
-                  <div className="text-2xl font-extrabold text-white">Day {phaseInfo.cycleDay}</div>
-                  <div className="text-[10px] text-cyan font-bold uppercase">{phaseInfo.phaseName}</div>
-                </div>
+            <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg text-center flex flex-col items-center justify-center">
+              <div className="w-24 h-24 rounded-full border-4 border-rose-500/50 bg-rose-950/30 flex flex-col items-center justify-center mb-3">
+                <span className="text-2xl font-black text-white font-mono leading-none">Day {phaseInfo.cycleDay}</span>
+                <span className="text-[10px] text-rose-300 font-bold uppercase mt-1">{phaseInfo.phaseName}</span>
               </div>
 
-              <h3 className="text-lg font-bold text-white mt-1">{phaseInfo.phaseName} Phase</h3>
-              <div className="badge-pill bg-amber mt-1 inline-block">{phaseInfo.pregnancyChance}</div>
-              <p className="text-xs text-sub mt-2 leading-relaxed">{phaseInfo.phaseDescription}</p>
+              <h3 className="text-base font-bold text-white font-display">{phaseInfo.phaseName} Phase</h3>
+              <div className="mt-1 inline-block rounded-full border border-dude/30 bg-dude/10 px-3 py-0.5 text-xs font-bold text-dude">
+                {phaseInfo.pregnancyChance}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{phaseInfo.phaseDescription}</p>
             </div>
 
-            {/* Highlights Widget */}
-            <div className="glass-card card-stagger" style={{ animationDelay: '0.15s' }}>
-              <h3 className="text-md font-bold text-white mb-2 flex items-center gap-1">
-                <CalendarCheck className="icon-xs text-cyan" />
+            {/* Cycle Highlights */}
+            <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5 font-display">
+                <CalendarCheck size={14} className="text-primary" />
                 <span>Cycle Highlights</span>
               </h3>
 
               <div className="grid grid-cols-2 gap-2 text-center mb-3">
-                <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                  <div className="text-xl font-bold text-cyan">{metrics.avgCycleLength}</div>
-                  <div className="text-[10px] text-sub uppercase">Avg Cycle (Days)</div>
+                <div className="bg-[#121824] p-3 rounded-xl border border-white/5">
+                  <div className="text-xl font-bold text-primary font-mono">{metrics.avgCycleLength}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Avg Cycle (Days)</div>
                 </div>
-                <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                  <div className="text-xl font-bold text-rose">{metrics.avgPeriodLength}</div>
-                  <div className="text-[10px] text-sub uppercase">Avg Period (Days)</div>
+                <div className="bg-[#121824] p-3 rounded-xl border border-white/5">
+                  <div className="text-xl font-bold text-rose-400 font-mono">{metrics.avgPeriodLength}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Avg Period (Days)</div>
                 </div>
               </div>
 
-              <div className="bg-rose-950/40 p-3 rounded-lg border border-rose-800/60 text-xs">
-                <div className="text-rose-300 font-bold mb-1">Next Expected Period:</div>
-                <div className="text-slate-200 font-semibold">{nextPeriodText}</div>
+              <div className="bg-[#121824] p-3 rounded-xl border border-rose-500/20 text-xs">
+                <div className="text-rose-400 font-bold mb-1">Next Expected Period:</div>
+                <div className="text-white font-semibold">{nextPeriodText}</div>
               </div>
             </div>
           </div>
@@ -524,30 +531,32 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
 
       {/* 2. HISTORY SUBTAB */}
       {activeSubTab === 'history' && (
-        <div className="subtab-content glass-card card-stagger">
-          <h3 className="text-lg font-bold text-white mb-3">Cycle Log History</h3>
+        <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg">
+          <h3 className="text-base font-bold text-white mb-4 font-display">Cycle Log History</h3>
 
           {metrics.groups.length === 0 ? (
-            <div className="text-center py-8 text-sub">
-              <AlertCircle className="mx-auto mb-2 icon-lg text-slate-600" />
-              <p>No historical cycle data logged yet. Click "Log Today" or select a calendar date!</p>
+            <div className="text-center py-8 text-muted-foreground">
+              <AlertCircle size={28} className="mx-auto mb-2 text-muted-foreground" />
+              <p className="text-xs">No historical cycle data logged yet. Click "Log Today" or select a calendar date!</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="space-y-3">
               {metrics.groups.slice().reverse().map((grp, idx) => (
-                <div key={idx} className="bg-slate-900/70 p-3 rounded-lg border border-slate-800 flex justify-between items-center flex-wrap gap-2">
+                <div key={idx} className="bg-[#121824] p-4 rounded-xl border border-white/5 flex justify-between items-center flex-wrap gap-2">
                   <div>
-                    <span className="badge-pill bg-rose text-xs">Cycle #{metrics.groups.length - idx}</span>
-                    <h4 className="font-bold text-white mt-1">
+                    <span className="rounded-md bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-300">
+                      Cycle #{metrics.groups.length - idx}
+                    </span>
+                    <h4 className="font-bold text-white mt-1 text-sm font-display">
                       {grp.startDateStr} &rarr; {grp.endDateStr}
                     </h4>
-                    <div className="text-xs text-sub mt-0.5">
-                      Duration: <strong>{grp.length} Days Period</strong>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Duration: <strong className="text-white">{grp.length} Days Period</strong>
                     </div>
                   </div>
 
                   <button
-                    className="btn-secondary text-xs"
+                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-white"
                     onClick={() => handleOpenLogModal(grp.startDateStr)}
                   >
                     View / Edit Log
@@ -561,25 +570,24 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
 
       {/* 3. INSIGHTS SUBTAB */}
       {activeSubTab === 'insights' && (
-        <div className="subtab-content grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Symptoms Chart */}
-          <div className="glass-card card-stagger">
-            <h3 className="text-md font-bold text-white mb-1">Logged Symptoms Frequency</h3>
-            <p className="text-xs text-sub mb-3">Most common symptoms recorded across your cycles</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg">
+            <h3 className="text-sm font-bold text-white mb-1 font-display">Logged Symptoms Frequency</h3>
+            <p className="text-xs text-muted-foreground mb-4">Most common physical sensations recorded</p>
 
             {sortedSymptoms.length === 0 ? (
-              <p className="text-xs text-sub py-4">No symptoms logged yet.</p>
+              <p className="text-xs text-muted-foreground py-4">No symptoms logged yet.</p>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="space-y-3">
                 {sortedSymptoms.map(([sym, count]) => {
                   const pct = Math.round((count / maxSymptomVal) * 100);
                   return (
                     <div key={sym}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span>{SYMPTOM_EMOJIS[sym] || '•'} {SYMPTOM_LABELS[sym] || sym}</span>
-                        <span className="text-cyan font-bold">{count} times</span>
+                        <span className="text-slate-200">{SYMPTOM_EMOJIS[sym] || '•'} {SYMPTOM_LABELS[sym] || sym}</span>
+                        <span className="text-rose-400 font-bold font-mono">{count} times</span>
                       </div>
-                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-rose-500 rounded-full transition-all duration-500"
                           style={{ width: `${pct}%` }}
@@ -592,26 +600,25 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
             )}
           </div>
 
-          {/* Mood Patterns Chart */}
-          <div className="glass-card card-stagger">
-            <h3 className="text-md font-bold text-white mb-1">Mood Patterns</h3>
-            <p className="text-xs text-sub mb-3">Distribution of recorded moods across your cycles</p>
+          <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg">
+            <h3 className="text-sm font-bold text-white mb-1 font-display">Mood & Energy Patterns</h3>
+            <p className="text-xs text-muted-foreground mb-4">Distribution of mental state across your cycles</p>
 
             {sortedMoods.length === 0 ? (
-              <p className="text-xs text-sub py-4">No moods logged yet.</p>
+              <p className="text-xs text-muted-foreground py-4">No moods logged yet.</p>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="space-y-3">
                 {sortedMoods.map(([mood, count]) => {
                   const pct = Math.round((count / maxMoodVal) * 100);
                   return (
                     <div key={mood}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span>{MOOD_EMOJIS[mood] || '•'} {MOOD_LABELS[mood] || mood}</span>
-                        <span className="text-amber font-bold">{count} times</span>
+                        <span className="text-slate-200">{MOOD_EMOJIS[mood] || '•'} {MOOD_LABELS[mood] || mood}</span>
+                        <span className="text-dude font-bold font-mono">{count} times</span>
                       </div>
-                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                          className="h-full bg-dude rounded-full transition-all duration-500"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -624,67 +631,86 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
         </div>
       )}
 
-      {/* 4. SETTINGS & BACKUP SUBTAB */}
+      {/* 4. SETTINGS SUBTAB */}
       {activeSubTab === 'settings' && (
-        <div className="subtab-content grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Cycle Configuration Form */}
-          <div className="glass-card card-stagger">
-            <h3 className="text-md font-bold text-white mb-2">Cycle Settings</h3>
-            <form onSubmit={handleSaveSettings} className="flex flex-col gap-3">
-              <div className="form-group">
-                <label className="text-xs text-sub">Default Cycle Length (days):</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg">
+            <h3 className="text-sm font-bold text-white mb-4 font-display">Cycle Length Settings</h3>
+            <form onSubmit={handleSaveSettings} className="space-y-4">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1 font-semibold">
+                  Default Cycle Length (days):
+                </label>
                 <input
                   type="number"
                   value={formCycleLen}
                   onChange={(e) => setFormCycleLen(Number(e.target.value))}
                   min="20"
                   max="45"
-                  className="w-full mt-1"
+                  className="w-full bg-[#121824] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-rose-500"
                 />
               </div>
-              <div className="form-group">
-                <label className="text-xs text-sub">Default Period Duration (days):</label>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1 font-semibold">
+                  Default Period Duration (days):
+                </label>
                 <input
                   type="number"
                   value={formPeriodLen}
                   onChange={(e) => setFormPeriodLen(Number(e.target.value))}
                   min="2"
                   max="10"
-                  className="w-full mt-1"
+                  className="w-full bg-[#121824] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-rose-500"
                 />
               </div>
-              <button type="submit" className="btn-primary">Save Settings</button>
+              <button
+                type="submit"
+                className="rounded-xl bg-rose-500 px-5 py-2.5 text-xs font-bold text-white hover:bg-rose-600 transition"
+              >
+                Save Settings
+              </button>
             </form>
           </div>
 
-          {/* Backup & Tools */}
-          <div className="glass-card card-stagger flex flex-col gap-3">
-            <h3 className="text-md font-bold text-white">Data Management & Calendar Sync</h3>
+          <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg space-y-3">
+            <h3 className="text-sm font-bold text-white mb-1 font-display">Data Management & Calendar Sync</h3>
 
-            <button className="btn-secondary flex items-center justify-center gap-1" onClick={handleLoadDemoData}>
-              <RotateCcw className="icon-xs" />
+            <button
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-bold text-muted-foreground hover:text-white"
+              onClick={handleLoadDemoData}
+            >
+              <RotateCcw size={14} />
               <span>Load 3-Month Demo Data</span>
             </button>
 
-            <button className="btn-secondary flex items-center justify-center gap-1" onClick={handleExportICS}>
-              <CalendarCheck className="icon-xs text-cyan" />
+            <button
+              className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-sky-400/30 bg-sky-400/10 py-2.5 text-xs font-bold text-sky-400 hover:bg-sky-400/20"
+              onClick={handleExportICS}
+            >
+              <CalendarCheck size={14} />
               <span>Sync with Calendar (.ICS File)</span>
             </button>
 
             <div className="flex gap-2">
-              <button className="btn-secondary flex-1 flex items-center justify-center gap-1 text-xs" onClick={handleExportJSON}>
-                <Download className="icon-xs" />
-                <span>Export Backup</span>
+              <button
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-semibold text-muted-foreground hover:text-white"
+                onClick={handleExportJSON}
+              >
+                <Download size={13} />
+                <span>Export JSON</span>
               </button>
 
-              <label className="btn-secondary flex-1 flex items-center justify-center gap-1 text-xs cursor-pointer">
-                <Upload className="icon-xs" />
+              <label className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-semibold text-muted-foreground hover:text-white cursor-pointer">
+                <Upload size={13} />
                 <span>Import JSON</span>
                 <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
               </label>
             </div>
 
-            <button className="btn-secondary text-rose border-rose-900/50 hover:bg-rose-950/40 text-xs mt-2" onClick={handleClearAllData}>
+            <button
+              className="w-full rounded-xl border border-rose-500/30 bg-rose-500/10 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/20 mt-3"
+              onClick={handleClearAllData}
+            >
               Clear All Period Data
             </button>
           </div>
@@ -693,26 +719,35 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
 
       {/* LOG EDITOR MODAL */}
       {showLogModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content glass-card animate-scale-up max-w-lg">
-            <div className="modal-header">
-              <h3>Log Cycle Details ({selectedDateStr})</h3>
-              <button className="btn-close" onClick={() => setShowLogModal(false)}>&times;</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#0e131b] p-6 shadow-2xl text-foreground">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <h3 className="text-sm font-bold text-white font-display">
+                Log Cycle Details ({selectedDateStr})
+              </h3>
+              <button
+                className="rounded-lg p-1 text-muted-foreground hover:text-white"
+                onClick={() => setShowLogModal(false)}
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <form onSubmit={handleSaveLog} className="flex flex-col gap-3 mt-2">
+            <form onSubmit={handleSaveLog} className="space-y-4">
               {/* Flow Selector */}
               <div>
-                <label className="text-xs text-sub font-bold block mb-1">Menstrual Flow Level:</label>
-                <div className="grid grid-cols-4 gap-1">
+                <label className="text-xs font-bold text-muted-foreground block mb-1.5 font-display">
+                  Menstrual Flow Level:
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
                   {(['none', 'light', 'medium', 'heavy'] as const).map((f) => (
                     <button
                       key={f}
                       type="button"
-                      className={`p-2 rounded text-xs font-bold border transition-all ${
+                      className={`py-2 px-1 rounded-xl text-xs font-bold border transition ${
                         editFlow === f
-                          ? 'bg-rose-600 border-rose-400 text-white'
-                          : 'bg-slate-900/80 border-slate-800 text-sub'
+                          ? 'bg-rose-500 border-rose-400 text-white'
+                          : 'bg-[#121824] border-white/5 text-muted-foreground hover:text-white'
                       }`}
                       onClick={() => setEditFlow(f)}
                     >
@@ -724,18 +759,20 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
 
               {/* Symptoms Pills */}
               <div>
-                <label className="text-xs text-sub font-bold block mb-1">Symptoms:</label>
-                <div className="flex flex-wrap gap-1">
+                <label className="text-xs font-bold text-muted-foreground block mb-1.5 font-display">
+                  Symptoms:
+                </label>
+                <div className="flex flex-wrap gap-1.5">
                   {Object.keys(SYMPTOM_EMOJIS).map((sym) => {
                     const isSelected = editSymptoms.includes(sym);
                     return (
                       <button
                         key={sym}
                         type="button"
-                        className={`px-2 py-1 rounded-full text-xs border transition-all ${
+                        className={`px-2.5 py-1 rounded-full text-xs border transition ${
                           isSelected
-                            ? 'bg-cyan-600 border-cyan-400 text-white'
-                            : 'bg-slate-900/80 border-slate-800 text-sub'
+                            ? 'bg-primary/20 border-primary text-primary font-bold'
+                            : 'bg-[#121824] border-white/5 text-muted-foreground hover:text-white'
                         }`}
                         onClick={() => toggleSymptom(sym)}
                       >
@@ -748,18 +785,20 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
 
               {/* Moods Pills */}
               <div>
-                <label className="text-xs text-sub font-bold block mb-1">Moods:</label>
-                <div className="flex flex-wrap gap-1">
+                <label className="text-xs font-bold text-muted-foreground block mb-1.5 font-display">
+                  Moods:
+                </label>
+                <div className="flex flex-wrap gap-1.5">
                   {Object.keys(MOOD_EMOJIS).map((m) => {
                     const isSelected = editMoods.includes(m);
                     return (
                       <button
                         key={m}
                         type="button"
-                        className={`px-2 py-1 rounded-full text-xs border transition-all ${
+                        className={`px-2.5 py-1 rounded-full text-xs border transition ${
                           isSelected
-                            ? 'bg-amber-600 border-amber-400 text-white'
-                            : 'bg-slate-900/80 border-slate-800 text-sub'
+                            ? 'bg-dude/20 border-dude text-dude font-bold'
+                            : 'bg-[#121824] border-white/5 text-muted-foreground hover:text-white'
                         }`}
                         onClick={() => toggleMood(m)}
                       >
@@ -772,32 +811,41 @@ export const PeriodTab: React.FC<PeriodTabProps> = ({
 
               {/* Notes */}
               <div>
-                <label className="text-xs text-sub font-bold block mb-1">Notes / Journal:</label>
+                <label className="text-xs font-bold text-muted-foreground block mb-1.5 font-display">
+                  Notes / Journal:
+                </label>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                   placeholder="Notes on energy, sleep, or physical feeling..."
                   rows={2}
-                  className="w-full text-xs"
+                  className="w-full bg-[#121824] border border-white/10 rounded-xl p-3 text-xs text-white outline-none focus:border-rose-500"
                 />
               </div>
 
               {/* Modal Actions */}
-              <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-800">
+              <div className="flex justify-between items-center pt-3 border-t border-white/10">
                 <button
                   type="button"
-                  className="btn-secondary text-rose border-rose-900/40 text-xs flex items-center gap-1"
+                  className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 flex items-center gap-1"
                   onClick={handleDeleteLog}
                 >
-                  <Trash2 className="icon-xs" />
+                  <Trash2 size={13} />
                   <span>Clear Entry</span>
                 </button>
 
                 <div className="flex gap-2">
-                  <button type="button" className="btn-secondary text-xs" onClick={() => setShowLogModal(false)}>
+                  <button
+                    type="button"
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-white"
+                    onClick={() => setShowLogModal(false)}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="btn-primary text-xs bg-rose hover:bg-rose-600">
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-rose-500 px-5 py-2 text-xs font-bold text-white hover:bg-rose-600 transition shadow-sm"
+                  >
                     Save Log Entry
                   </button>
                 </div>

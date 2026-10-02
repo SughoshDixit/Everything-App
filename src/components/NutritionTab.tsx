@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { UserProfile } from '../types';
-import { Utensils, Droplet, Moon, HeartPulse, Flame, Check, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Utensils, Droplet, Moon, HeartPulse, Flame, Check, Plus, Minus, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
 interface NutritionTabProps {
   currentProfile: UserProfile;
@@ -19,152 +19,202 @@ export const NutritionTab: React.FC<NutritionTabProps> = ({ currentProfile }) =>
 
   const handleSaveLogs = () => {
     setSavedToday(true);
-    setTimeout(() => setSavedToday(false), 3000);
+    setTimeout(() => setSavedToday(false), 2500);
   };
 
   return (
-    <div className="tab-container animate-fade-in">
-      {/* Hero */}
-      <div className="nutrition-hero glass-card hover-scale" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem' }}>
-        <HeartPulse className="icon-lg text-emerald pulse-glow" />
-        <div>
-          <div className="badge-pill bg-emerald/20 text-emerald mb-1">{currentProfile.toUpperCase()} RECOVERY</div>
-          <h2 className="m-0" style={{ fontSize: '1.25rem' }}>Nutrition & Sleep</h2>
+    <div className="space-y-6 animate-fade-in font-sans">
+      {/* Hero Header */}
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+            <HeartPulse size={22} />
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary block font-display">
+              {currentProfile.toUpperCase()} RECOVERY & BIOMETRICS
+            </span>
+            <h2 className="text-base sm:text-lg font-bold text-white font-display">
+              Nutrition, Hydration & Sleep
+            </h2>
+          </div>
         </div>
+
+        <button
+          onClick={handleSaveLogs}
+          className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold transition shadow-sm ${
+            savedToday
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
+          }`}
+        >
+          {savedToday ? <Check size={15} /> : <Sparkles size={15} />}
+          <span>{savedToday ? 'Logs Saved!' : 'Save Daily Log'}</span>
+        </button>
       </div>
 
-      <div className="nutrition-grid mt-4">
+      {/* Main Trackers Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Hydration Tracker */}
-        <div className="track-card glass-card card-stagger hover-scale" style={{ animationDelay: '0.08s' }}>
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Droplet className="icon-sm text-cyan" />
-              <h3 className="m-0">Water</h3>
+        <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-sky-400">
+                <Droplet size={16} />
+                <h3 className="text-sm font-bold text-white font-display">Hydration</h3>
+              </div>
+              <div className="font-mono text-sm font-bold text-sky-400">
+                {water.toFixed(1)} <span className="text-xs text-muted-foreground font-normal">/ {targetWater}L</span>
+              </div>
             </div>
-            <div className="metric-val font-bold text-cyan">{water.toFixed(1)}/{targetWater}L</div>
+
+            <div className="w-full bg-[#121824] h-2 rounded-full overflow-hidden mb-4 border border-white/5">
+              <div
+                className="h-full bg-sky-400 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (water / targetWater) * 100)}%` }}
+              />
+            </div>
           </div>
-          <div className="progress-bar-wrap mt-2 mb-3 bg-dark" style={{ height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-            <div
-              className="progress-bar-fill bg-cyan"
-              style={{ width: `${Math.min(100, (water / targetWater) * 100)}%`, height: '100%', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}
-            />
-          </div>
-          <div className="stepper-buttons" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <button className="btn-icon bg-dark text-white rounded-full p-2 border border-glass" onClick={() => setWater((w) => Math.max(0, w - 0.5))}><Minus className="icon-sm" /></button>
-            <button className="btn-icon bg-[#55198B] text-white rounded-full p-2 shadow-sm" onClick={() => setWater((w) => w + 0.5)}><Plus className="icon-sm" /></button>
+
+          <div className="flex items-center justify-center gap-3 pt-2 border-t border-white/5">
+            <button
+              onClick={() => setWater((w) => Math.max(0, w - 0.5))}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-[#121824] text-white hover:border-white/25 transition"
+            >
+              <Minus size={14} />
+            </button>
+            <span className="text-xs font-mono font-bold text-muted-foreground">0.5 L</span>
+            <button
+              onClick={() => setWater((w) => w + 0.5)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-400/15 border border-sky-400/30 text-sky-400 hover:bg-sky-400/25 transition"
+            >
+              <Plus size={14} />
+            </button>
           </div>
         </div>
 
         {/* Protein Tracker */}
-        <div className="track-card glass-card card-stagger hover-scale" style={{ animationDelay: '0.16s' }}>
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Utensils className="icon-sm text-amber" />
-              <h3 className="m-0">Protein</h3>
+        <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-dude">
+                <Utensils size={16} />
+                <h3 className="text-sm font-bold text-white font-display">Protein Intake</h3>
+              </div>
+              <div className="font-mono text-sm font-bold text-dude">
+                {protein} <span className="text-xs text-muted-foreground font-normal">/ {targetProtein}g</span>
+              </div>
             </div>
-            <div className="metric-val font-bold text-amber">{protein}/{targetProtein}g</div>
+
+            <div className="w-full bg-[#121824] h-2 rounded-full overflow-hidden mb-4 border border-white/5">
+              <div
+                className="h-full bg-dude rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (protein / targetProtein) * 100)}%` }}
+              />
+            </div>
           </div>
-          <div className="progress-bar-wrap mt-2 mb-3 bg-dark" style={{ height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-            <div
-              className="progress-bar-fill bg-amber"
-              style={{ width: `${Math.min(100, (protein / targetProtein) * 100)}%`, height: '100%', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}
-            />
-          </div>
-          <div className="stepper-buttons" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <button className="btn-icon bg-dark text-white rounded-full p-2" onClick={() => setProtein((p) => Math.max(0, p - 10))}><Minus className="icon-sm" /></button>
-            <button className="btn-icon bg-amber text-black rounded-full p-2" onClick={() => setProtein((p) => p + 15)}><Plus className="icon-sm" /></button>
+
+          <div className="flex items-center justify-center gap-3 pt-2 border-t border-white/5">
+            <button
+              onClick={() => setProtein((p) => Math.max(0, p - 10))}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-[#121824] text-white hover:border-white/25 transition"
+            >
+              <Minus size={14} />
+            </button>
+            <span className="text-xs font-mono font-bold text-muted-foreground">15 g</span>
+            <button
+              onClick={() => setProtein((p) => p + 15)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-dude/15 border border-dude/30 text-dude hover:bg-dude/25 transition"
+            >
+              <Plus size={14} />
+            </button>
           </div>
         </div>
 
         {/* Sleep Tracker */}
-        <div className="track-card glass-card card-stagger hover-scale" style={{ animationDelay: '0.24s' }}>
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Moon className="icon-sm text-indigo" />
-              <h3 className="m-0">Sleep</h3>
+        <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-primary">
+                <Moon size={16} />
+                <h3 className="text-sm font-bold text-white font-display">Sleep & Recovery</h3>
+              </div>
+              <div className="font-mono text-sm font-bold text-primary">
+                {sleepHours}h
+              </div>
             </div>
-            <div className="metric-val font-bold text-indigo">{sleepHours}h</div>
+
+            <div className="flex gap-1 mb-4">
+              {(['Optimal', 'Good', 'Fair', 'Poor'] as const).map((q) => (
+                <button
+                  key={q}
+                  onClick={() => setSleepQuality(q)}
+                  className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition ${
+                    sleepQuality === q
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-[#121824] text-muted-foreground hover:text-white border border-white/5'
+                  }`}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="quality-selector mt-2 mb-3" style={{ display: 'flex', gap: '0.25rem' }}>
-            {(['Optimal', 'Good', 'Fair', 'Poor'] as const).map((q) => (
-              <button
-                key={q}
-                className={`q-pill text-xs flex-1 py-1 rounded ${sleepQuality === q ? 'bg-indigo text-white font-bold' : 'bg-dark text-muted'}`}
-                onClick={() => setSleepQuality(q)}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-          <div className="stepper-buttons" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <button className="btn-icon bg-dark text-white rounded-full p-2" onClick={() => setSleepHours((s) => Math.max(4, s - 0.5))}><Minus className="icon-sm" /></button>
-            <button className="btn-icon bg-indigo text-white rounded-full p-2" onClick={() => setSleepHours((s) => s + 0.5)}><Plus className="icon-sm" /></button>
+
+          <div className="flex items-center justify-center gap-3 pt-2 border-t border-white/5">
+            <button
+              onClick={() => setSleepHours((s) => Math.max(4, s - 0.5))}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-[#121824] text-white hover:border-white/25 transition"
+            >
+              <Minus size={14} />
+            </button>
+            <span className="text-xs font-mono font-bold text-muted-foreground">0.5 h</span>
+            <button
+              onClick={() => setSleepHours((s) => s + 0.5)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 transition"
+            >
+              <Plus size={14} />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Save Button */}
-      <div className="text-center mt-4 card-stagger" style={{ animationDelay: '0.32s' }}>
-        <button className={`btn-primary btn-large w-full ${savedToday ? 'bg-emerald text-black pulse-glow' : ''}`} onClick={handleSaveLogs} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-          {savedToday ? <Check className="icon-sm" /> : <HeartPulse className="icon-sm" />}
-          <span>{savedToday ? 'Saved!' : 'Save Log'}</span>
-        </button>
-      </div>
-
-      {/* Active Recovery & Mobility Checklist */}
-      <div className="recovery-section mt-4 glass-card card-stagger hover-scale" style={{ animationDelay: '0.40s' }}>
-        <button 
-          className="btn-secondary w-full" 
+      {/* Active Recovery & Mobility Tips */}
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg">
+        <button
           onClick={() => setShowTips(!showTips)}
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 'none', background: 'transparent' }}
+          className="w-full flex items-center justify-between text-left"
         >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}>
-            <Flame className="icon-sm text-rose" /> 🧘 Recovery Tips
-          </span>
-          {showTips ? <ChevronUp className="icon-sm" /> : <ChevronDown className="icon-sm" />}
+          <div className="flex items-center gap-2 text-sm font-bold text-white font-display">
+            <Flame size={16} className="text-[#ff9667]" />
+            <span>Active Mobility & Injury Prevention Checklist</span>
+          </div>
+          {showTips ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
         </button>
-        
+
         {showTips && (
-          <ul className="recovery-list mt-3 animate-fade-in pl-0" style={{ listStyle: 'none' }}>
-            <li className="mb-2" style={{ display: 'flex', gap: '0.5rem' }}>
-              <Flame className="icon-xs text-rose flex-shrink-0 mt-1" />
-              <span><strong>Hip Flexor:</strong> Prevent tight hips.</span>
-            </li>
-            <li className="mb-2" style={{ display: 'flex', gap: '0.5rem' }}>
-              <Flame className="icon-xs text-amber flex-shrink-0 mt-1" />
-              <span><strong>Doorway Pec:</strong> Open up shoulders.</span>
-            </li>
-            <li style={{ display: 'flex', gap: '0.5rem' }}>
-              <Flame className="icon-xs text-cyan flex-shrink-0 mt-1" />
-              <span><strong>Ankle Mobility:</strong> Protect achilles.</span>
-            </li>
-          </ul>
+          <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs animate-fade-in">
+            <div className="p-3.5 rounded-xl border border-white/5 bg-[#121824]">
+              <span className="font-bold text-dude block mb-1">Hip Flexor Mobilization</span>
+              <p className="text-muted-foreground leading-relaxed">
+                Prevents tight hip capsules after high-speed pitch sprints and weighted squats.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl border border-white/5 bg-[#121824]">
+              <span className="font-bold text-primary block mb-1">Doorway Thoracic Opener</span>
+              <p className="text-muted-foreground leading-relaxed">
+                Counteracts chest tension from heavy push-ups, dips and desk posture.
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl border border-white/5 bg-[#121824]">
+              <span className="font-bold text-sky-400 block mb-1">Ankle Dorsiflexion Routine</span>
+              <p className="text-muted-foreground leading-relaxed">
+                Strengthens achilles resilience for change-of-direction cuts in football.
+              </p>
+            </div>
+          </div>
         )}
       </div>
-
-      <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .card-stagger {
-          opacity: 0;
-          animation: fadeInUp 0.4s ease forwards;
-        }
-        .hover-scale {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .hover-scale:hover {
-          transform: scale(1.02);
-        }
-        .pulse-glow {
-          animation: pulseGlow 2s infinite;
-        }
-        @keyframes pulseGlow {
-          0%, 100% { filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.4)); }
-          50% { filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.8)); }
-        }
-      `}</style>
     </div>
   );
 };

@@ -49,6 +49,7 @@ class LocationTrackingService : Service(), LocationListener {
                 for (p in bufferedPoints) {
                     array.put(p)
                 }
+                bufferedPoints.clear() // Drain buffered points so they are never re-ingested
                 return array.toString()
             }
         }
@@ -122,7 +123,7 @@ class LocationTrackingService : Service(), LocationListener {
             startForeground(NOTIFICATION_ID, notification)
         }
 
-        // 3. Register high-accuracy location listener
+        // 3. Register high-accuracy GPS satellite location listener
         try {
             locationManager?.let { lm ->
                 if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -133,14 +134,6 @@ class LocationTrackingService : Service(), LocationListener {
                         this
                     )
                     Log.d(TAG, "GPS_PROVIDER location listener registered")
-                }
-                if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                    lm.requestLocationUpdates(
-                        LocationManager.NETWORK_PROVIDER,
-                        2000L,
-                        1.0f,
-                        this
-                    )
                 }
             }
         } catch (e: SecurityException) {
@@ -172,16 +165,25 @@ class LocationTrackingService : Service(), LocationListener {
     }
 
     override fun onLocationChanged(loc: Location) {
+        // Drop noisy fixes with wide accuracy bubbles
+        if (loc.hasAccuracy() && loc.accuracy > 16.0f) {
+            return
+        }
+
         val speedKmh = if (loc.hasSpeed()) loc.speed * 3.6f else 0f
 
-        // Stationary noise gate
+        // Doppler-guided distance accumulation
         val last = lastLocation
         var distDelta = 0.0
         if (last != null) {
             val d = last.distanceTo(loc).toDouble()
-            // Ignore stationary GPS wander under 1.5m if speed is near zero
-            if (d >= 1.5 || speedKmh > 1.8f) {
-                distDelta = d
+            val dtSec = Math.max(0.2, (loc.time - last.time) / 1000.0)
+
+            // Stationary noise gate: ignore when speed < 2.2 km/h
+            if (speedKmh > 2.2f && d >= 1.0) {
+                // Bound distance delta to Doppler physical velocity to prevent 4x GPS jitter inflation
+                val maxAllowed = (loc.speed * dtSec * 1.3) + 0.4
+                distDelta = Math.min(d, maxAllowed)
                 totalDistanceMeters += distDelta
                 lastLocation = loc
             }

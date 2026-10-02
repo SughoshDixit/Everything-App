@@ -17,7 +17,8 @@ import {
   Footprints,
   CheckCircle2,
   Film,
-  Plus
+  Plus,
+  Sparkles
 } from 'lucide-react';
 import { HistoricalTrendsDashboard } from './HistoricalTrendsDashboard';
 
@@ -121,11 +122,25 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
   };
 
   return (
-    <div className="tab-container animate-fade-in flex flex-col gap-4">
+    <div className="space-y-6 animate-fade-in font-sans">
       {/* ------------------------------------------------------------------- */}
-      {/* 1. GOOGLE FIT SIGNATURE CONCENTRIC ACTIVITY RINGS CARD */}
+      {/* 1. ATHLETIC CONCENTRIC ACTIVITY RINGS CARD */}
       {/* ------------------------------------------------------------------- */}
-      <div className="google-card p-6 flex flex-col items-center justify-center text-center">
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-6 sm:p-7 flex flex-col items-center justify-center text-center shadow-lg relative overflow-hidden">
+        {/* Subtle background glow */}
+        <div className="absolute top-0 right-1/4 w-72 h-72 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+
+        <div className="w-full flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary flex items-center gap-1.5">
+              <Sparkles size={12} /> GOOGLE FIT TELEMETRY
+            </span>
+          </div>
+          <span className="text-[10px] font-mono font-semibold text-muted-foreground">
+            {todayStr}
+          </span>
+        </div>
+
         {/* Dual Concentric SVG Ring Visual */}
         <div className="relative w-56 h-56 flex items-center justify-center my-2">
           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
@@ -134,8 +149,8 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
               cx="80"
               cy="80"
               r="64"
-              stroke="var(--ring-move-track)"
-              strokeWidth="12"
+              stroke="rgba(204, 255, 0, 0.12)"
+              strokeWidth="11"
               fill="transparent"
             />
             {/* Outer Ring Progress: Move Minutes */}
@@ -143,8 +158,8 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
               cx="80"
               cy="80"
               r="64"
-              stroke="var(--ring-move-fill)"
-              strokeWidth="12"
+              stroke="#ccff00"
+              strokeWidth="11"
               strokeDasharray={2 * Math.PI * 64}
               strokeDashoffset={2 * Math.PI * 64 * (1 - moveProgress / 100)}
               strokeLinecap="round"
@@ -156,20 +171,20 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
             <circle
               cx="80"
               cy="80"
-              r="46"
-              stroke="var(--ring-heart-track)"
-              strokeWidth="12"
+              r="47"
+              stroke="rgba(252, 76, 2, 0.15)"
+              strokeWidth="11"
               fill="transparent"
             />
             {/* Inner Ring Progress: Heart Points */}
             <circle
               cx="80"
               cy="80"
-              r="46"
-              stroke="var(--ring-heart-fill)"
-              strokeWidth="12"
-              strokeDasharray={2 * Math.PI * 46}
-              strokeDashoffset={2 * Math.PI * 46 * (1 - heartProgress / 100)}
+              r="47"
+              stroke="#fc4c02"
+              strokeWidth="11"
+              strokeDasharray={2 * Math.PI * 47}
+              strokeDashoffset={2 * Math.PI * 47 * (1 - heartProgress / 100)}
               strokeLinecap="round"
               fill="transparent"
               style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}
@@ -178,98 +193,98 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
 
           {/* Center Heart Points Metric */}
           <div className="absolute flex flex-col items-center justify-center text-center">
-            <span className="text-4xl font-black text-main font-mono leading-none tracking-tight">
+            <span className="text-4xl font-extrabold text-white font-mono leading-none tracking-tight">
               {totalHeartPoints}
             </span>
-            <span className="text-[11px] font-bold text-sub uppercase tracking-wider mt-1 flex items-center justify-center gap-1">
-              <Heart size={12} className="text-cyan-500 fill-cyan-500" />
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1.5 flex items-center justify-center gap-1">
+              <Heart size={12} className="text-[#fc4c02] fill-[#fc4c02]" />
               <span>Heart Pts</span>
             </span>
           </div>
         </div>
 
-        {/* 4 Google Material 3 Stat Tiles Grid (Centered Horizontally & Vertically) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full mt-4 pt-4 border-t border-glass">
+        {/* 4 Stat Tiles Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full mt-6 pt-5 border-t border-border">
           {/* Tile 1: Heart Points */}
-          <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex flex-col items-center justify-center text-center">
-            <div className="flex items-center justify-center gap-1 text-[#55198B] dark:text-[#c084fc] text-xs font-bold uppercase mb-0.5">
-              <Heart size={14} />
+          <div className="p-3.5 rounded-xl border border-white/5 bg-[#121824] flex flex-col items-center justify-center text-center">
+            <div className="flex items-center justify-center gap-1 text-[#ff9667] text-[10px] font-bold uppercase mb-1">
+              <Heart size={13} />
               <span>Heart Points</span>
             </div>
-            <div className="text-xl font-black text-main font-mono">
-              {totalHeartPoints} <span className="text-xs text-sub font-normal">/ {heartPointsDailyTarget}</span>
+            <div className="text-xl font-bold text-white font-mono">
+              {totalHeartPoints} <span className="text-xs text-muted-foreground font-normal">/ {heartPointsDailyTarget}</span>
             </div>
           </div>
 
           {/* Tile 2: Move Minutes */}
-          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col items-center justify-center text-center">
-            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase mb-0.5">
-              <Zap size={14} />
+          <div className="p-3.5 rounded-xl border border-white/5 bg-[#121824] flex flex-col items-center justify-center text-center">
+            <div className="flex items-center justify-center gap-1 text-primary text-[10px] font-bold uppercase mb-1">
+              <Zap size={13} />
               <span>Move Minutes</span>
             </div>
-            <div className="text-xl font-black text-main font-mono">
-              {totalMoveMinutes} <span className="text-xs text-sub font-normal">/ {moveMinutesDailyTarget}m</span>
+            <div className="text-xl font-bold text-white font-mono">
+              {totalMoveMinutes} <span className="text-xs text-muted-foreground font-normal">/ {moveMinutesDailyTarget}m</span>
             </div>
           </div>
 
           {/* Tile 3: Daily Steps */}
-          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col items-center justify-center text-center">
-            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400 text-xs font-bold uppercase mb-0.5">
-              <Footprints size={14} />
+          <div className="p-3.5 rounded-xl border border-white/5 bg-[#121824] flex flex-col items-center justify-center text-center">
+            <div className="flex items-center justify-center gap-1 text-dude text-[10px] font-bold uppercase mb-1">
+              <Footprints size={13} />
               <span>Daily Steps</span>
             </div>
-            <div className="text-xl font-black text-main font-mono">
-              {totalSteps.toLocaleString()} <span className="text-xs text-sub font-normal">/ 10k</span>
+            <div className="text-xl font-bold text-white font-mono">
+              {totalSteps.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">/ 10k</span>
             </div>
           </div>
 
           {/* Tile 4: Distance */}
-          <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col items-center justify-center text-center">
-            <div className="flex items-center justify-center gap-1 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase mb-0.5">
-              <Navigation size={14} />
+          <div className="p-3.5 rounded-xl border border-white/5 bg-[#121824] flex flex-col items-center justify-center text-center">
+            <div className="flex items-center justify-center gap-1 text-sky-400 text-[10px] font-bold uppercase mb-1">
+              <Navigation size={13} />
               <span>Distance</span>
             </div>
-            <div className="text-xl font-black text-main font-mono">
-              {totalDistanceKm.toFixed(1)} <span className="text-xs text-sub font-normal">km</span>
+            <div className="text-xl font-bold text-white font-mono">
+              {totalDistanceKm.toFixed(1)} <span className="text-xs text-muted-foreground font-normal">km</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* 2. GOOGLE FIT MANDATORY 150 WEEKLY HEART POINTS MILESTONE */}
+      {/* 2. GOOGLE FIT 150 WEEKLY HEART POINTS TARGET */}
       {/* ------------------------------------------------------------------- */}
-      <div className="google-card p-5 border-l-4 border-[#55198B]">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center font-black text-base shadow-sm">
-              💜
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#fc4c02]/15 text-[#ff9667] flex items-center justify-center text-xl font-black">
+              ❤️
             </div>
             <div>
-              <h3 className="text-sm font-black text-main uppercase tracking-wide">
-                Weekly Target (150 Pts)
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider font-display">
+                Weekly Heart Target (150 Pts)
               </h3>
-              <div className="text-[11px] text-sub font-medium">
+              <div className="text-[11px] text-muted-foreground font-medium">
                 {weeklySummary.weekStartDateStr} – {weeklySummary.weekEndDateStr}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-card border border-glass text-xs font-bold font-mono">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121824] border border-white/10 text-xs font-mono font-bold">
             {weeklySummary.isGoalAchieved ? (
-              <span className="text-emerald-500 flex items-center gap-1">
+              <span className="text-primary flex items-center gap-1">
                 <CheckCircle2 size={15} /> Goal Smashed!
               </span>
             ) : (
-              <span className="text-[#55198B] dark:text-[#c084fc]">{pointsRemaining} pts needed</span>
+              <span className="text-[#ff9667]">{pointsRemaining} pts needed</span>
             )}
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-slate-200 dark:bg-slate-800 h-3 rounded-full overflow-hidden border border-glass mb-4">
+        <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden border border-white/5 mb-4">
           <div
-            className="h-full bg-gradient-to-r from-[#55198B] to-[#7b29be] transition-all duration-700 rounded-full"
+            className="h-full bg-gradient-to-r from-[#fc4c02] to-primary transition-all duration-700 rounded-full"
             style={{ width: `${weeklyProgress}%` }}
           />
         </div>
@@ -281,20 +296,20 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
             return (
               <div
                 key={d.day}
-                className={`p-2 rounded-2xl border flex flex-col items-center justify-center text-center ${
+                className={`p-2.5 rounded-xl border flex flex-col items-center justify-center text-center transition ${
                   d.isToday
-                    ? 'bg-purple-500/15 border-[#55198B] text-main shadow-sm'
-                    : 'bg-card border-glass text-sub'
+                    ? 'bg-primary/10 border-primary text-white shadow-sm'
+                    : 'bg-[#121824] border-white/5 text-muted-foreground'
                 }`}
               >
                 <span className="text-[10px] font-bold uppercase">{d.day}</span>
-                <div className="w-3 bg-slate-200 dark:bg-slate-800 h-11 rounded-full my-1.5 relative flex items-end overflow-hidden">
+                <div className="w-2.5 bg-white/5 h-12 rounded-full my-2 relative flex items-end overflow-hidden">
                   <div
-                    className="w-full bg-[#55198B] rounded-full transition-all duration-500"
+                    className={`w-full rounded-full transition-all duration-500 ${d.isToday ? 'bg-primary' : 'bg-primary/60'}`}
                     style={{ height: `${barHeight}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-bold font-mono text-main">
+                <span className="text-[10px] font-bold font-mono text-white">
                   {d.points}
                 </span>
               </div>
@@ -307,118 +322,130 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       {/* 3. 1-TAP QUICK ACTION ACTIVITY LAUNCHER */}
       {/* ------------------------------------------------------------------- */}
       <div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground font-display">
+            Quick Launch Tracker
+          </h3>
+          <span className="text-[10px] text-primary font-medium">1-Tap Live Session</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <button
-            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
+            className="rounded-2xl border border-border bg-[#0e131b] p-4 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/40 group"
             onClick={() => onOpenGpsTracker('run')}
           >
-            <span className="text-2xl">🏃</span>
-            <span className="text-xs font-bold text-main">Run</span>
+            <span className="text-2xl group-hover:scale-110 transition">🏃</span>
+            <span className="text-xs font-bold text-white">Run</span>
+            <span className="text-[9px] text-muted-foreground">GPS Route</span>
           </button>
 
           <button
-            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
+            className="rounded-2xl border border-border bg-[#0e131b] p-4 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/40 group"
             onClick={() => onOpenGpsTracker('walk')}
           >
-            <span className="text-2xl">🚶</span>
-            <span className="text-xs font-bold text-main">Walk</span>
+            <span className="text-2xl group-hover:scale-110 transition">🚶</span>
+            <span className="text-xs font-bold text-white">Walk</span>
+            <span className="text-[9px] text-muted-foreground">Commute</span>
           </button>
 
           <button
-            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
+            className="rounded-2xl border border-border bg-[#0e131b] p-4 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/40 group"
             onClick={() => onOpenGpsTracker('cycle')}
           >
-            <span className="text-2xl">🚴</span>
-            <span className="text-xs font-bold text-main">Ride</span>
+            <span className="text-2xl group-hover:scale-110 transition">🚴</span>
+            <span className="text-xs font-bold text-white">Ride</span>
+            <span className="text-[9px] text-muted-foreground">Cycling</span>
           </button>
 
           <button
-            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
+            className="rounded-2xl border border-border bg-[#0e131b] p-4 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all hover:-translate-y-0.5 hover:border-dude/40 group"
             onClick={onOpenCalisthenics}
           >
-            <span className="text-2xl">⚡</span>
-            <span className="text-xs font-bold text-main">Calisthenics</span>
+            <span className="text-2xl group-hover:scale-110 transition">⚡</span>
+            <span className="text-xs font-bold text-white">Calisthenics</span>
+            <span className="text-[9px] text-dude">Yellow Dude</span>
           </button>
 
           <button
-            className="google-card p-3.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all hover:scale-[1.02]"
+            className="rounded-2xl border border-border bg-[#0e131b] p-4 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer transition-all hover:-translate-y-0.5 hover:border-sky-400/40 group"
             onClick={onOpenFootball}
           >
-            <span className="text-2xl">⚽</span>
-            <span className="text-xs font-bold text-main">Football</span>
+            <span className="text-2xl group-hover:scale-110 transition">⚽</span>
+            <span className="text-xs font-bold text-white">Football</span>
+            <span className="text-[9px] text-sky-400">Match Drills</span>
           </button>
         </div>
       </div>
 
       {/* ------------------------------------------------------------------- */}
-      {/* 4. PERSONAL MILESTONES & RECORDS (CLEAN, MINIMAL, CENTER-ALIGNED) */}
+      {/* 4. PERSONAL MILESTONES & RECORDS */}
       {/* ------------------------------------------------------------------- */}
-      <div className="google-card p-5">
-        <div className="flex items-center justify-between mb-3.5">
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Trophy className="icon-xs text-amber-500" />
-            <h3 className="text-sm font-black text-main uppercase tracking-wider">
-              Personal Bests
+            <Trophy size={16} className="text-dude" />
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider font-display">
+              Personal Bests & All-Time Records
             </h3>
           </div>
-          <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold tracking-wider uppercase">
-            Records
+          <span className="text-[10px] text-primary font-bold tracking-wider uppercase font-mono">
+            RECORDS
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Tile 1: 1km Run */}
-          <div className="bg-card p-3 rounded-2xl border border-glass flex flex-col items-center justify-center text-center">
-            <div className="text-[11px] text-sub font-bold uppercase flex items-center justify-center gap-1">
+          <div className="bg-[#121824] p-3.5 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center">
+            <div className="text-[10px] text-muted-foreground font-bold uppercase flex items-center justify-center gap-1">
               <span>🏃</span>
               <span>1 km Run</span>
             </div>
-            <div className="text-xl font-black text-main font-mono my-1">
+            <div className="text-xl font-extrabold text-white font-mono my-1">
               {milestones.fastest1kRunSeconds ? formatDuration(milestones.fastest1kRunSeconds) : '05:00'}
             </div>
-            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
+            <div className="text-[10px] text-primary font-bold uppercase tracking-wider">
               Best Pace
             </div>
           </div>
 
           {/* Tile 2: 1km Cycle */}
-          <div className="bg-card p-3 rounded-2xl border border-glass flex flex-col items-center justify-center text-center">
-            <div className="text-[11px] text-sub font-bold uppercase flex items-center justify-center gap-1">
+          <div className="bg-[#121824] p-3.5 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center">
+            <div className="text-[10px] text-muted-foreground font-bold uppercase flex items-center justify-center gap-1">
               <span>🚴</span>
               <span>1 km Cycle</span>
             </div>
-            <div className="text-xl font-black text-main font-mono my-1">
+            <div className="text-xl font-extrabold text-white font-mono my-1">
               {milestones.fastest1kCycleSeconds ? formatDuration(milestones.fastest1kCycleSeconds) : '02:00'}
             </div>
-            <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-wider">
+            <div className="text-[10px] text-sky-400 font-bold uppercase tracking-wider">
               Best Sprint
             </div>
           </div>
 
           {/* Tile 3: Longest Run */}
-          <div className="bg-card p-3 rounded-2xl border border-glass flex flex-col items-center justify-center text-center">
-            <div className="text-[11px] text-sub font-bold uppercase flex items-center justify-center gap-1">
+          <div className="bg-[#121824] p-3.5 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center">
+            <div className="text-[10px] text-muted-foreground font-bold uppercase flex items-center justify-center gap-1">
               <span>📍</span>
               <span>Longest</span>
             </div>
-            <div className="text-xl font-black text-main font-mono my-1">
-              {milestones.longestRunKm || 5.0} <span className="text-xs text-sub font-normal">km</span>
+            <div className="text-xl font-extrabold text-white font-mono my-1">
+              {milestones.longestRunKm || 5.0} <span className="text-xs text-muted-foreground font-normal">km</span>
             </div>
-            <div className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
+            <div className="text-[10px] text-dude font-bold uppercase tracking-wider">
               Endurance
             </div>
           </div>
 
           {/* Tile 4: Top Speed */}
-          <div className="bg-card p-3 rounded-2xl border border-glass flex flex-col items-center justify-center text-center">
-            <div className="text-[11px] text-sub font-bold uppercase flex items-center justify-center gap-1">
+          <div className="bg-[#121824] p-3.5 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center">
+            <div className="text-[10px] text-muted-foreground font-bold uppercase flex items-center justify-center gap-1">
               <span>⚡</span>
               <span>Top Speed</span>
             </div>
-            <div className="text-xl font-black text-main font-mono my-1">
-              {milestones.topSpeedRunKmh || 14.5} <span className="text-xs text-sub font-normal">km/h</span>
+            <div className="text-xl font-extrabold text-white font-mono my-1">
+              {milestones.topSpeedRunKmh || 14.5} <span className="text-xs text-muted-foreground font-normal">km/h</span>
             </div>
-            <div className="text-[10px] text-lime-600 dark:text-lime-400 font-bold uppercase tracking-wider">
+            <div className="text-[10px] text-[#ff9667] font-bold uppercase tracking-wider">
               Velocity
             </div>
           </div>
@@ -433,15 +460,15 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       {/* ------------------------------------------------------------------- */}
       {/* 5. RECENT ACTIVITIES WITH QUICK POST & FLYBY */}
       {/* ------------------------------------------------------------------- */}
-      <div className="google-card p-5">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-          <h3 className="text-sm font-black text-main uppercase tracking-wider">
-            Activities
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider font-display">
+            Recent Logged Activities
           </h3>
           <div className="flex items-center gap-2">
             {onOpenCreatePost && (
               <button
-                className="btn-google-primary text-xs py-1.5 px-3 flex items-center gap-1"
+                className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground hover:brightness-110 transition shadow-sm"
                 onClick={onOpenCreatePost}
               >
                 <Plus size={14} />
@@ -450,7 +477,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
             )}
             {onOpenFeed && (
               <button
-                className="btn-google-outlined text-xs py-1.5 px-3"
+                className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-white hover:border-white/20 transition"
                 onClick={onOpenFeed}
               >
                 <span>Feed &rarr;</span>
@@ -460,26 +487,26 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
         </div>
 
         {workoutLogs.length === 0 && gpsActivities.length === 0 ? (
-          <p className="text-xs text-sub py-4 text-center font-medium">
+          <p className="text-xs text-muted-foreground py-6 text-center font-medium">
             No activities tracked yet today.
           </p>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-3">
             {/* GPS Activities */}
             {gpsActivities.slice().reverse().slice(0, 3).map((act) => (
               <div
                 key={act.id}
-                className="bg-card p-3.5 rounded-2xl border border-glass flex items-center justify-between flex-wrap gap-2.5 shadow-sm"
+                className="bg-[#121824] p-3.5 rounded-xl border border-white/5 flex items-center justify-between flex-wrap gap-3 hover:border-white/15 transition"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center text-lg shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg">
                     {act.activityType === 'run' ? '🏃' : '🚴'}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-main">
+                    <h4 className="text-xs font-bold text-white">
                       {act.distanceKm} km {act.activityType === 'run' ? 'Run' : 'Ride'}
                     </h4>
-                    <div className="text-[11px] text-sub font-medium">
+                    <div className="text-[11px] text-muted-foreground font-medium">
                       {act.date} &bull; {formatDuration(act.durationSeconds)} &bull; {act.avgPaceMinKm} &bull; +{act.elevationGainMeters || 0}m
                     </div>
                   </div>
@@ -487,20 +514,20 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
 
                 <div className="flex items-center gap-2">
                   <button
-                    className="btn-google-tonal"
+                    className="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary hover:bg-primary/20 transition"
                     onClick={() => onOpenFlyby(act)}
                     title="Play Strava-Style Route Animation"
                   >
-                    <Film size={14} />
+                    <Film size={13} />
                     <span>Flyby</span>
                   </button>
 
                   <button
-                    className="btn-google-outlined"
+                    className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-white transition"
                     onClick={() => handleShareGps(act)}
                     title="Generate Social Share Card"
                   >
-                    <Share2 size={14} />
+                    <Share2 size={13} />
                     <span>Share</span>
                   </button>
                 </div>
@@ -511,26 +538,26 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
             {workoutLogs.slice().reverse().slice(0, 3).map((w) => (
               <div
                 key={w.id}
-                className="bg-card p-3.5 rounded-2xl border border-glass flex items-center justify-between flex-wrap gap-2.5 shadow-sm"
+                className="bg-[#121824] p-3.5 rounded-xl border border-white/5 flex items-center justify-between flex-wrap gap-3 hover:border-white/15 transition"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-lime-500/15 text-lime-600 dark:text-lime-400 flex items-center justify-center text-lg shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-dude/10 text-dude flex items-center justify-center text-lg">
                     ⚡
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-main">{w.exerciseName}</h4>
-                    <div className="text-[11px] text-sub font-medium">
+                    <h4 className="text-xs font-bold text-white">{w.exerciseName}</h4>
+                    <div className="text-[11px] text-muted-foreground font-medium">
                       {w.date} &bull; {w.setsCompleted} Sets ({w.repsCompleted.join(', ')} Reps)
                     </div>
                   </div>
                 </div>
 
                 <button
-                  className="btn-google-outlined"
+                  className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-white transition"
                   onClick={() => handleShareWorkout(w)}
                   title="Generate Social Share Card"
                 >
-                  <Share2 size={14} />
+                  <Share2 size={13} />
                   <span>Share</span>
                 </button>
               </div>

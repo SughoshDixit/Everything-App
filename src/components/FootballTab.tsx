@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { FootballDrill } from '../types';
-import { Zap, Compass, CheckCircle, Target, Activity, Clock } from 'lucide-react';
+import { Zap, Compass, CheckCircle2, Target, Activity, Clock, Plus, X } from 'lucide-react';
 
 interface FootballTabProps {
   drills: FootballDrill[];
@@ -18,81 +18,143 @@ export const FootballTab: React.FC<FootballTabProps> = ({ drills, onOpenCreatePo
   };
 
   return (
-    <div className="tab-container animate-fade-in">
+    <div className="space-y-6 animate-fade-in font-sans">
       {/* Hero Header */}
-      <div className="football-hero glass-card hover-scale" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem' }}>
-        <Zap className="icon-lg text-cyan pulse-glow" />
-        <div>
-          <div className="hero-badge badge-pill bg-cyan/20 text-cyan mb-1">FORWARD / WINGER</div>
-          <h2 className="m-0" style={{ fontSize: '1.25rem' }}>Speed & Finishing</h2>
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center text-sky-400">
+            <Zap size={22} />
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-400 block font-display">
+              FORWARD / WINGER CONDITIONING
+            </span>
+            <h2 className="text-base sm:text-lg font-bold text-white font-display">
+              Speed, Agility & Finishing Protocol
+            </h2>
+          </div>
         </div>
+
+        {onOpenCreatePost && (
+          <button
+            onClick={onOpenCreatePost}
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground hover:brightness-110 transition shadow-sm"
+          >
+            <Plus size={14} />
+            <span>Compile Football Post</span>
+          </button>
+        )}
       </div>
 
       {/* Pitch vs Calisthenics Schedule Balance Guidance */}
-      <div className="schedule-guide glass-card mt-4 hover-scale">
-        <div className="week-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem', textAlign: 'center' }}>
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-display">
+            Weekly Match & Conditioning Rhythm
+          </span>
+          <span className="text-[10px] text-sky-400 font-bold">Match Saturday ⚽</span>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1.5 text-center">
           {[
-            { day: 'M', color: 'text-cyan', dot: 'bg-cyan' },
-            { day: 'T', color: 'text-emerald', dot: 'bg-emerald', highlight: true },
-            { day: 'W', color: 'text-indigo', dot: 'bg-indigo' },
-            { day: 'T', color: 'text-cyan', dot: 'bg-cyan' },
-            { day: 'F', color: 'text-amber', dot: 'bg-amber', highlight: true },
-            { day: 'S', color: 'text-rose', dot: 'bg-rose', match: true },
-            { day: 'S', color: 'text-green', dot: 'bg-green' }
-          ].map((d, i) => (
-            <div key={i} className={`day-box ${d.highlight ? 'highlight' : ''} ${d.match ? 'match' : ''}`} style={{ padding: '0.5rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)' }}>
-              <div className="font-bold">{d.day}</div>
-              <div className={`w-2 h-2 rounded-full mx-auto mt-1 ${d.dot}`}></div>
+            { day: 'Mon', label: 'Tactical Sprints', color: 'text-sky-400', dot: 'bg-sky-400' },
+            { day: 'Tue', label: 'Calisthenics Upper', color: 'text-primary', dot: 'bg-primary', highlight: true },
+            { day: 'Wed', label: 'Midfield Agility', color: 'text-sky-400', dot: 'bg-sky-400' },
+            { day: 'Thu', label: 'Leg Power & Plyo', color: 'text-dude', dot: 'bg-dude' },
+            { day: 'Fri', label: 'Shooting Drills', color: 'text-sky-400', dot: 'bg-sky-400', highlight: true },
+            { day: 'Sat', label: 'Match Day (90m)', color: 'text-[#ff9667]', dot: 'bg-[#fc4c02]', match: true },
+            { day: 'Sun', label: 'Active Recovery', color: 'text-emerald-400', dot: 'bg-emerald-400' }
+          ].map((d) => (
+            <div
+              key={d.day}
+              className={`p-2.5 rounded-xl border flex flex-col items-center justify-center transition ${
+                d.match
+                  ? 'bg-[#fc4c02]/15 border-[#fc4c02]/40 text-white'
+                  : d.highlight
+                  ? 'bg-primary/10 border-primary/30 text-white'
+                  : 'bg-[#121824] border-white/5 text-muted-foreground'
+              }`}
+            >
+              <div className="font-bold text-[11px] text-white">{d.day}</div>
+              <div className={`w-2 h-2 rounded-full my-1.5 ${d.dot}`} />
+              <div className="text-[8px] font-medium text-muted-foreground leading-tight hidden sm:block">
+                {d.label}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Drills List */}
-      <div className="drills-section mt-4">
-        <div className="drills-grid">
-          {drills.map((drill, index) => {
+      <div className="space-y-4">
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-display">
+          Positional Drills Library ({drills.length})
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {drills.map((drill) => {
             const isDone = completedDrills.includes(drill.id);
             return (
-              <div 
-                key={drill.id} 
-                className={`drill-card glass-card card-stagger hover-scale ${isDone ? 'completed' : ''}`}
-                style={{ animationDelay: `${index * 0.08}s`, padding: '1rem' }}
+              <div
+                key={drill.id}
+                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
+                  isDone
+                    ? 'border-primary/40 bg-primary/5'
+                    : 'border-border bg-[#0e131b] hover:border-white/20'
+                }`}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                  <h3 className="drill-title m-0" style={{ fontSize: '1.1rem', flex: 1 }}>{drill.title}</h3>
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-2.5">
+                    <h3 className="font-bold text-sm text-white font-display">
+                      {drill.title}
+                    </h3>
+                    <button
+                      onClick={() => toggleDrillCompleted(drill.id)}
+                      className={`flex h-6 w-6 items-center justify-center rounded-lg border transition ${
+                        isDone
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-white/20 bg-white/5 text-transparent hover:border-white/40'
+                      }`}
+                      aria-label="Toggle completed"
+                    >
+                      {isDone && <CheckCircle2 size={16} />}
+                    </button>
+                  </div>
+
+                  <div className="flex gap-1.5 flex-wrap mb-3 text-[10px]">
+                    <span className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-rose-300 font-bold flex items-center gap-1">
+                      <Activity size={10} /> {drill.intensity.toUpperCase()}
+                    </span>
+                    <span className="rounded-lg border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-sky-400 font-bold flex items-center gap-1">
+                      <Clock size={10} /> {drill.durationMinutes}m
+                    </span>
+                    <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-muted-foreground font-bold flex items-center gap-1">
+                      <Target size={10} /> {drill.category.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mb-4">
+                    {drill.coneSetup}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 pt-3 border-t border-white/5">
                   <button
-                    className={`btn-icon ${isDone ? 'text-emerald pulse-glow' : 'text-muted'}`}
-                    onClick={() => toggleDrillCompleted(drill.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-bold text-muted-foreground hover:text-white hover:border-white/25 transition"
+                    onClick={() => setSelectedDrill(drill)}
                   >
-                    <CheckCircle className="icon-sm" />
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                  <span className="badge-pill bg-rose/20 text-rose" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Activity className="icon-xs" /> {drill.intensity}
-                  </span>
-                  <span className="badge-pill bg-cyan/20 text-cyan" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Clock className="icon-xs" /> {drill.durationMinutes}m
-                  </span>
-                  <span className="badge-pill bg-indigo/20 text-indigo" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Target className="icon-xs" /> {drill.category.toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="drill-actions mt-2 flex gap-2">
-                  <button className="btn-secondary flex-1" onClick={() => setSelectedDrill(drill)} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                    <Zap className="icon-xs text-amber" />
+                    <Compass size={13} className="text-dude" />
                     <span>Instructions</span>
                   </button>
+
                   {onOpenCreatePost && (
                     <button
-                      className="btn-google-tonal text-xs py-1.5 px-3"
+                      className="flex items-center gap-1 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition"
                       onClick={onOpenCreatePost}
-                      title="Add this drill to today's compiled post"
+                      title="Add drill to post"
                     >
-                      ➕ Post
+                      <Plus size={13} />
+                      <span>Post</span>
                     </button>
                   )}
                 </div>
@@ -104,66 +166,65 @@ export const FootballTab: React.FC<FootballTabProps> = ({ drills, onOpenCreatePo
 
       {/* Drill Instructions Modal */}
       {selectedDrill && (
-        <div className="modal-backdrop">
-          <div className="modal-content glass-card animate-scale-up">
-            <div className="modal-header">
-              <h3>{selectedDrill.title}</h3>
-              <button className="btn-close" onClick={() => setSelectedDrill(null)}>&times;</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#0e131b] p-6 shadow-2xl text-foreground">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-400 block font-display">
+                  DRILL BLUEPRINT
+                </span>
+                <h3 className="text-base font-bold text-white font-display mt-0.5">
+                  {selectedDrill.title}
+                </h3>
+              </div>
+              <button
+                className="rounded-lg p-1 text-muted-foreground hover:text-white"
+                onClick={() => setSelectedDrill(null)}
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <div className="drill-detail">
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                 <span className="badge-pill bg-cyan/20 text-cyan">{selectedDrill.category.toUpperCase()}</span>
-                 <span className="badge-pill bg-amber/20 text-amber"><Clock className="icon-xs inline mr-1" />{selectedDrill.durationMinutes}m</span>
+            <div className="space-y-4 text-xs">
+              <div className="flex gap-2 flex-wrap">
+                <span className="rounded-lg border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-sky-400 font-bold">
+                  {selectedDrill.category.toUpperCase()}
+                </span>
+                <span className="rounded-lg border border-dude/30 bg-dude/10 px-2 py-0.5 text-dude font-bold">
+                  {selectedDrill.durationMinutes} Minutes
+                </span>
               </div>
-              
-              <div className="glass-card mb-4" style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-amber)', marginBottom: '0.5rem' }}>
-                  <Compass className="icon-sm" /> <strong>Cone Setup</strong>
+
+              <div className="p-3.5 rounded-xl border border-white/5 bg-[#121824]">
+                <div className="flex items-center gap-1.5 text-dude font-bold mb-1">
+                  <Compass size={14} /> <span>Cone Setup</span>
                 </div>
-                <div>{selectedDrill.coneSetup}</div>
+                <div className="text-slate-300 leading-relaxed">{selectedDrill.coneSetup}</div>
               </div>
 
-              <h4 className="mt-3 text-cyan">Steps:</h4>
-              <ol className="instructions-list pl-4">
-                {selectedDrill.instructions.map((step, idx) => (
-                  <li key={idx} className="mb-2">{step}</li>
-                ))}
-              </ol>
+              <div>
+                <h4 className="font-bold text-white mb-2 font-display">Execution Protocol:</h4>
+                <ol className="space-y-2 list-decimal list-inside text-muted-foreground">
+                  {selectedDrill.instructions.map((step, idx) => (
+                    <li key={idx} className="leading-relaxed">
+                      <span className="text-slate-200">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
 
-              <div className="modal-actions mt-4">
-                <button className="btn-primary w-full" onClick={() => setSelectedDrill(null)}>
-                  Close
+              <div className="pt-4 border-t border-white/10 flex justify-end">
+                <button
+                  className="rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground hover:brightness-110 transition shadow-sm"
+                  onClick={() => setSelectedDrill(null)}
+                >
+                  Understood
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-      
-      <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .card-stagger {
-          opacity: 0;
-          animation: fadeInUp 0.4s ease forwards;
-        }
-        .hover-scale {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .hover-scale:hover {
-          transform: scale(1.02);
-        }
-        .pulse-glow {
-          animation: pulseGlow 2s infinite;
-        }
-        @keyframes pulseGlow {
-          0%, 100% { filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.5)); }
-          50% { filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.8)); }
-        }
-      `}</style>
     </div>
   );
 };

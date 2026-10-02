@@ -27,6 +27,13 @@ import {
   Music,
   Layers
 } from 'lucide-react';
+import {
+  renderGoogleMapToCanvas,
+  projectLatLngToScreen,
+  computeOptimalZoom,
+  drawGoogleNavigationPuck,
+  drawGoogleMapsBrandBadge
+} from '../utils/googleMapsRenderer';
 
 interface SocialWorkoutShareModalProps {
   initialData: SocialShareCardData;
@@ -390,7 +397,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     const h = canvas.height;
     const scale = w / 720; // 1.0 for 720p, 1.5 for 1080p, 3.0 for 4K UHD
 
-    // Coordinate Normalization
+    // Coordinate Normalization & Web Mercator Camera Setup
     let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
     routePoints.forEach((p) => {
       if (p.latitude < minLat) minLat = p.latitude;
@@ -399,18 +406,17 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       if (p.longitude > maxLng) maxLng = p.longitude;
     });
 
-    const latMargin = (maxLat - minLat) * 0.12 || 0.002;
-    const lngMargin = (maxLng - minLng) * 0.12 || 0.002;
-    const routeMinLat = minLat - latMargin;
-    const routeMaxLat = maxLat + latMargin;
-    const routeMinLng = minLng - lngMargin;
-    const routeMaxLng = maxLng + lngMargin;
+    const centerLat = (minLat + maxLat) / 2;
+    const centerLng = (minLng + maxLng) / 2;
+    const optimalZoom = computeOptimalZoom(
+      { minLat, maxLat, minLng, maxLng },
+      w,
+      h,
+      Math.round(80 * scale)
+    );
 
-    const latR = routeMaxLat - routeMinLat || 0.001;
-    const lngR = routeMaxLng - routeMinLng || 0.001;
-
-    const toX = (lng: number) => ((lng - routeMinLng) / lngR) * w;
-    const toY = (lat: number) => h - ((lat - routeMinLat) / latR) * h;
+    const toX = (lng: number) => projectLatLngToScreen(centerLat, lng, centerLat, centerLng, optimalZoom, w, h).x;
+    const toY = (lat: number) => projectLatLngToScreen(lat, centerLng, centerLat, centerLng, optimalZoom, w, h).y;
 
     // 1. Draw Base Media Layer (Photo or Video or Dark Surface)
     if (customVideoUrl && userVideoElementRef.current && userVideoElementRef.current.readyState >= 2) {
@@ -439,11 +445,20 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       ctx.fillRect(0, 0, w, h);
     }
 
-    // 1b. Blend Google Map Satellite / Roadmap Layer on Top with Custom Opacity!
+    // 1b. Blend Photorealistic Google Maps Satellite / Roadmap Layer with User Opacity!
     if (mapOverlayOpacity > 0.01) {
       ctx.save();
       ctx.globalAlpha = mapOverlayOpacity;
-      renderRealisticMapBackground(ctx, w, h, videoMapTheme, routeMinLat, routeMaxLat, routeMinLng, routeMaxLng, toX, toY);
+      const targetLayer = videoMapTheme === 'satellite' ? 'hybrid' : videoMapTheme === 'osm' ? 'roadmap' : 'hybrid';
+      renderGoogleMapToCanvas(ctx, {
+        width: w,
+        height: h,
+        centerLat,
+        centerLng,
+        zoom: optimalZoom,
+        layer: targetLayer,
+        scrimIntensity: 0.1
+      });
       ctx.restore();
     }
 
@@ -575,13 +590,13 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       heading = Math.atan2(dLng, dLat);
     }
 
-    ctx.save();
-    ctx.translate(ax, ay);
-    ctx.rotate(heading);
-
     const isCurrentDrive = activeStageName.toLowerCase().includes('drive') || activeStageName.toLowerCase().includes('car');
 
     if (isCurrentDrive) {
+      ctx.save();
+      ctx.translate(ax, ay);
+      ctx.rotate(heading);
+
       const coneGrad = ctx.createRadialGradient(0, -10 * scale, 5 * scale, 0, -90 * scale, 75 * scale);
       coneGrad.addColorStop(0, 'rgba(254, 240, 138, 0.95)');
       coneGrad.addColorStop(0.4, 'rgba(250, 204, 21, 0.4)');
@@ -607,27 +622,11 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       ctx.beginPath();
       ctx.roundRect(-6 * scale, -8 * scale, 12 * scale, 6 * scale, 2 * scale);
       ctx.fill();
+      ctx.restore();
     } else {
-      // Graceful pulsing ripple ring
-      const pulsePhase = (Date.now() % 1200) / 1200; // 0 to 1
-      ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 2 * scale;
-      ctx.beginPath();
-      ctx.arc(0, 0, (14 + pulsePhase * 10) * scale, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(0, 0, 9 * scale, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 3.5 * scale;
-      ctx.beginPath();
-      ctx.arc(0, 0, 15 * scale, 0, Math.PI * 2);
-      ctx.stroke();
+      // Photorealistic Google Maps Navigation Puck (Radar Pulse + Directional Chevron)
+      drawGoogleNavigationPuck(ctx, ax, ay, heading, scale, primaryColor);
     }
-    ctx.restore();
 
     // 6. HUD & Overlays: Telemetry, Quotes, Brand & "Made with intention doing Kuchh Bhii"
     const progressRatio = totalPoints > 1 ? videoCurrentIndex / (totalPoints - 1) : 1;
@@ -807,6 +806,17 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       ctx.fillText('⚡ Made with an intention of doing Kuchh Bhii by Sughosh 😉', quoteBoxX + 24 * scale, quoteBoxY + 118 * scale);
     }
 
+    // Google Maps Navigation & Brand Badge
+    if (mapOverlayOpacity > 0.05) {
+      drawGoogleMapsBrandBadge(
+        ctx,
+        32 * scale,
+        h - 80 * scale,
+        scale,
+        videoMapTheme === 'satellite' ? 'Hybrid Satellite' : videoMapTheme === 'osm' ? 'Roadmap' : 'Google Satellite'
+      );
+    }
+
     // Bottom Animated Neon Progress Bar
     ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.fillRect(0, h - 12 * scale, w, 12 * scale);
@@ -814,116 +824,6 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     ctx.fillRect(0, h - 12 * scale, w * progressRatio, 12 * scale);
 
   }, [studioMode, videoCurrentIndex, routePoints, totalPoints, videoMapTheme, videoResolution, initialData, customVideoUrl, photos, selectedPhotoIdx, scrimIntensity, showVideoTelemetry, showVideoQuote, currentQuote, mapTilesCache, mapTilesReady, timeStat, totalDistNum]);
-
-  // Realistic Map Background Drawer with Cached Satellite / OSM Tiles
-  function renderRealisticMapBackground(
-    ctx: CanvasRenderingContext2D,
-    w: number,
-    h: number,
-    theme: VideoMapTheme,
-    minLat: number,
-    maxLat: number,
-    minLng: number,
-    maxLng: number,
-    toX: (lng: number) => number,
-    toY: (lat: number) => number
-  ) {
-    if (theme === 'neon') {
-      // Cyber Neon Vector Map Grid
-      ctx.fillStyle = '#05070e';
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = 'rgba(204, 255, 0, 0.08)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 30) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-      }
-      for (let y = 0; y < h; y += 30) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-      }
-      const neonGlow = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, w / 1.2);
-      neonGlow.addColorStop(0, 'rgba(85, 25, 139, 0.25)');
-      neonGlow.addColorStop(1, 'transparent');
-      ctx.fillStyle = neonGlow;
-      ctx.fillRect(0, 0, w, h);
-      return;
-    }
-
-    // Real-Time Satellite / OSM / Dark Canvas Tile Blitting
-    let tilesRendered = 0;
-    if (mapTilesCache.size > 0) {
-      const latDiff = maxLat - minLat;
-      const lngDiff = maxLng - minLng;
-      const maxDiff = Math.max(latDiff, lngDiff);
-      let zoom = 14;
-      if (maxDiff > 0.4) zoom = 11;
-      else if (maxDiff > 0.15) zoom = 12;
-      else if (maxDiff > 0.05) zoom = 13;
-      else if (maxDiff > 0.02) zoom = 14;
-      else zoom = 15;
-
-      const minTile = latLngToTile(maxLat, minLng, zoom);
-      const maxTile = latLngToTile(minLat, maxLng, zoom);
-
-      const activeMapKey = theme === 'custom_media' ? 'satellite' : theme;
-      for (let tx = minTile.x - 1; tx <= maxTile.x + 1; tx++) {
-        for (let ty = minTile.y - 1; ty <= maxTile.y + 1; ty++) {
-          const key = `${activeMapKey}_${zoom}_${tx}_${ty}`;
-          const img = mapTilesCache.get(key);
-          if (img && img.complete && img.width > 1) {
-            const b = tileToBoundingBox(tx, ty, zoom);
-            const x1 = toX(b.minLng);
-            const y1 = toY(b.maxLat);
-            const x2 = toX(b.maxLng);
-            const y2 = toY(b.minLat);
-            const dw = x2 - x1;
-            const dh = y2 - y1;
-            ctx.drawImage(img, x1, y1, dw, dh);
-            tilesRendered++;
-          }
-        }
-      }
-    }
-
-    // If tiles are still loading or offline, draw rich atmospheric vector fallback ONLY if no photo/video is drawn
-    if (tilesRendered === 0 && photos.length === 0 && !customVideoUrl) {
-      if (theme === 'satellite') {
-        const satGrad = ctx.createLinearGradient(0, 0, w, h);
-        satGrad.addColorStop(0, '#041019');
-        satGrad.addColorStop(0.5, '#072433');
-        satGrad.addColorStop(1, '#020b12');
-        ctx.fillStyle = satGrad;
-        ctx.fillRect(0, 0, w, h);
-      } else if (theme === 'osm') {
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x < w; x += 45) {
-          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-        }
-        for (let y = 0; y < h; y += 45) {
-          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-        }
-      } else {
-        ctx.fillStyle = '#090d16';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x < w; x += 40) {
-          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-        }
-        for (let y = 0; y < h; y += 40) {
-          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-        }
-      }
-    }
-
-    // Darkened atmospheric scrim for route and telemetry legibility
-    if (theme === 'satellite') {
-      ctx.fillStyle = 'rgba(5, 10, 18, 0.35)';
-      ctx.fillRect(0, 0, w, h);
-    }
-  }
 
   // 3. Export / Record Animated Video Clip (with Audio Track support)
   const handleRecordAndExportVideo = async (shouldShareDirectly: boolean = false) => {
@@ -1146,7 +1046,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   };
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 10000 }}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
       {/* Hidden User Video Tag for Canvas Drawing */}
       {customVideoUrl && (
         <video
@@ -1186,11 +1086,11 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
         </div>
       )}
 
-      <div className="modal-content google-card animate-scale-up max-w-xl w-full max-h-[96vh] overflow-y-auto p-4 md:p-6 flex flex-col justify-between">
+      <div className="w-full max-w-xl max-h-[96vh] rounded-3xl border border-white/10 bg-[#0e131b] p-4 sm:p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-glass pb-3 mb-2">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-2">
           <button
-            className="btn-google-outlined text-xs flex items-center gap-1 py-1.5 px-3"
+            className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
             onClick={onClose}
           >
             <ChevronLeft size={16} />
@@ -1198,26 +1098,30 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
           </button>
 
           <div className="text-center">
-            <span className="text-[10px] font-bold text-[#55198B] dark:text-[#c084fc] uppercase tracking-widest block">
+            <span className="text-[10px] font-black text-[#ccff00] uppercase tracking-widest block">
               STRAVA MEDIA STUDIO
             </span>
-            <h3 className="text-sm md:text-base font-black text-main mt-0.5">
+            <h3 className="text-sm md:text-base font-black text-white mt-0.5">
               {studioMode === 'poster' ? 'Curate Share Poster' : 'Animated Track Video Clip'}
             </h3>
           </div>
 
-          <button className="btn-google-icon" onClick={onClose} aria-label="Close">
+          <button
+            className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Studio Mode Switcher Tabs */}
-        <div className="flex items-center justify-center p-1 bg-black/30 rounded-full border border-glass mb-3 max-w-md mx-auto w-full">
+        <div className="flex items-center justify-center p-1 bg-black/40 rounded-full border border-white/10 mb-3 max-w-md mx-auto w-full">
           <button
-            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-4 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-4 rounded-full text-xs font-black transition-all cursor-pointer ${
               studioMode === 'poster'
-                ? 'bg-[#55198B] text-white shadow-md'
-                : 'text-sub hover:text-main'
+                ? 'bg-[#ccff00] text-black shadow-md'
+                : 'text-white/60 hover:text-white'
             }`}
             onClick={() => setStudioMode('poster')}
           >
@@ -1226,10 +1130,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
           </button>
 
           <button
-            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-4 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-4 rounded-full text-xs font-black transition-all cursor-pointer ${
               studioMode === 'video'
-                ? 'bg-[#55198B] text-white shadow-md'
-                : 'text-sub hover:text-main'
+                ? 'bg-[#ccff00] text-black shadow-md'
+                : 'text-white/60 hover:text-white'
             }`}
             onClick={() => setStudioMode('video')}
           >
@@ -1245,16 +1149,16 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
           <div className="flex flex-col gap-3">
             {/* Top Format & Template Switcher */}
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-1 bg-black/20 p-1 rounded-full border border-glass">
+              <div className="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-white/10">
                 <button
-                  className={format === 'story' ? 'btn-google-primary text-xs py-1 px-3 rounded-full' : 'text-xs text-sub py-1 px-3 rounded-full hover:text-main cursor-pointer'}
+                  className={format === 'story' ? 'bg-[#ccff00] text-black font-black text-xs py-1 px-3 rounded-full shadow-sm' : 'text-xs text-white/60 py-1 px-3 rounded-full hover:text-white cursor-pointer'}
                   onClick={() => setFormat('story')}
                 >
                   <Smartphone size={13} className="inline mr-1" />
                   <span>Story 9:16</span>
                 </button>
                 <button
-                  className={format === 'square' ? 'btn-google-primary text-xs py-1 px-3 rounded-full' : 'text-xs text-sub py-1 px-3 rounded-full hover:text-main cursor-pointer'}
+                  className={format === 'square' ? 'bg-[#ccff00] text-black font-black text-xs py-1 px-3 rounded-full shadow-sm' : 'text-xs text-white/60 py-1 px-3 rounded-full hover:text-white cursor-pointer'}
                   onClick={() => setFormat('square')}
                 >
                   <Square size={13} className="inline mr-1" />
@@ -1265,7 +1169,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   className={`text-xs py-1 px-2.5 rounded-full font-bold transition-all cursor-pointer ${
                     is4k
                       ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                      : 'text-sub hover:text-main'
+                      : 'text-white/60 hover:text-white'
                   }`}
                   title="Toggle 4K Ultra-HD 2160p Export Resolution"
                 >
@@ -1273,15 +1177,15 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                 </button>
               </div>
 
-              <div className="flex items-center gap-1 bg-black/20 p-1 rounded-full border border-glass">
+              <div className="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-white/10">
                 {(['strava_classic', 'minimal', 'cyber_neon'] as SocialCardTemplate[]).map((tmpl) => (
                   <button
                     key={tmpl}
                     onClick={() => setTemplate(tmpl)}
                     className={`text-xs py-1 px-2.5 rounded-full capitalize font-bold transition-all cursor-pointer ${
                       template === tmpl
-                        ? 'bg-[#55198B] text-white shadow-md'
-                        : 'text-sub hover:text-main'
+                        ? 'bg-[#ccff00] text-black shadow-md font-black'
+                        : 'text-white/60 hover:text-white'
                     }`}
                   >
                     {tmpl.replace('_', ' ')}
@@ -1291,7 +1195,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
             </div>
 
             {/* Poster Canvas Preview */}
-            <div className="relative flex items-center justify-center bg-black/95 p-2 md:p-3 rounded-2xl border border-glass overflow-hidden max-h-[320px] shadow-2xl">
+            <div className="relative flex items-center justify-center bg-black/95 p-2 md:p-3 rounded-2xl border border-white/10 overflow-hidden max-h-[320px] shadow-2xl">
               {previewUrl ? (
                 <img
                   src={previewUrl}
@@ -1299,24 +1203,24 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   className="max-h-[300px] object-contain rounded-xl shadow-2xl"
                 />
               ) : (
-                <div className="h-56 flex items-center justify-center text-xs text-sub font-bold">
+                <div className="h-56 flex items-center justify-center text-xs text-white/60 font-bold">
                   Rendering HD Strava Poster...
                 </div>
               )}
             </div>
 
             {/* Custom Quote & Feeling Editor */}
-            <div className="p-3 rounded-xl bg-card border border-glass flex flex-col gap-2">
+            <div className="p-3 rounded-2xl bg-[#141923] border border-white/10 flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-sub uppercase tracking-wider flex items-center gap-1">
+                <span className="text-[11px] font-bold text-white/60 uppercase tracking-wider flex items-center gap-1">
                   <span>✍️ Workout Feeling / Custom Quote</span>
                 </span>
-                <div className="flex items-center gap-1 bg-black/20 p-0.5 rounded-full border border-glass">
+                <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-full border border-white/10">
                   <button
                     type="button"
                     onClick={() => setUseCustomQuote(true)}
-                    className={`text-[10px] font-bold py-1 px-2 rounded-full transition-all ${
-                      useCustomQuote ? 'bg-amber-500 text-black shadow-sm' : 'text-sub hover:text-main'
+                    className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all cursor-pointer ${
+                      useCustomQuote ? 'bg-[#ffd700] text-black font-black shadow-sm' : 'text-white/60 hover:text-white'
                     }`}
                   >
                     Custom Quote
@@ -1324,8 +1228,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   <button
                     type="button"
                     onClick={() => setUseCustomQuote(false)}
-                    className={`text-[10px] font-bold py-1 px-2 rounded-full transition-all ${
-                      !useCustomQuote ? 'bg-[#55198B] text-white shadow-sm' : 'text-sub hover:text-main'
+                    className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all cursor-pointer ${
+                      !useCustomQuote ? 'bg-[#ccff00] text-black font-black shadow-sm' : 'text-white/60 hover:text-white'
                     }`}
                   >
                     Preset Quotes
@@ -1373,16 +1277,16 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
             </div>
 
             {/* Custom Photo Management */}
-            <div className="p-3 rounded-xl bg-card border border-glass">
+            <div className="p-3 rounded-2xl bg-[#141923] border border-white/10">
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-main">
-                  <UploadCloud size={15} className="text-[#55198B] dark:text-[#c084fc]" />
+                <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                  <UploadCloud size={15} className="text-[#ccff00]" />
                   <span>Custom Background Photos ({photos.length})</span>
                 </div>
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="btn-google-tonal text-[11px] py-1 px-2.5 flex items-center gap-1"
+                  className="bg-white/10 hover:bg-white/15 text-white font-bold text-[11px] py-1 px-2.5 rounded-lg border border-white/10 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
                 >
                   <Plus size={13} />
                   <span>Upload Photos</span>
@@ -1405,13 +1309,13 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                       <div
                         key={idx}
                         className={`relative group shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
-                          isSelected ? 'border-[#55198B] scale-105 shadow-md' : 'border-glass opacity-70 hover:opacity-100'
+                          isSelected ? 'border-[#ccff00] scale-105 shadow-md' : 'border-white/10 opacity-70 hover:opacity-100'
                         }`}
                         onClick={() => setSelectedPhotoIdx(idx)}
                       >
                         <img src={photoUrl} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
                         {isSelected && (
-                          <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#55198B] text-white flex items-center justify-center text-[9px] font-black">
+                          <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#ccff00] text-black flex items-center justify-center text-[9px] font-black">
                             ✓
                           </div>
                         )}
@@ -1430,19 +1334,19 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   })}
                 </div>
               ) : (
-                <p className="text-[11px] text-sub italic">
+                <p className="text-[11px] text-white/50 italic">
                   No custom photos selected. Tap "Upload Photos" to pick background photos!
                 </p>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2.5 pt-2 border-t border-glass text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2.5 pt-2 border-t border-white/10 text-xs">
                 <div>
                   <div className="flex items-center justify-between text-sub mb-1">
-                    <span className="flex items-center gap-1 font-semibold">
-                      <Sliders size={12} />
+                    <span className="flex items-center gap-1 font-semibold text-white/70">
+                      <Sliders size={12} className="text-[#ccff00]" />
                       <span>Photo Darkness / Dim</span>
                     </span>
-                    <span className="font-bold">{Math.round(scrimIntensity * 100)}%</span>
+                    <span className="font-bold text-white/80">{Math.round(scrimIntensity * 100)}%</span>
                   </div>
                   <input
                     type="range"
@@ -1451,13 +1355,13 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                     step="0.05"
                     value={scrimIntensity}
                     onChange={(e) => setScrimIntensity(parseFloat(e.target.value))}
-                    className="w-full accent-[#55198B] cursor-pointer"
+                    className="w-full accent-[#ccff00] cursor-pointer"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 font-semibold text-sub">
-                    <MapPin size={13} className="text-orange-500" />
+                  <span className="flex items-center gap-1.5 font-semibold text-white/70">
+                    <MapPin size={13} className="text-[#fc4c02]" />
                     <span>Draw GPS Route on Photo</span>
                   </span>
                   <button
@@ -1465,8 +1369,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                     onClick={() => setShowRouteOverlay(!showRouteOverlay)}
                     className={`py-1 px-3 rounded-full text-xs font-bold transition-all cursor-pointer ${
                       showRouteOverlay
-                        ? 'bg-orange-500 text-white shadow-md'
-                        : 'bg-card border border-glass text-sub'
+                        ? 'bg-[#fc4c02] text-white shadow-md'
+                        : 'bg-white/5 border border-white/10 text-white/60'
                     }`}
                   >
                     {showRouteOverlay ? 'ON' : 'OFF'}
@@ -1476,9 +1380,9 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
             </div>
 
             {/* Poster Action Buttons: 1 Share Button and 1 Download Button */}
-            <div className="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-glass">
+            <div className="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-white/10">
               <button
-                className="btn-google-primary text-xs py-3 rounded-full flex items-center justify-center gap-1.5 shadow-lg"
+                className="bg-[#ccff00] hover:bg-[#b8e600] text-black font-black text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
                 onClick={handleShareNative}
                 disabled={isSharing}
               >
@@ -1487,7 +1391,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               </button>
 
               <button
-                className="btn-google-tonal text-xs py-3 rounded-full flex items-center justify-center gap-1.5 shadow-lg"
+                className="bg-white/10 hover:bg-white/15 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 border border-white/10 active:scale-95 transition-all cursor-pointer"
                 onClick={handleDownload}
                 disabled={isDownloading}
               >
@@ -1505,7 +1409,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
           <div className="flex flex-col gap-3">
             {/* Top Media & Map Theme Switcher */}
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-1 bg-black/20 p-1 rounded-full border border-glass">
+              <div className="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-white/10">
                 {[
                   { id: 'satellite', label: '🛰️ Satellite' },
                   { id: 'osm', label: '🗺️ Map' },
@@ -1520,8 +1424,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                     }}
                     className={`text-xs py-1.5 px-3 rounded-full font-bold transition-all cursor-pointer ${
                       videoMapTheme === th.id && !customVideoUrl
-                        ? 'bg-[#55198B] text-white shadow-md'
-                        : 'text-sub hover:text-main'
+                        ? 'bg-[#ccff00] text-black shadow-md font-black'
+                        : 'text-white/60 hover:text-white'
                     }`}
                   >
                     {th.label}
@@ -1620,10 +1524,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                     <button
                       key={spd}
                       onClick={() => setVideoPlaybackSpeed(spd)}
-                      className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-all ${
+                      className={`text-[11px] px-2 py-0.5 rounded-full font-bold transition-all cursor-pointer ${
                         videoPlaybackSpeed === spd
-                          ? 'bg-[#55198B] text-white shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
+                          ? 'bg-[#ccff00] text-black shadow-sm font-black'
+                          : 'text-white/60 hover:text-white'
                       }`}
                     >
                       {spd}x
@@ -1635,29 +1539,29 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               {/* Recording In-Progress Banner */}
               {isRecordingVideo && (
                 <div className="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4 z-20">
-                  <div className="w-12 h-12 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin mb-3" />
+                  <div className="w-12 h-12 rounded-full border-4 border-[#ccff00] border-t-transparent animate-spin mb-3" />
                   <h4 className="text-sm font-black text-white">Rendering HD Track Video Clip...</h4>
-                  <p className="text-xs text-cyan-400 font-bold mt-1 font-mono">{recordProgress}% completed</p>
-                  <div className="w-48 bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                    <div className="bg-cyan-400 h-full transition-all duration-100" style={{ width: `${recordProgress}%` }} />
+                  <p className="text-xs text-[#ccff00] font-bold mt-1 font-mono">{recordProgress}% completed</p>
+                  <div className="w-48 bg-white/10 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div className="bg-[#ccff00] h-full transition-all duration-100" style={{ width: `${recordProgress}%` }} />
                   </div>
                 </div>
               )}
             </div>
 
             {/* Map & Photo Blending Controls */}
-            <div className="flex flex-col gap-2.5 p-3 rounded-2xl bg-card border border-glass text-xs">
+            <div className="flex flex-col gap-2.5 p-3 rounded-2xl bg-[#141923] border border-white/10 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-main flex items-center gap-1.5 text-xs">
-                  <Layers size={14} className="text-cyan-400" />
+                <span className="font-bold text-white flex items-center gap-1.5 text-xs">
+                  <Layers size={14} className="text-[#ccff00]" />
                   <span>Map & Photo Blend Studio</span>
                 </span>
-                <div className="flex items-center gap-1 bg-black/20 p-0.5 rounded-lg border border-glass text-[10px]">
+                <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10 text-[10px]">
                   <button
                     type="button"
                     onClick={() => setVideoMapTheme('satellite')}
-                    className={`px-2 py-0.5 rounded font-bold transition-all ${
-                      videoMapTheme === 'satellite' ? 'bg-[#55198B] text-white' : 'text-sub hover:text-main'
+                    className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                      videoMapTheme === 'satellite' ? 'bg-[#ccff00] text-black font-black' : 'text-white/60 hover:text-white'
                     }`}
                   >
                     Google Sat
@@ -1665,8 +1569,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                   <button
                     type="button"
                     onClick={() => setVideoMapTheme('osm')}
-                    className={`px-2 py-0.5 rounded font-bold transition-all ${
-                      videoMapTheme === 'osm' ? 'bg-cyan-600 text-white' : 'text-sub hover:text-main'
+                    className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                      videoMapTheme === 'osm' ? 'bg-[#38bdf8] text-black font-bold' : 'text-white/60 hover:text-white'
                     }`}
                   >
                     Google Roads
@@ -1781,17 +1685,17 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
             </div>
 
             {/* Local Audio Soundtrack Selector & Precision Part/Trim Selector */}
-            <div className="flex flex-col gap-2 p-3 rounded-2xl bg-card border border-glass text-xs">
+            <div className="flex flex-col gap-2 p-3 rounded-2xl bg-[#141923] border border-white/10 text-xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-full bg-[#55198B]/20 text-[#c084fc]">
+                  <div className="p-1.5 rounded-full bg-[#ccff00]/15 text-[#ccff00]">
                     <Music size={14} />
                   </div>
                   <div>
-                    <span className="font-bold text-main block text-[11px]">
+                    <span className="font-bold text-white block text-[11px]">
                       {customAudioName ? `🎵 ${customAudioName}` : 'Add Local Device Audio (Song / BGM)'}
                     </span>
-                    <span className="text-[10px] text-sub">
+                    <span className="text-[10px] text-white/60">
                       {customAudioUrl ? 'Choose which part of the song to play in your post' : 'MP3, WAV, AAC, M4A from your device'}
                     </span>
                   </div>
@@ -1899,10 +1803,10 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                           userAudioElementRef.current.play();
                         }
                       }}
-                      className={`text-[11px] py-1 px-3 rounded-full font-bold flex items-center gap-1.5 transition-all shadow-md ${
+                      className={`text-[11px] py-1 px-3 rounded-full font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer ${
                         isAudioPreviewPlaying
-                          ? 'bg-amber-500 text-black'
-                          : 'bg-[#55198B] text-white hover:bg-[#6c21b0]'
+                          ? 'bg-amber-500 text-black font-bold'
+                          : 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
                       }`}
                     >
                       {isAudioPreviewPlaying ? <Pause size={12} /> : <Play size={12} />}
@@ -1914,9 +1818,9 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
             </div>
 
             {/* Video Export & Share Actions */}
-            <div className="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-glass">
+            <div className="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-white/10">
               <button
-                className="btn-google-primary text-xs py-3 rounded-full flex items-center justify-center gap-1.5 shadow-lg"
+                className="bg-[#ccff00] hover:bg-[#b8e600] text-black font-black text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
                 onClick={() => handleRecordAndExportVideo(true)}
                 disabled={isRecordingVideo}
               >
@@ -1925,7 +1829,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               </button>
 
               <button
-                className="btn-google-tonal text-xs py-3 rounded-full flex items-center justify-center gap-1.5 shadow-lg"
+                className="bg-white/10 hover:bg-white/15 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 border border-white/10 active:scale-95 transition-all cursor-pointer"
                 onClick={() => handleRecordAndExportVideo(false)}
                 disabled={isRecordingVideo}
               >

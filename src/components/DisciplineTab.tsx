@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import type { RoutineItem, MotivationalQuote, UserProfile, UserStats } from '../types';
 import {
   CheckCircle2,
-  Circle,
   Plus,
   Zap,
   Sparkles,
-  Award,
   Sun,
   Dumbbell,
   BookOpen,
@@ -14,7 +12,8 @@ import {
   Moon,
   Clock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  X
 } from 'lucide-react';
 
 interface DisciplineTabProps {
@@ -41,7 +40,7 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
   const [newDuration, setNewDuration] = useState(15);
   const [newAssigned, setNewAssigned] = useState<'men' | 'women' | 'both'>('men');
   const [quoteIdx, setQuoteIdx] = useState(0);
-  
+
   const [showManifesto, setShowManifesto] = useState(false);
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
 
@@ -55,7 +54,10 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
   const totalCount = filteredRoutines.length;
   const completionPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  const currentQuote = quotes[quoteIdx % quotes.length] || quotes[0];
+  const currentQuote = quotes[quoteIdx % quotes.length] || quotes[0] || {
+    text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.',
+    author: 'Aristotle'
+  };
 
   const handleNextQuote = () => {
     setQuoteIdx((prev) => (prev + 1) % quotes.length);
@@ -78,138 +80,198 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
 
   const getCategoryIcon = (cat: RoutineItem['category']) => {
     switch (cat) {
-      case 'morning': return <Sun className="icon-cat text-amber" />;
-      case 'fitness': return <Dumbbell className="icon-cat text-cyan" />;
-      case 'music_veda': return <Music className="icon-cat text-violet" />;
-      case 'evening': return <Moon className="icon-cat text-indigo" />;
-      default: return <BookOpen className="icon-cat text-green" />;
+      case 'morning': return <Sun size={15} className="text-dude" />;
+      case 'fitness': return <Dumbbell size={15} className="text-primary" />;
+      case 'music_veda': return <Music size={15} className="text-[#c084fc]" />;
+      case 'evening': return <Moon size={15} className="text-sky-400" />;
+      default: return <BookOpen size={15} className="text-emerald-400" />;
     }
   };
 
   return (
-    <div className="tab-container animate-fade-in">
-      {/* Motivational Quote Banner - Scrolling Ticker */}
-      <div className="quote-banner glass-card" style={{ padding: '0.5rem', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-        <button className="btn-icon" onClick={handleNextQuote} style={{ flexShrink: 0, marginRight: '1rem' }}>
-          <Sparkles className="icon-xs text-amber" />
+    <div className="space-y-6 animate-fade-in font-sans">
+      {/* Motivational Quote Banner - Modern Minimal Ticker */}
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-3.5 flex items-center justify-between gap-3 shadow-md">
+        <button
+          className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-dude hover:bg-white/10 shrink-0 transition"
+          onClick={handleNextQuote}
+          title="Next Mantra"
+        >
+          <Sparkles size={15} />
         </button>
-        <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', width: '100%' }}>
-          <div style={{ display: 'inline-block', animation: 'ticker 15s linear infinite' }}>
-            <span style={{ fontWeight: 'bold' }}>"{currentQuote.text}"</span> &mdash; {currentQuote.author}
-          </div>
+        <div className="overflow-hidden flex-1 text-center sm:text-left">
+          <p className="text-xs sm:text-sm font-medium text-white italic truncate">
+            "{currentQuote.text}" <span className="text-muted-foreground not-italic font-normal">&mdash; {currentQuote.author}</span>
+          </p>
         </div>
+        <span className="text-[10px] font-mono font-bold text-primary uppercase shrink-0 hidden sm:inline">
+          DAILY MANTRA
+        </span>
       </div>
 
       {/* Discipline Dashboard & Score Header */}
-      <div className="discipline-grid">
-        <div className="score-card glass-card hover-scale">
-          <div className="score-display" style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-            <div className="score-circle">
-              <svg className="progress-ring" width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
-                <circle className="progress-ring-bg" strokeWidth="8" r="50" cx="60" cy="60" style={{ stroke: '#333', fill: 'transparent' }} />
-                <circle
-                  className="progress-ring-fill"
-                  strokeWidth="8"
-                  strokeDasharray={`${2 * Math.PI * 50}`}
-                  strokeDashoffset={`${2 * Math.PI * 50 * (1 - completionPct / 100)}`}
-                  r="50"
-                  cx="60"
-                  cy="60"
-                  style={{ stroke: 'var(--color-cyan)', fill: 'transparent', transition: 'stroke-dashoffset 1s ease-out' }}
-                />
-              </svg>
-              <div className="score-number" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '1.5rem', fontWeight: 'bold' }}>
-                {completionPct}%
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Score Card */}
+        <div className="md:col-span-2 rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg flex items-center justify-around flex-wrap gap-4">
+          <div className="relative w-28 h-28 flex items-center justify-center">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+              <circle
+                cx="60"
+                cy="60"
+                r="48"
+                stroke="rgba(255, 255, 255, 0.08)"
+                strokeWidth="8"
+                fill="transparent"
+              />
+              <circle
+                cx="60"
+                cy="60"
+                r="48"
+                stroke="#ccff00"
+                strokeWidth="8"
+                strokeDasharray={`${2 * Math.PI * 48}`}
+                strokeDashoffset={`${2 * Math.PI * 48 * (1 - completionPct / 100)}`}
+                strokeLinecap="round"
+                fill="transparent"
+                style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
+              />
+            </svg>
+            <div className="absolute text-center">
+              <span className="text-2xl font-black text-white font-mono">{completionPct}%</span>
+              <span className="block text-[8px] font-bold uppercase tracking-wider text-muted-foreground">Today</span>
             </div>
-            <div className="score-details" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'center' }}>
-              <div className="score-stat">
-                <span className="stat-value text-xl font-bold">{completedCount}/{totalCount}</span>
-              </div>
-              <div className="score-stat">
-                <span className="stat-value text-emerald text-xl font-bold">
-                  {currentProfile === 'men' ? stats.menStreak : currentProfile === 'women' ? stats.womenStreak : stats.coupleStreak}🔥
-                </span>
-              </div>
+          </div>
+
+          <div className="flex flex-col gap-3 text-center sm:text-left">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-display">
+                HABITS COMPLETED
+              </span>
+              <span className="text-2xl font-black text-white font-mono">
+                {completedCount} <span className="text-sm font-normal text-muted-foreground">/ {totalCount}</span>
+              </span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-display">
+                CURRENT STREAK
+              </span>
+              <span className="text-2xl font-black text-primary font-mono flex items-center gap-1.5 justify-center sm:justify-start">
+                {currentProfile === 'men' ? stats.menStreak : currentProfile === 'women' ? stats.womenStreak : stats.coupleStreak}d
+                <span className="text-lg">🔥</span>
+              </span>
             </div>
           </div>
         </div>
 
         {/* Self-Discipline Core Principles Card */}
-        <div className="principles-card glass-card hover-scale">
-          <button 
-            className="btn-secondary w-full" 
-            onClick={() => setShowManifesto(!showManifesto)}
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-          >
-            <span><Zap className="icon-sm text-cyan inline mr-2" /> Manifesto</span>
-            {showManifesto ? <ChevronUp className="icon-sm" /> : <ChevronDown className="icon-sm" />}
-          </button>
-          
+        <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-dude flex items-center gap-1.5 font-display">
+                <Zap size={13} /> THE INNER LAW
+              </span>
+              <button
+                className="text-xs text-muted-foreground hover:text-white"
+                onClick={() => setShowManifesto(!showManifesto)}
+              >
+                {showManifesto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed font-display">
+              “You don’t rise to the occasion. You sink to the level of your daily training.”
+            </p>
+          </div>
+
           {showManifesto && (
-            <ul className="principles-list mt-4 animate-fade-in">
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <Zap className="icon-bullet text-amber" /> <span>Consistency &gt; Adrenaline</span>
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <Award className="icon-bullet text-emerald" /> <span>Identity First</span>
-              </li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Clock className="icon-bullet text-indigo" /> <span>Mastery over Rush</span>
-              </li>
-            </ul>
+            <div className="mt-4 pt-3 border-t border-white/10 space-y-2 text-xs animate-fade-in">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span className="text-dude">⚡</span> <span>Consistency &gt; Adrenaline</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span className="text-primary">🛡️</span> <span>Identity First, Goals Second</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span className="text-sky-400">⏱️</span> <span>Mastery over Rush</span>
+              </div>
+            </div>
           )}
         </div>
       </div>
 
       {/* Routine Checklist Section */}
-      <div className="routine-section mt-4">
-        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 className="section-title m-0">Checklist</h2>
-          <button className="btn-icon bg-[#55198B] rounded-full p-2 text-white shadow-sm hover:bg-[#7b29be] transition-all" onClick={() => setShowAddModal(true)}>
-            <Plus className="icon-sm text-white" />
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-white font-display">
+              Daily Discipline Checklist
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Habits designed for athletic conditioning, mental clarity and recovery.
+            </p>
+          </div>
+          <button
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:brightness-110 transition shadow-sm"
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus size={14} />
+            <span>Add Habit</span>
           </button>
         </div>
 
-        <div className="routine-list mt-4">
-          {filteredRoutines.map((item, index) => (
+        <div className="space-y-2.5">
+          {filteredRoutines.map((item) => (
             <div
               key={item.id}
-              className={`routine-card glass-card card-stagger hover-scale ${item.completed ? 'completed' : ''}`}
-              style={{ animationDelay: `${index * 0.08}s`, display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: 'pointer' }}
               onClick={() => setExpandedRoutineId(expandedRoutineId === item.id ? null : item.id)}
+              className={`p-3.5 rounded-xl border flex flex-col gap-2 cursor-pointer transition-all ${
+                item.completed
+                  ? 'border-primary/40 bg-primary/5 text-white'
+                  : 'border-white/5 bg-[#121824] text-muted-foreground hover:border-white/15'
+              }`}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <button 
-                  className="toggle-btn btn-icon" 
-                  aria-label="Toggle completed"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleRoutine(item.id);
-                  }}
-                >
-                  {item.completed ? (
-                    <CheckCircle2 className="icon-check text-emerald pulse-glow" />
-                  ) : (
-                    <Circle className="icon-check text-muted" />
-                  )}
-                </button>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label="Toggle completed"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleRoutine(item.id);
+                    }}
+                    className={`flex h-6 w-6 items-center justify-center rounded-lg border transition ${
+                      item.completed
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-white/20 bg-white/5 text-transparent hover:border-white/40'
+                    }`}
+                  >
+                    {item.completed && <CheckCircle2 size={16} />}
+                  </button>
 
-                <div className="routine-icon-box">{getCategoryIcon(item.category)}</div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+                    {getCategoryIcon(item.category)}
+                  </div>
 
-                <div className="routine-info" style={{ flex: 1 }}>
-                  <h4 className="routine-title m-0" style={{ fontSize: '1.1rem' }}>{item.title}</h4>
+                  <div>
+                    <h4 className={`text-xs sm:text-sm font-bold ${item.completed ? 'text-white line-through opacity-80' : 'text-slate-200'}`}>
+                      {item.title}
+                    </h4>
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5 font-mono">
+                      <Clock size={11} /> {item.timeOfDay} &bull; {item.durationMinutes}m
+                    </span>
+                  </div>
                 </div>
-                
-                <div className="routine-time">
-                  <span className="badge-pill bg-dark"><Clock className="icon-xs inline mr-1" />{item.timeOfDay}</span>
+
+                <div className="flex items-center gap-2">
+                  <span className="rounded-lg border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                    {item.assignedTo}
+                  </span>
                 </div>
               </div>
-              
+
               {expandedRoutineId === item.id && (
-                <div className="routine-details animate-fade-in" style={{ paddingLeft: '3rem', paddingTop: '0.5rem', display: 'flex', gap: '1rem' }}>
-                  <span className="badge-tag bg-cyan/20 text-cyan">{item.durationMinutes}m</span>
-                  <span className="badge-tag bg-indigo/20 text-indigo">{item.assignedTo.toUpperCase()}</span>
+                <div className="pt-2 border-t border-white/5 flex items-center gap-2 text-[10px] text-muted-foreground animate-fade-in">
+                  <span className="text-primary font-bold">Category:</span> {item.category.replace('_', ' ').toUpperCase()} &bull;{' '}
+                  <span className="text-primary font-bold">Target Duration:</span> {item.durationMinutes} minutes
                 </div>
               )}
             </div>
@@ -219,27 +281,44 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
 
       {/* Add Routine Modal */}
       {showAddModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content glass-card animate-scale-up">
-            <h3 className="modal-title">Add New Daily Habit / Routine</h3>
-            <form onSubmit={handleCreateRoutine}>
-              <div className="form-group">
-                <label>Habit Title</label>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0e131b] p-6 shadow-2xl text-foreground">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <h3 className="text-sm font-bold text-white font-display">
+                Add Daily Habit / Routine
+              </h3>
+              <button
+                className="rounded-lg p-1 text-muted-foreground hover:text-white"
+                onClick={() => setShowAddModal(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateRoutine} className="space-y-3.5">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1 font-display">
+                  Habit Title
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. 10 Mins Dynamic Hip & Ankle Mobility"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   required
+                  className="w-full bg-[#121824] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-primary/50 transition"
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Category</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1 font-display">
+                    Category
+                  </label>
                   <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value as RoutineItem['category'])}
+                    className="w-full bg-[#121824] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-primary/50"
                   >
                     <option value="morning">Morning Routine</option>
                     <option value="fitness">Fitness / Calisthenics</option>
@@ -248,43 +327,59 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label>Assigned To</label>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1 font-display">
+                    Assigned To
+                  </label>
                   <select
                     value={newAssigned}
                     onChange={(e) => setNewAssigned(e.target.value as 'men' | 'women' | 'both')}
+                    className="w-full bg-[#121824] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-primary/50"
                   >
-                    <option value="men">Men</option>
-                    <option value="women">Women</option>
+                    <option value="men">Sughosh (Men)</option>
+                    <option value="women">Shreya (Women)</option>
                     <option value="both">Both (Shared)</option>
                   </select>
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Time of Day</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1 font-display">
+                    Time of Day
+                  </label>
                   <input
                     type="text"
                     value={newTime}
                     onChange={(e) => setNewTime(e.target.value)}
+                    className="w-full bg-[#121824] border border-white/10 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none focus:border-primary/50"
                   />
                 </div>
-                <div className="form-group">
-                  <label>Duration (mins)</label>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1 font-display">
+                    Duration (mins)
+                  </label>
                   <input
                     type="number"
                     value={newDuration}
                     onChange={(e) => setNewDuration(Number(e.target.value))}
+                    className="w-full bg-[#121824] border border-white/10 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none focus:border-primary/50"
                   />
                 </div>
               </div>
 
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-muted-foreground hover:text-white"
+                  onClick={() => setShowAddModal(false)}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary">
+                <button
+                  type="submit"
+                  className="rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground hover:brightness-110 shadow-sm"
+                >
                   Save Habit
                 </button>
               </div>
@@ -292,34 +387,6 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
           </div>
         </div>
       )}
-      
-      <style>{`
-        @keyframes ticker {
-          0% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .card-stagger {
-          opacity: 0;
-          animation: fadeInUp 0.4s ease forwards;
-        }
-        .hover-scale {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .hover-scale:hover {
-          transform: scale(1.02);
-        }
-        .pulse-glow {
-          animation: pulseGlow 2s infinite;
-        }
-        @keyframes pulseGlow {
-          0%, 100% { filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4)); }
-          50% { filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.8)); }
-        }
-      `}</style>
     </div>
   );
 };

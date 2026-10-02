@@ -117,8 +117,8 @@ export function processRawGpsPoint(
 } {
   const accuracy = raw.accuracy ?? 30;
 
-  // 1. Accuracy Gate: Reject severely inaccurate points (e.g. cellular tower triangulation)
-  const maxAccuracyThreshold = activityType === 'drive' ? 35 : 22;
+  // 1. Accuracy Gate: Drop noisy fixes with wide error margins
+  const maxAccuracyThreshold = activityType === 'drive' ? 30 : 16;
   if (accuracy > maxAccuracyThreshold || accuracy <= 0) {
     return {
       filteredPoint: raw,
@@ -126,6 +126,17 @@ export function processRawGpsPoint(
       deltaDistanceKm: 0,
       calculatedSpeedKmh: 0,
       rejectionReason: `Accuracy too low (${Math.round(accuracy)}m > ${maxAccuracyThreshold}m)`
+    };
+  }
+
+  // Deduplicate points with identical or backwards timestamps
+  if (state.lastTimestamp > 0 && raw.timestamp <= state.lastTimestamp) {
+    return {
+      filteredPoint: raw,
+      accepted: false,
+      deltaDistanceKm: 0,
+      calculatedSpeedKmh: 0,
+      rejectionReason: 'Duplicate timestamp'
     };
   }
 
@@ -152,7 +163,7 @@ export function processRawGpsPoint(
 
   // 2. 2D Position Kalman Filter
   // Process noise (Q): assumed movement variance based on duration
-  const qMetersPerSec = activityType === 'cycle' ? 6.0 : activityType === 'run' ? 3.5 : 1.5;
+  const qMetersPerSec = activityType === 'cycle' ? 5.0 : activityType === 'run' ? 3.0 : 1.2;
   const qDegrees = (qMetersPerSec * dtSeconds) / METERS_PER_DEGREE_LAT;
   const processVariance = qDegrees * qDegrees;
 
@@ -181,19 +192,20 @@ export function processRawGpsPoint(
 
   // Distance from last accepted point
   const last = state.lastAcceptedPoint;
-  const deltaKm = calculateHaversineKm(
+  const rawGeodesicKm = calculateHaversineKm(
     last.latitude,
     last.longitude,
     smoothedPoint.latitude,
     smoothedPoint.longitude
   );
-  const deltaMeters = deltaKm * 1000;
+  const rawGeodesicMeters = rawGeodesicKm * 1000;
 
-  // Physical Speed in km/h (Prefer device Doppler hardware sensor if available)
-  const physicalSpeedKmh =
-    raw.speed !== undefined && raw.speed !== null && raw.speed >= 0
-      ? Number((raw.speed * 3.6).toFixed(1))
-      : Number((deltaKm / (dtSeconds / 3600)).toFixed(1));
+  // Has valid Doppler hardware velocity?
+  const hasHardwareSpeed = raw.speed !== undefined && raw.speed !== null && raw.speed >= 0;
+  const dopplerSpeedMs = hasHardwareSpeed ? raw.speed! : -1;
+  const physicalSpeedKmh = hasHardwareSpeed
+    ? Number((dopplerSpeedMs * 3.6).toFixed(1))
+    : Number((rawGeodesicKm / (dtSeconds / 3600)).toFixed(1));
 
   // 3. Physical Speed Bounds Gate (Reject teleport glitches)
   const maxSpeedKmh = getMaxAllowableSpeedKmh(activityType);
@@ -207,36 +219,53 @@ export function processRawGpsPoint(
     };
   }
 
-  // 4. Stationary Noise Gate
-  // When stationary, GPS points bounce within the accuracy bubble (3-12m).
-  // If moving speed < 0.55 m/s (2.0 km/h) or distance is within accuracy threshold, ignore delta.
-  const isMoving =
-    (raw.speed !== undefined && raw.speed !== null && raw.speed >= 0
-      ? raw.speed
-      : deltaMeters / dtSeconds) > 0.55;
-
-  const minimumMoveThresholdMeters = Math.max(3.5, accuracy * 0.45);
-
-  if (deltaMeters < minimumMoveThresholdMeters || !isMoving) {
-    // Stationary or micro-jitter: do not accumulate false distance, set speed to 0
+  // 4. Stationary Drift Gate
+  // When stationary or walking < 0.65 m/s (~2.3 km/h), do NOT accumulate false distance
+  if (hasHardwareSpeed && dopplerSpeedMs < 0.65) {
     return {
       filteredPoint: smoothedPoint,
       accepted: false,
       deltaDistanceKm: 0,
       calculatedSpeedKmh: 0,
-      rejectionReason: 'Stationary / Micro-jitter filtered'
+      rejectionReason: 'Stationary / Doppler zero-clamp'
     };
   }
 
-  // Legitimate movement detected!
-  state.totalDistanceKm = Number((state.totalDistanceKm + deltaKm).toFixed(4));
+  // Minimum physical movement threshold
+  const minMoveMeters = hasHardwareSpeed
+    ? Math.max(1.0, dopplerSpeedMs * dtSeconds * 0.4)
+    : Math.max(2.5, accuracy * 0.35);
+
+  if (rawGeodesicMeters < minMoveMeters) {
+    return {
+      filteredPoint: smoothedPoint,
+      accepted: false,
+      deltaDistanceKm: 0,
+      calculatedSpeedKmh: 0,
+      rejectionReason: 'Micro-displacement threshold'
+    };
+  }
+
+  // 5. Doppler Speed-Bounded Distance Integration
+  // When Doppler velocity is available, bound step distance to physical max (speed * dt * 1.3)
+  // This completely stops GPS position jitter from multiplying distance by 4x!
+  let trueStepMeters = rawGeodesicMeters;
+  if (hasHardwareSpeed && dopplerSpeedMs > 0) {
+    const dopplerMaxMeters = dopplerSpeedMs * dtSeconds * 1.3 + 0.4;
+    trueStepMeters = Math.min(rawGeodesicMeters, dopplerMaxMeters);
+  }
+
+  const effectiveDeltaKm = trueStepMeters / 1000;
+
+  // Legitimate movement detected and accurately measured!
+  state.totalDistanceKm = Number((state.totalDistanceKm + effectiveDeltaKm).toFixed(4));
   state.lastAcceptedPoint = smoothedPoint;
   state.points.push(smoothedPoint);
 
   return {
     filteredPoint: smoothedPoint,
     accepted: true,
-    deltaDistanceKm: deltaKm,
+    deltaDistanceKm: effectiveDeltaKm,
     calculatedSpeedKmh: physicalSpeedKmh
   };
 }

@@ -19,6 +19,14 @@ import {
 } from 'lucide-react';
 
 import { GoogleMaps3DRoutePlayer } from './GoogleMaps3DRoutePlayer';
+import {
+  renderGoogleMapToCanvas,
+  projectLatLngToScreen,
+  computeOptimalZoom,
+  drawGoogleNavigationPuck,
+  drawGoogleMapsBrandBadge,
+  preloadGoogleMapTiles
+} from '../utils/googleMapsRenderer';
 
 export type MapTileProvider =
   | 'google_hybrid'
@@ -416,7 +424,7 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
   // ---------------------------------------------------------------------------
   const [videoOrientation, setVideoOrientation] = useState<'vertical' | 'horizontal'>('vertical');
 
-  const handleExportAnimatedVideo = () => {
+  const handleExportAnimatedVideo = async () => {
     if (isRecordingVideo || points.length < 2) return;
 
     try {
@@ -531,18 +539,20 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         if (p.longitude < minLng) minLng = p.longitude;
         if (p.longitude > maxLng) maxLng = p.longitude;
       });
-      const latR = maxLat - minLat || 0.001;
-      const lngR = maxLng - minLng || 0.001;
 
-      // Coordinate mapping with padding
-      const padX = isVertical ? 90 : 180;
-      const padTop = isVertical ? 320 : 200;
-      const padBottom = isVertical ? 420 : 250;
-      const drawWidth = width - padX * 2;
-      const drawHeight = height - padTop - padBottom;
+      const bounds = { minLat, maxLat, minLng, maxLng };
+      const centerLat = (minLat + maxLat) / 2;
+      const centerLng = (minLng + maxLng) / 2;
+      const optimalZoom = computeOptimalZoom(bounds, width, height, isVertical ? 140 : 180);
 
-      const toX = (lng: number) => padX + ((lng - minLng) / lngR) * drawWidth;
-      const toY = (lat: number) => padTop + drawHeight - ((lat - minLat) / latR) * drawHeight;
+      // Preload Google Maps Tiles for seamless recording
+      await preloadGoogleMapTiles(bounds, optimalZoom, 'hybrid');
+
+      mediaRecorder.start(100);
+
+      const toScreen = (lat: number, lng: number) => {
+        return projectLatLngToScreen(lat, lng, centerLat, centerLng, optimalZoom, width, height);
+      };
 
       let currentStep = 0;
       const stepIncrement = Math.max(1, Math.round(totalSmoothSteps / 180)); // ~3 seconds at 60fps
@@ -552,86 +562,83 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         const progress = currentStep / (totalSmoothSteps - 1);
         setRecordProgress(Math.round(progress * 100));
 
-        // 1. Dark Futuristic Map Canvas Background
-        const bgGrad = ctx.createRadialGradient(width / 2, height / 2, 100, width / 2, height / 2, width);
-        bgGrad.addColorStop(0, '#111726');
-        bgGrad.addColorStop(0.6, '#090d16');
-        bgGrad.addColorStop(1, '#05070c');
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, width, height);
+        // 1. Photorealistic Google Maps Satellite & Road Tiles (Web Mercator)
+        renderGoogleMapToCanvas(ctx, {
+          width,
+          height,
+          centerLat,
+          centerLng,
+          zoom: optimalZoom,
+          layer: 'hybrid',
+          scrimIntensity: 0.18
+        });
 
-        // Subtle topographic grid lines
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-        ctx.lineWidth = 1.5;
-        const gridGap = isVertical ? 120 : 150;
-        for (let gx = 0; gx < width; gx += gridGap) {
-          ctx.beginPath();
-          ctx.moveTo(gx, 0);
-          ctx.lineTo(gx, height);
-          ctx.stroke();
-        }
-        for (let gy = 0; gy < height; gy += gridGap) {
-          ctx.beginPath();
-          ctx.moveTo(0, gy);
-          ctx.lineTo(width, gy);
-          ctx.stroke();
-        }
-
-        // 2. Full Planned Route (Faint Trail)
+        // 2. Full Planned Route (Faint Translucent Guide)
         ctx.beginPath();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-        ctx.lineWidth = isVertical ? 10 : 8;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = isVertical ? 6 : 4;
+        ctx.setLineDash([8, 8]);
         for (let i = 0; i < totalSmoothSteps; i++) {
-          const px = toX(smoothedTrajectory[i].lng);
-          const py = toY(smoothedTrajectory[i].lat);
+          const { x: px, y: py } = toScreen(smoothedTrajectory[i].lat, smoothedTrajectory[i].lng);
           if (i === 0) ctx.moveTo(px, py);
           else ctx.lineTo(px, py);
         }
         ctx.stroke();
+        ctx.setLineDash([]);
 
         // 3. Traversed Route (High-Voltage Glowing Path)
         const primaryColor = currentActivity.activityType === 'cycle' ? '#FC4C02' : '#00F5D4';
         const secondaryColor = currentActivity.activityType === 'cycle' ? '#FF8C00' : '#c084fc';
 
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.shadowColor = primaryColor;
         ctx.shadowBlur = 24;
         ctx.beginPath();
         ctx.strokeStyle = primaryColor;
-        ctx.lineWidth = isVertical ? 14 : 10;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        ctx.lineWidth = isVertical ? 12 : 8;
         for (let i = 0; i <= currentStep; i++) {
-          const px = toX(smoothedTrajectory[i].lng);
-          const py = toY(smoothedTrajectory[i].lat);
+          const { x: px, y: py } = toScreen(smoothedTrajectory[i].lat, smoothedTrajectory[i].lng);
           if (i === 0) ctx.moveTo(px, py);
           else ctx.lineTo(px, py);
         }
         ctx.stroke();
-        ctx.shadowBlur = 0; // Reset shadow
 
-        // 4. Athlete Beacon & Drone Target
+        // High-contrast white inner stroke
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = isVertical ? 3.5 : 2.5;
+        for (let i = 0; i <= currentStep; i++) {
+          const { x: px, y: py } = toScreen(smoothedTrajectory[i].lat, smoothedTrajectory[i].lng);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        // 4. Google Maps Navigation Puck & Heading Beacon
         const activePt = smoothedTrajectory[currentStep];
-        const ax = toX(activePt.lng);
-        const ay = toY(activePt.lat);
+        const prevPt = smoothedTrajectory[Math.max(0, currentStep - 1)];
+        const { x: ax, y: ay } = toScreen(activePt.lat, activePt.lng);
+        const dLat = activePt.lat - prevPt.lat;
+        const dLng = activePt.lng - prevPt.lng;
+        let heading = 0;
+        if (Math.abs(dLat) > 0.000001 || Math.abs(dLng) > 0.000001) {
+          heading = Math.atan2(dLng, dLat);
+        }
 
-        // Outer pulsing ripple
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath();
-        ctx.arc(ax, ay, isVertical ? 32 : 24, 0, Math.PI * 2);
-        ctx.fill();
+        drawGoogleNavigationPuck(ctx, ax, ay, heading, isVertical ? 1.4 : 1.1, primaryColor);
 
-        // Glowing core
-        ctx.fillStyle = primaryColor;
-        ctx.beginPath();
-        ctx.arc(ax, ay, isVertical ? 18 : 14, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(ax, ay, isVertical ? 9 : 7, 0, Math.PI * 2);
-        ctx.fill();
+        // Google Maps Attribution Badge
+        drawGoogleMapsBrandBadge(
+          ctx,
+          40,
+          height - (isVertical ? 275 : 215),
+          isVertical ? 1.2 : 1.0,
+          'Satellite Hybrid'
+        );
 
         // 5. Cinematic Telemetry HUD (Glassmorphism Header)
         ctx.fillStyle = 'rgba(12, 17, 29, 0.82)';
@@ -730,12 +737,12 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
   }
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 10000 }}>
-      <div className="modal-content google-card animate-scale-up max-w-2xl w-full max-h-[96vh] overflow-y-auto p-4 md:p-6 flex flex-col justify-between">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
+      <div className="w-full max-w-2xl max-h-[96vh] rounded-3xl border border-white/10 bg-[#0e131b] p-4 sm:p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-glass pb-3 mb-2 flex-wrap gap-2">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-2 flex-wrap gap-2">
           <button
-            className="btn-google-outlined text-xs py-1.5 px-3 flex items-center gap-1"
+            className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
             onClick={onClose}
           >
             <ChevronLeft size={16} />
@@ -743,10 +750,10 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
           </button>
 
           <div className="text-center">
-            <span className="text-[10px] font-bold text-[#55198B] dark:text-[#c084fc] uppercase tracking-widest block">
+            <span className="text-[10px] font-black text-[#ccff00] uppercase tracking-widest block">
               SATELLITE 3D GROUND TRACKING
             </span>
-            <h3 className="text-sm md:text-base font-black text-main mt-0.5 uppercase tracking-wide">
+            <h3 className="text-sm md:text-base font-black text-white mt-0.5 uppercase tracking-wide">
               {currentActivity.distanceKm} km {currentActivity.activityType === 'run' ? 'Running Flyby' : currentActivity.activityType === 'cycle' ? 'Cycling Flyby' : currentActivity.activityType === 'drive' ? '🚗 Road Trip Flyby' : 'Walking Flyby'}
             </h3>
           </div>
@@ -760,22 +767,26 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
               <Sparkles size={13} className="text-amber-300" />
               <span>Google 3D Vector</span>
             </button>
-            <button className="btn-google-icon" onClick={onClose} aria-label="Close">
+            <button
+              className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+              onClick={onClose}
+              aria-label="Close"
+            >
               <X size={18} />
             </button>
           </div>
         </div>
 
         {/* Preset Sample Activity Switcher */}
-        <div className="flex items-center justify-between flex-wrap gap-1.5 mb-2 bg-black/20 p-2 rounded-xl border border-glass">
-          <span className="text-[11px] font-bold text-sub flex items-center gap-1">
+        <div className="flex items-center justify-between flex-wrap gap-1.5 mb-2 bg-black/40 p-2 rounded-xl border border-white/10">
+          <span className="text-[11px] font-bold text-white/70 flex items-center gap-1">
             <Sparkles size={13} className="text-amber-400" />
             <span>Try Sample Routes:</span>
           </span>
           <div className="flex items-center gap-1 flex-wrap">
             <button
               onClick={() => handleSelectSample('marine_run')}
-              className="text-[10px] font-bold py-0.5 px-2 rounded-full bg-[#55198B]/20 text-[#c084fc] hover:bg-[#55198B] hover:text-white transition-all cursor-pointer"
+              className="text-[10px] font-bold py-0.5 px-2 rounded-full bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30 hover:bg-[#ccff00] hover:text-black transition-all cursor-pointer"
             >
               🏃 5.2k Run
             </button>
@@ -859,8 +870,8 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
             <div className="flex items-center gap-1 bg-slate-950/85 backdrop-blur-md p-1 rounded-lg border border-slate-800 shadow-md">
               <button
                 onClick={() => setTileProvider('google_hybrid')}
-                className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all ${
-                  tileProvider === 'google_hybrid' ? 'bg-[#55198B] text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all cursor-pointer ${
+                  tileProvider === 'google_hybrid' ? 'bg-[#ccff00] text-black font-black shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Google Hybrid Satellite + Street Names"
               >
@@ -868,8 +879,8 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
               </button>
               <button
                 onClick={() => setTileProvider('google_roadmap')}
-                className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all ${
-                  tileProvider === 'google_roadmap' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all cursor-pointer ${
+                  tileProvider === 'google_roadmap' ? 'bg-[#38bdf8] text-black font-bold shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Google Vector Roads"
               >
@@ -877,8 +888,8 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
               </button>
               <button
                 onClick={() => setTileProvider('esri_satellite')}
-                className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all ${
-                  tileProvider === 'esri_satellite' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all cursor-pointer ${
+                  tileProvider === 'esri_satellite' ? 'bg-emerald-500 text-black font-bold shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Esri Real Satellite Imagery"
               >
@@ -886,7 +897,7 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
               </button>
               <button
                 onClick={() => setTileProvider('dark_canvas')}
-                className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all ${
+                className={`text-[9px] font-bold py-0.5 px-1.5 rounded transition-all cursor-pointer ${
                   tileProvider === 'dark_canvas' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Tactical Dark Map"
@@ -899,8 +910,8 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
             <div className="flex items-center gap-1 bg-slate-950/85 backdrop-blur-md p-1 rounded-lg border border-slate-800 shadow-md self-end">
               <button
                 onClick={() => setCameraMode('follow_drone')}
-                className={`text-[9px] font-bold py-0.5 px-1.5 rounded flex items-center gap-1 transition-all ${
-                  cameraMode === 'follow_drone' ? 'bg-[#55198B] text-white' : 'text-slate-400 hover:text-white'
+                className={`text-[9px] font-bold py-0.5 px-1.5 rounded flex items-center gap-1 transition-all cursor-pointer ${
+                  cameraMode === 'follow_drone' ? 'bg-[#ccff00] text-black font-black' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Follow Athlete Camera"
               >
@@ -963,26 +974,26 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         {/* ------------------------------------------------------------------- */}
         {/* 2. PLAYBACK CONTROLS & TIMELINE SCRUBBER */}
         {/* ------------------------------------------------------------------- */}
-        <div className="bg-card p-3 rounded-2xl border border-glass my-2">
+        <div className="bg-[#141923] p-3 rounded-2xl border border-white/10 my-2">
           {/* Progress Slider */}
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-mono text-sub">{formatDuration(currentDurationSec)}</span>
+            <span className="text-[10px] font-mono text-white/60">{formatDuration(currentDurationSec)}</span>
             <input
               type="range"
               min="0"
               max={Math.max(1, totalPoints - 1)}
               value={currentIndex}
               onChange={handleSeek}
-              className="flex-1 accent-[#55198B] cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
+              className="flex-1 accent-[#ccff00] cursor-pointer h-1.5 bg-white/10 rounded-lg"
             />
-            <span className="text-[10px] font-mono text-sub">{formatDuration(currentActivity.durationSeconds)}</span>
+            <span className="text-[10px] font-mono text-white/60">{formatDuration(currentActivity.durationSeconds)}</span>
           </div>
 
           {/* Control Buttons & Export Video */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <button
-                className="btn-google-icon"
+                className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                 onClick={() => setIsPlaying(!isPlaying)}
                 title={isPlaying ? 'Pause' : 'Play'}
               >
@@ -990,7 +1001,7 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
               </button>
 
               <button
-                className="btn-google-icon"
+                className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                 onClick={handleReset}
                 title="Restart Flyby"
               >
@@ -998,14 +1009,14 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
               </button>
 
               {/* Playback Speed Multiplier Pills */}
-              <div className="flex items-center gap-1 bg-black/20 p-1 rounded-full border border-glass">
+              <div className="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-white/10">
                 {[1, 2, 5, 10].map((s) => (
                   <button
                     key={s}
-                    className={`py-0.5 px-2 rounded-full text-[10px] font-bold transition-all ${
+                    className={`py-0.5 px-2 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
                       playbackSpeed === s
-                        ? 'bg-[#55198B] text-white font-black shadow-sm'
-                        : 'text-sub hover:text-main'
+                        ? 'bg-[#ccff00] text-black font-black shadow-sm'
+                        : 'text-white/60 hover:text-white'
                     }`}
                     onClick={() => setPlaybackSpeed(s)}
                   >
@@ -1017,12 +1028,12 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
 
             <div className="flex items-center gap-1.5 flex-wrap">
               {/* Video Orientation Selector */}
-              <div className="flex items-center rounded-lg border border-glass p-0.5 bg-black/20 text-[10px]">
+              <div className="flex items-center rounded-lg border border-white/10 p-0.5 bg-black/40 text-[10px]">
                 <button
                   type="button"
                   onClick={() => setVideoOrientation('vertical')}
-                  className={`px-2 py-1 rounded-md font-bold transition-all ${
-                    videoOrientation === 'vertical' ? 'bg-[#55198B] text-white' : 'text-sub hover:text-main'
+                  className={`px-2 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                    videoOrientation === 'vertical' ? 'bg-[#ccff00] text-black font-black' : 'text-white/60 hover:text-white'
                   }`}
                   title="9:16 Vertical Story (Reels / Status / Shorts)"
                 >
@@ -1031,8 +1042,8 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
                 <button
                   type="button"
                   onClick={() => setVideoOrientation('horizontal')}
-                  className={`px-2 py-1 rounded-md font-bold transition-all ${
-                    videoOrientation === 'horizontal' ? 'bg-[#55198B] text-white' : 'text-sub hover:text-main'
+                  className={`px-2 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                    videoOrientation === 'horizontal' ? 'bg-[#ccff00] text-black font-black' : 'text-white/60 hover:text-white'
                   }`}
                   title="16:9 Widescreen (Strava / YouTube)"
                 >
@@ -1044,19 +1055,23 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
               <button
                 onClick={handleExportAnimatedVideo}
                 disabled={isRecordingVideo}
-                className="btn-google-tonal text-xs py-1.5 px-3 flex items-center gap-1 text-red-500 border-red-500/30 hover:bg-red-500/10"
+                className="bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 font-bold text-xs py-1.5 px-3 rounded-xl border border-rose-500/30 flex items-center gap-1 cursor-pointer transition-all"
                 title="Export 1080p 60fps HD Video Clip of this Route Animation"
               >
-                <Video size={14} className="text-red-500" />
+                <Video size={14} className="text-rose-400" />
                 <span>{isRecordingVideo ? `HD Recording ${recordProgress}%` : '🎬 Export 1080p Video'}</span>
               </button>
 
               {/* Toggle Splits Table */}
               <button
-                className={showSplitsTable ? 'btn-google-primary text-xs py-1.5 px-3' : 'btn-google-outlined text-xs py-1.5 px-3'}
+                className={`text-xs py-1.5 px-3 rounded-xl font-bold transition-all cursor-pointer ${
+                  showSplitsTable
+                    ? 'bg-[#ccff00] text-black font-black shadow-sm'
+                    : 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
+                }`}
                 onClick={() => setShowSplitsTable(!showSplitsTable)}
               >
-                <ListOrdered size={14} />
+                <ListOrdered size={14} className="inline mr-1" />
                 <span>Splits</span>
               </button>
             </div>
@@ -1067,11 +1082,11 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         {/* 3. 100m SPLIT TIMES EXPANDABLE DRAWER */}
         {/* ------------------------------------------------------------------- */}
         {showSplitsTable && (
-          <div className="bg-card p-3 rounded-2xl border border-glass my-2 max-h-48 overflow-y-auto animate-fade-in">
-            <h4 className="text-[11px] font-black text-sub uppercase tracking-wider mb-2">
+          <div className="bg-[#141923] p-3 rounded-2xl border border-white/10 my-2 max-h-48 overflow-y-auto animate-fade-in">
+            <h4 className="text-[11px] font-black text-white/60 uppercase tracking-wider mb-2">
               Split Times & Elevation Delta
             </h4>
-            <div className="grid grid-cols-4 text-[10px] font-bold text-sub border-b border-glass pb-1 mb-1">
+            <div className="grid grid-cols-4 text-[10px] font-bold text-white/60 border-b border-white/10 pb-1 mb-1">
               <div>SPLIT</div>
               <div>TIME</div>
               <div>PACE</div>
@@ -1080,12 +1095,12 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
             {splits.map((s) => (
               <div
                 key={s.splitNumber}
-                className="grid grid-cols-4 text-[11px] font-mono py-1 border-b border-glass/50 items-center text-sub"
+                className="grid grid-cols-4 text-[11px] font-mono py-1 border-b border-white/5 items-center text-white/70"
               >
-                <div className="font-bold text-main">#{s.splitNumber} ({s.distanceLabel})</div>
-                <div className="text-emerald-600 dark:text-emerald-400 font-bold">{s.durationSeconds}s</div>
-                <div className="text-cyan-600 dark:text-cyan-400">{s.paceMinKm}</div>
-                <div className="text-right text-amber-600 dark:text-amber-400">
+                <div className="font-bold text-white">#{s.splitNumber} ({s.distanceLabel})</div>
+                <div className="text-emerald-400 font-bold">{s.durationSeconds}s</div>
+                <div className="text-cyan-400">{s.paceMinKm}</div>
+                <div className="text-right text-amber-400">
                   {s.elevationDeltaMeters >= 0 ? `+${s.elevationDeltaMeters}m` : `${s.elevationDeltaMeters}m`}
                 </div>
               </div>
@@ -1097,23 +1112,23 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         {/* 4. TOTAL SUMMARY CARDS & ACTIONS */}
         {/* ------------------------------------------------------------------- */}
         <div className="grid grid-cols-3 gap-2 my-2">
-          <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
-            <div className="text-[9px] text-sub font-bold uppercase">ELEVATION GAIN</div>
+          <div className="bg-[#141923] p-2.5 rounded-2xl border border-white/10 text-center">
+            <div className="text-[9px] text-white/60 font-bold uppercase">ELEVATION GAIN</div>
             <div className="text-sm font-black text-amber-500 font-mono mt-0.5">
               +{currentActivity.elevationGainMeters || 0}m
             </div>
           </div>
 
-          <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
-            <div className="text-[9px] text-sub font-bold uppercase">AVG PACE</div>
-            <div className="text-sm font-black text-[#55198B] dark:text-[#c084fc] font-mono mt-0.5">
+          <div className="bg-[#141923] p-2.5 rounded-2xl border border-white/10 text-center">
+            <div className="text-[9px] text-white/60 font-bold uppercase">AVG PACE</div>
+            <div className="text-sm font-black text-[#ccff00] font-mono mt-0.5">
               {currentActivity.avgPaceMinKm}
             </div>
           </div>
 
-          <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
-            <div className="text-[9px] text-sub font-bold uppercase">MAX SPEED</div>
-            <div className="text-sm font-black text-emerald-500 font-mono mt-0.5">
+          <div className="bg-[#141923] p-2.5 rounded-2xl border border-white/10 text-center">
+            <div className="text-[9px] text-white/60 font-bold uppercase">MAX SPEED</div>
+            <div className="text-sm font-black text-emerald-400 font-mono mt-0.5">
               {currentActivity.topSpeedKmh || 0} km/h
             </div>
           </div>

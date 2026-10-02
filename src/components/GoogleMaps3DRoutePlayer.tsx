@@ -348,7 +348,7 @@ export const GoogleMaps3DRoutePlayer: React.FC<GoogleMaps3DRoutePlayerProps> = (
             <button
               onClick={() => setMapType('hybrid')}
               className={`text-[10px] font-bold py-1 px-2 rounded-lg transition-all ${
-                mapType === 'hybrid' ? 'bg-[#55198B] text-white' : 'text-slate-400 hover:text-white'
+                mapType === 'hybrid' ? 'bg-[#ccff00] text-black font-black' : 'text-slate-400 hover:text-white'
               }`}
             >
               Hybrid
@@ -356,7 +356,7 @@ export const GoogleMaps3DRoutePlayer: React.FC<GoogleMaps3DRoutePlayerProps> = (
             <button
               onClick={() => setMapType('satellite')}
               className={`text-[10px] font-bold py-1 px-2 rounded-lg transition-all ${
-                mapType === 'satellite' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                mapType === 'satellite' ? 'bg-emerald-500 text-black font-bold' : 'text-slate-400 hover:text-white'
               }`}
             >
               Satellite
@@ -364,7 +364,7 @@ export const GoogleMaps3DRoutePlayer: React.FC<GoogleMaps3DRoutePlayerProps> = (
             <button
               onClick={() => setMapType('terrain')}
               className={`text-[10px] font-bold py-1 px-2 rounded-lg transition-all ${
-                mapType === 'terrain' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+                mapType === 'terrain' ? 'bg-[#38bdf8] text-black font-bold' : 'text-slate-400 hover:text-white'
               }`}
             >
               Terrain
@@ -376,19 +376,19 @@ export const GoogleMaps3DRoutePlayer: React.FC<GoogleMaps3DRoutePlayerProps> = (
             <span>Tilt:</span>
             <button
               onClick={() => setTiltAngle(0)}
-              className={`px-2 py-0.5 rounded ${tiltAngle === 0 ? 'bg-[#55198B] text-white' : 'text-slate-400'}`}
+              className={`px-2 py-0.5 rounded ${tiltAngle === 0 ? 'bg-[#ccff00] text-black font-black' : 'text-slate-400'}`}
             >
               2D
             </button>
             <button
               onClick={() => setTiltAngle(45)}
-              className={`px-2 py-0.5 rounded ${tiltAngle === 45 ? 'bg-[#55198B] text-white' : 'text-slate-400'}`}
+              className={`px-2 py-0.5 rounded ${tiltAngle === 45 ? 'bg-[#ccff00] text-black font-black' : 'text-slate-400'}`}
             >
               45°
             </button>
             <button
               onClick={() => setTiltAngle(65)}
-              className={`px-2 py-0.5 rounded ${tiltAngle === 65 ? 'bg-[#55198B] text-white' : 'text-slate-400'}`}
+              className={`px-2 py-0.5 rounded ${tiltAngle === 65 ? 'bg-[#ccff00] text-black font-black' : 'text-slate-400'}`}
             >
               65°
             </button>
@@ -432,7 +432,7 @@ export const GoogleMaps3DRoutePlayer: React.FC<GoogleMaps3DRoutePlayerProps> = (
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="p-2 rounded-xl bg-[#55198B] text-white hover:bg-[#6b21a8] cursor-pointer"
+              className="p-2 rounded-xl bg-[#ccff00] text-black hover:bg-[#b8e600] font-black cursor-pointer shadow-md transition-all active:scale-95"
             >
               {isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </button>
@@ -454,7 +454,7 @@ export const GoogleMaps3DRoutePlayer: React.FC<GoogleMaps3DRoutePlayerProps> = (
                   key={spd}
                   onClick={() => setPlaybackSpeed(spd)}
                   className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
-                    playbackSpeed === spd ? 'bg-[#55198B] text-white' : 'text-slate-400 hover:text-white'
+                    playbackSpeed === spd ? 'bg-[#ccff00] text-black font-black' : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   {spd}x

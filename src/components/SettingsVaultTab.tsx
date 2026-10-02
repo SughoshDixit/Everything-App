@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { MotivationalQuote } from '../types';
-import { Smartphone, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Smartphone, Plus, ChevronDown, ChevronUp, Sparkles, Quote } from 'lucide-react';
 
 interface SettingsVaultTabProps {
   quotes: MotivationalQuote[];
@@ -23,61 +23,71 @@ export const SettingsVaultTab: React.FC<SettingsVaultTabProps> = ({ quotes, onAd
       addedBy: newAuthor.toLowerCase().includes('women') ? 'women' : 'men'
     });
     setNewQuoteText('');
-    alert('Quote added!');
+    alert('Quote added to vault!');
   };
 
   return (
-    <div className="tab-container animate-fade-in">
-      {/* PWA Install - Collapsed */}
-      <div className="glass-card card-stagger card-hover-lift" style={{ animationDelay: '0s' }}>
+    <div className="space-y-6 animate-fade-in font-sans">
+      {/* PWA Install Guide */}
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 shadow-lg">
         <button
-          className={`toggle-details-btn ${showInstallGuide ? 'active' : ''}`}
+          className="w-full flex items-center justify-between text-left"
           onClick={() => setShowInstallGuide(!showInstallGuide)}
-          style={{ width: '100%', justifyContent: 'center', padding: '0.6rem' }}
         >
-          <Smartphone size={14} />
-          {showInstallGuide ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          📱 Install Guide
+          <div className="flex items-center gap-2.5">
+            <Smartphone size={16} className="text-primary" />
+            <span className="text-sm font-bold text-white font-display">
+              Progressive Web App (PWA) Offline Installation Guide
+            </span>
+          </div>
+          {showInstallGuide ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
         </button>
+
         {showInstallGuide && (
-          <div className="collapsible-content" style={{ marginTop: '0.75rem' }}>
-            <ol style={{ paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <li>Open in Chrome → your hosted URL</li>
-              <li>Tap ⋮ → "Add to Home screen"</li>
-              <li>Launch from home screen icon</li>
-            </ol>
+          <div className="mt-4 pt-4 border-t border-white/10 text-xs text-muted-foreground space-y-2 animate-fade-in">
+            <p>1. Open this app in Chrome or Safari on your phone.</p>
+            <p>2. Tap the browser menu ⋮ or Share button and select <strong>"Add to Home Screen"</strong>.</p>
+            <p>3. Launch from your home screen for full native screen experience with offline caching.</p>
           </div>
         )}
       </div>
 
-      {/* Add Quote Form - Compact */}
-      <div className="glass-card card-stagger card-hover-lift" style={{ animationDelay: '0.1s' }}>
-        <form onSubmit={handleCreateQuote}>
-          <div className="form-group">
+      {/* Add Mantra Form */}
+      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles size={16} className="text-dude" />
+          <h3 className="text-sm font-bold text-white font-display">
+            Add Athlete Mantra / Intention to Vault
+          </h3>
+        </div>
+
+        <form onSubmit={handleCreateQuote} className="space-y-3.5">
+          <div>
             <textarea
-              placeholder="Your quote or mantra..."
+              placeholder="Your athletic quote, reminder or mantra..."
               value={newQuoteText}
               onChange={(e) => setNewQuoteText(e.target.value)}
               required
               rows={2}
-              style={{ fontSize: '0.85rem' }}
+              className="w-full bg-[#121824] border border-white/10 rounded-xl p-3 text-xs text-white outline-none focus:border-primary/50 transition resize-none placeholder:text-muted-foreground/60"
             />
           </div>
-          <div className="form-row" style={{ marginTop: '0.5rem' }}>
-            <div className="form-group">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
               <input
                 type="text"
-                placeholder="Author"
+                placeholder="Author / Name"
                 value={newAuthor}
                 onChange={(e) => setNewAuthor(e.target.value)}
-                style={{ fontSize: '0.82rem' }}
+                className="w-full bg-[#121824] border border-white/10 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none focus:border-primary/50 transition"
               />
             </div>
-            <div className="form-group">
+            <div>
               <select
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value as MotivationalQuote['category'])}
-                style={{ fontSize: '0.82rem' }}
+                className="w-full bg-[#121824] border border-white/10 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none focus:border-primary/50 transition"
               >
                 <option value="discipline">Discipline</option>
                 <option value="calisthenics">Calisthenics</option>
@@ -86,26 +96,46 @@ export const SettingsVaultTab: React.FC<SettingsVaultTabProps> = ({ quotes, onAd
               </select>
             </div>
           </div>
-          <button type="submit" className="btn-primary mt-2" style={{ width: '100%' }}>
-            <Plus className="icon-sm" />
-            <span>Add</span>
+
+          <button
+            type="submit"
+            className="flex items-center justify-center gap-1.5 w-full rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground hover:brightness-110 transition shadow-sm"
+          >
+            <Plus size={14} />
+            <span>Save to Mantra Vault</span>
           </button>
         </form>
       </div>
 
       {/* Quotes Grid */}
-      <div className="quotes-grid">
-        {quotes.map((q, idx) => (
-          <div
-            key={q.id}
-            className="quote-card glass-card card-stagger card-hover-lift"
-            style={{ animationDelay: `${(idx + 2) * 0.08}s` }}
-          >
-            <div className="quote-cat-tag">{q.category.toUpperCase()}</div>
-            <blockquote className="quote-body" style={{ fontSize: '0.85rem' }}>"{q.text}"</blockquote>
-            <div className="quote-by" style={{ fontSize: '0.7rem' }}>&mdash; {q.author}</div>
-          </div>
-        ))}
+      <div className="space-y-3">
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-display">
+          Mantra Library ({quotes.length})
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {quotes.map((q) => (
+            <div
+              key={q.id}
+              className="p-4 rounded-xl border border-border bg-[#0e131b] hover:border-white/20 transition flex flex-col justify-between gap-3"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="rounded-md bg-white/5 border border-white/10 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-primary">
+                    {q.category}
+                  </span>
+                  <Quote size={13} className="text-muted-foreground opacity-60" />
+                </div>
+                <blockquote className="text-xs font-medium text-white italic leading-relaxed">
+                  "{q.text}"
+                </blockquote>
+              </div>
+              <div className="text-[10px] text-muted-foreground font-semibold">
+                &mdash; {q.author}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

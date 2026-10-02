@@ -97,22 +97,22 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
       {/* ------------------------------------------------------------------- */}
       {/* 1. STRAVA ATHLETE PROFILE & TRACKING ACTION HUB */}
       {/* ------------------------------------------------------------------- */}
-      <div className="google-card p-5 border-l-4 border-[#55198B]">
+      <div className="rounded-2xl border border-white/10 bg-[#0e131b] p-5 shadow-xl border-l-4 border-l-[#ccff00]">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div
             onClick={onOpenAthleteProfile}
             className="flex items-center gap-3 cursor-pointer group"
             title="View Athlete Profile, PR Board & Heatmap"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#55198B] to-[#7b29be] flex items-center justify-center text-2xl text-white font-black shadow-md group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#ccff00] to-[#ffd700] flex items-center justify-center text-2xl text-black font-black shadow-md group-hover:scale-105 transition-transform">
               {currentProfile === 'women' ? '👩' : '👨'}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-main group-hover:text-[#55198B] dark:group-hover:text-[#c084fc] transition-colors leading-tight">
+                <h2 className="text-base sm:text-lg font-black text-main group-hover:text-[#ccff00] transition-colors leading-tight">
                   {currentProfile === 'women' ? 'Shreya Dixit' : 'Sughosh Dixit'}
                 </h2>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] uppercase tracking-wider">
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30 uppercase tracking-wider">
                   Pro Athlete
                 </span>
               </div>
@@ -127,15 +127,15 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
             {onStartTracking && (
               <button
                 onClick={onStartTracking}
-                className="btn-google-primary text-xs py-2 px-3.5 shadow-md flex items-center gap-1.5"
+                className="bg-[#ccff00] hover:bg-[#b8e600] text-black font-black text-xs py-2 px-3.5 rounded-xl shadow-md flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
               >
-                <Play size={14} fill="#fff" />
+                <Play size={14} fill="#000" />
                 <span>Record Live</span>
               </button>
             )}
             <button
               onClick={onOpenCreatePost}
-              className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5"
+              className="bg-white/10 hover:bg-white/15 text-white font-bold text-xs py-2 px-3 rounded-xl border border-white/10 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
             >
               <Plus size={14} />
               <span>Log Post</span>
@@ -144,22 +144,22 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
         </div>
 
         {/* Athlete Overview Stats Grid */}
-        <div className="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-glass">
-          <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
+        <div className="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-white/10">
+          <div className="bg-[#141923] p-2.5 rounded-2xl border border-white/10 text-center">
             <div className="text-[10px] text-sub font-bold uppercase">ACTIVITIES</div>
             <div className="text-base font-black text-main font-mono mt-0.5">
               {athletePosts.length} <span className="text-xs text-sub font-normal">posts</span>
             </div>
           </div>
 
-          <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
+          <div className="bg-[#141923] p-2.5 rounded-2xl border border-white/10 text-center">
             <div className="text-[10px] text-sub font-bold uppercase">TOTAL DISTANCE</div>
-            <div className="text-base font-black text-[#55198B] dark:text-[#c084fc] font-mono mt-0.5">
+            <div className="text-base font-black text-[#ccff00] font-mono mt-0.5">
               {totalDistanceKm.toFixed(1)} <span className="text-xs text-sub font-normal">km</span>
             </div>
           </div>
 
-          <div className="bg-card p-2.5 rounded-2xl border border-glass text-center">
+          <div className="bg-[#141923] p-2.5 rounded-2xl border border-white/10 text-center">
             <div className="text-[10px] text-sub font-bold uppercase">HEART POINTS</div>
             <div className="text-base font-black text-amber-500 font-mono mt-0.5">
               {totalHeartPoints} <span className="text-xs text-sub font-normal">pts</span>
@@ -214,21 +214,27 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
       {/* 3. STRAVA ACTIVITY FEED CARDS */}
       {/* ------------------------------------------------------------------- */}
       {filteredPosts.length === 0 ? (
-        <div className="google-card p-8 text-center flex flex-col items-center justify-center gap-3">
-          <div className="w-14 h-14 rounded-full bg-purple-500/10 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center text-2xl font-black">
+        <div className="rounded-2xl border border-white/10 bg-[#0e131b] p-8 text-center flex flex-col items-center justify-center gap-3 shadow-xl">
+          <div className="w-14 h-14 rounded-full bg-[#ccff00]/15 text-[#ccff00] border border-[#ccff00]/30 flex items-center justify-center text-2xl font-black">
             🏃
           </div>
-          <h3 className="text-base font-black text-main">No activities found in this filter</h3>
-          <p className="text-xs text-sub max-w-sm">
+          <h3 className="text-base font-black text-white">No activities found in this filter</h3>
+          <p className="text-xs text-white/60 max-w-sm">
             Record a GPS workout, log a calisthenics routine, or compile your session into a Strava-style post.
           </p>
           <div className="flex gap-2 mt-2">
             {onStartTracking && (
-              <button onClick={onStartTracking} className="btn-google-primary text-xs py-2 px-4">
+              <button
+                onClick={onStartTracking}
+                className="bg-[#ccff00] hover:bg-[#b8e600] text-black font-black text-xs py-2 px-4 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+              >
                 Record GPS Session
               </button>
             )}
-            <button onClick={onOpenCreatePost} className="btn-secondary text-xs py-2 px-4">
+            <button
+              onClick={onOpenCreatePost}
+              className="bg-white/10 hover:bg-white/15 text-white font-bold text-xs py-2 px-4 rounded-xl border border-white/10 transition-all active:scale-95 cursor-pointer"
+            >
               Create Manual Post
             </button>
           </div>
@@ -256,7 +262,7 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
             return (
               <div
                 key={post.id}
-                className="google-card p-4 sm:p-5 flex flex-col gap-3.5 shadow-md relative overflow-hidden"
+                className="rounded-3xl border border-white/10 bg-[#0e131b] p-5 flex flex-col gap-4 shadow-xl relative overflow-hidden transition-all hover:border-white/20"
               >
                 {/* Floating Kudos Animation */}
                 {floatingKudosId === post.id && (
@@ -268,20 +274,20 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                 {/* Card Header: Athlete Info + Actions */}
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center text-lg font-black shadow-sm">
+                    <div className="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center text-lg font-black border border-white/10 shadow-sm">
                       {athleteAvatar}
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <h4 className="text-xs sm:text-sm font-black text-main">{athleteName}</h4>
-                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#55198B] text-white">
+                        <h4 className="text-xs sm:text-sm font-black text-white">{athleteName}</h4>
+                        <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-[#ccff00] text-black">
                           {sportIcon}
                         </span>
                       </div>
-                      <div className="text-[10px] text-sub font-medium flex items-center gap-1.5 mt-0.5">
+                      <div className="text-[10px] text-white/60 font-medium flex items-center gap-1.5 mt-0.5">
                         <span>{post.date}</span>
                         <span>&bull;</span>
-                        <span className="text-amber-500 font-bold">RPE {post.rpe || 8}/10 Effort</span>
+                        <span className="text-[#ffd700] font-bold">RPE {post.rpe || 8}/10 Effort</span>
                       </div>
                     </div>
                   </div>
@@ -290,21 +296,21 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onOpenSocialShare(post)}
-                      className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-sub hover:text-main transition-colors"
+                      className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                       title="Share to Instagram / Stories"
                     >
                       <Share2 size={15} />
                     </button>
                     <button
                       onClick={() => onEditPost(post)}
-                      className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-sub hover:text-main transition-colors"
+                      className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                       title="Edit Post"
                     >
                       <Edit3 size={15} />
                     </button>
                     <button
                       onClick={() => onDeletePost(post.id)}
-                      className="p-1.5 rounded-full hover:bg-rose-500/10 text-sub hover:text-rose-500 transition-colors"
+                      className="p-1.5 rounded-full hover:bg-rose-500/20 text-white/60 hover:text-rose-400 transition-colors"
                       title="Delete Post"
                     >
                       <Trash2 size={15} />
@@ -318,7 +324,7 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                     {post.recordBadges.map((badge) => (
                       <div
                         key={badge.id}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/40 text-amber-500 text-[11px] font-black shadow-sm"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[11px] font-black shadow-sm"
                       >
                         <span>{badge.icon}</span>
                         <span>{badge.title}</span>
@@ -333,11 +339,11 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                   onClick={() => onSelectActivityDetail?.(post)}
                   className="cursor-pointer space-y-1 group"
                 >
-                  <h3 className="text-base sm:text-lg font-black text-main group-hover:text-[#55198B] dark:group-hover:text-[#c084fc] transition-colors leading-snug">
+                  <h3 className="text-base sm:text-lg font-black text-white group-hover:text-[#ccff00] transition-colors leading-snug">
                     {post.title}
                   </h3>
                   {post.description && (
-                    <p className="text-xs text-sub leading-relaxed line-clamp-2">
+                    <p className="text-xs text-white/70 leading-relaxed line-clamp-2">
                       {post.description}
                     </p>
                   )}
@@ -406,18 +412,18 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                 {/* Telemetry Stage Preview (Map / Calisthenics Visual Graphic) */}
                 <div
                   onClick={() => onSelectActivityDetail?.(post)}
-                  className="w-full rounded-2xl bg-slate-100 dark:bg-[#181c26] border border-glass p-3 cursor-pointer hover:border-[#55198B] transition-all"
+                  className="w-full rounded-2xl bg-[#141923] border border-white/10 p-3.5 cursor-pointer hover:border-[#ccff00]/40 transition-all"
                 >
                   {post.sportType === 'calisthenics' ? (
                     <div className="flex items-center justify-between py-2 px-3">
                       <div className="flex items-center gap-3">
                         <span className="text-3xl">💪</span>
                         <div>
-                          <div className="text-xs font-bold text-main">Calisthenics Strength Protocol</div>
-                          <div className="text-[11px] text-sub">Chest, Back, Core &amp; Explosive Power</div>
+                          <div className="text-xs font-bold text-white">Calisthenics Strength Protocol</div>
+                          <div className="text-[11px] text-white/60">Chest, Back, Core &amp; Explosive Power</div>
                         </div>
                       </div>
-                      <div className="text-right font-mono font-bold text-xs text-[#55198B] dark:text-[#c084fc]">
+                      <div className="text-right font-mono font-bold text-xs text-[#ccff00]">
                         {post.totalSets || 12} Sets &bull; {post.totalReps || 160} Reps
                       </div>
                     </div>
@@ -426,14 +432,14 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                       <div className="flex items-center gap-3">
                         <span className="text-3xl">{post.sportType === 'cycle' ? '🚴' : '🏃'}</span>
                         <div>
-                          <div className="text-xs font-bold text-main">GPS Route Tracked &bull; Outdoor</div>
-                          <div className="text-[11px] text-sub flex items-center gap-1">
-                            <TrendingUp size={11} className="text-emerald-500" />
+                          <div className="text-xs font-bold text-white">GPS Route Tracked &bull; Outdoor</div>
+                          <div className="text-[11px] text-white/60 flex items-center gap-1">
+                            <TrendingUp size={11} className="text-emerald-400" />
                             <span>+{post.elevationGainMeters || 65}m Elevation</span>
                           </div>
                         </div>
                       </div>
-                      <div className="text-right font-mono font-bold text-xs text-[#55198B] dark:text-[#c084fc]">
+                      <div className="text-right font-mono font-bold text-xs text-[#ccff00]">
                         {post.totalDistanceKm.toFixed(2)} km &bull; {post.avgPaceMinKm || '5:04 /km'}
                       </div>
                     </div>
@@ -443,13 +449,13 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                 {/* Big 3 Strava Stats Grid */}
                 <div
                   onClick={() => onSelectActivityDetail?.(post)}
-                  className="grid grid-cols-3 gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-[#181c26] border border-glass text-center cursor-pointer"
+                  className="grid grid-cols-3 gap-2 p-3 rounded-2xl bg-[#141923] border border-white/10 text-center cursor-pointer"
                 >
                   <div>
-                    <div className="text-[9px] font-bold text-sub uppercase">
+                    <div className="text-[9px] font-bold text-white/60 uppercase">
                       {post.sportType === 'calisthenics' ? 'TOTAL SETS' : 'DISTANCE'}
                     </div>
-                    <div className="text-base sm:text-lg font-black text-main font-mono mt-0.5">
+                    <div className="text-base sm:text-lg font-black text-white font-mono mt-0.5">
                       {post.sportType === 'calisthenics'
                         ? `${post.totalSets || 12}`
                         : `${post.totalDistanceKm.toFixed(2)} km`}
@@ -457,10 +463,10 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                   </div>
 
                   <div>
-                    <div className="text-[9px] font-bold text-sub uppercase">
+                    <div className="text-[9px] font-bold text-white/60 uppercase">
                       {post.sportType === 'calisthenics' ? 'TOTAL REPS' : 'AVG PACE'}
                     </div>
-                    <div className="text-base sm:text-lg font-black text-main font-mono mt-0.5">
+                    <div className="text-base sm:text-lg font-black text-white font-mono mt-0.5">
                       {post.sportType === 'calisthenics'
                         ? `${post.totalReps || 160}`
                         : (post.avgPaceMinKm || '5:04 /km')}
@@ -468,39 +474,39 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                   </div>
 
                   <div>
-                    <div className="text-[9px] font-bold text-sub uppercase">TIME</div>
-                    <div className="text-base sm:text-lg font-black text-main font-mono mt-0.5">
+                    <div className="text-[9px] font-bold text-white/60 uppercase">TIME</div>
+                    <div className="text-base sm:text-lg font-black text-white font-mono mt-0.5">
                       {post.totalMoveMinutes}m
                     </div>
                   </div>
                 </div>
 
                 {/* Secondary Stats & PR Achievements Ribbon */}
-                <div className="flex items-center justify-between text-[11px] text-sub px-1">
+                <div className="flex items-center justify-between text-[11px] text-white/60 px-1">
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1">
                       <Flame size={12} className="text-amber-500" /> {post.totalCalories || 480} kcal
                     </span>
                     <span className="flex items-center gap-1">
-                      <Zap size={12} className="text-[#55198B] dark:text-[#c084fc]" /> {post.totalHeartPoints || 32} pts
+                      <Zap size={12} className="text-[#ccff00]" /> {post.totalHeartPoints || 32} pts
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 font-bold text-amber-500">
+                  <div className="flex items-center gap-1 font-bold text-[#ffd700]">
                     <Trophy size={13} />
                     <span>1 PR Achievement</span>
                   </div>
                 </div>
 
                 {/* Card Footer: Kudos & Comments Action Bar */}
-                <div className="pt-2 border-t border-glass flex items-center justify-between">
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleKudosClick(post.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                         post.isLiked
-                          ? 'bg-[#55198B] text-white shadow-sm'
-                          : 'bg-slate-100 dark:bg-slate-800 text-sub hover:text-main'
+                          ? 'bg-[#fc4c02] text-white shadow-md'
+                          : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/10'
                       }`}
                     >
                       <span>👏</span>
@@ -511,7 +517,7 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                       onClick={() =>
                         setActiveCommentPostId(activeCommentPostId === post.id ? null : post.id)
                       }
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-sub hover:text-main bg-slate-100 dark:bg-slate-800 transition-all"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
                     >
                       <MessageSquare size={13} />
                       <span>{post.comments?.length || 0}</span>
@@ -520,7 +526,7 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
 
                   <button
                     onClick={() => onSelectActivityDetail?.(post)}
-                    className="btn-google-tonal text-xs py-1.5 px-3 flex items-center gap-1"
+                    className="bg-white/10 hover:bg-white/15 text-white font-bold text-xs py-1.5 px-3 rounded-full border border-white/10 flex items-center gap-1 transition-all cursor-pointer"
                   >
                     <BarChart3 size={13} />
                     <span>Analysis &amp; Splits</span>
@@ -529,18 +535,18 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
 
                 {/* Collapsible Comments Drawer */}
                 {activeCommentPostId === post.id && (
-                  <div className="pt-3 border-t border-glass space-y-2.5 animate-fade-in">
+                  <div className="pt-3 border-t border-white/10 space-y-2.5 animate-fade-in">
                     {post.comments && post.comments.length > 0 ? (
                       <div className="space-y-1.5 max-h-32 overflow-y-auto">
                         {post.comments.map((c) => (
-                          <div key={c.id} className="text-xs bg-slate-50 dark:bg-[#181c26] p-2 rounded-xl border border-glass">
-                            <span className="font-bold text-main mr-1.5">{c.userName}:</span>
-                            <span className="text-sub">{c.text}</span>
+                          <div key={c.id} className="text-xs bg-[#141923] p-2 rounded-xl border border-white/10">
+                            <span className="font-bold text-white mr-1.5">{c.userName}:</span>
+                            <span className="text-white/70">{c.text}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[11px] text-sub italic">No comments yet. Cheer the athlete!</p>
+                      <p className="text-[11px] text-white/50 italic">No comments yet. Cheer the athlete!</p>
                     )}
 
                     <form
@@ -554,12 +560,12 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                         onChange={(e) =>
                           setCommentInputs((prev) => ({ ...prev, [post.id]: e.target.value }))
                         }
-                        className="flex-1 px-3 py-1.5 rounded-xl bg-card border border-glass text-xs text-main focus:outline-none focus:border-[#55198B]"
+                        className="flex-1 px-3 py-1.5 rounded-xl bg-[#141923] border border-white/10 text-xs text-white focus:outline-none focus:border-[#ccff00]"
                       />
                       <button
                         type="submit"
                         disabled={!commentInputs[post.id]?.trim()}
-                        className="btn-google-primary text-xs px-3 py-1.5 disabled:opacity-50"
+                        className="bg-[#ccff00] hover:bg-[#b8e600] text-black font-black text-xs px-3 py-1.5 rounded-xl disabled:opacity-50 cursor-pointer"
                       >
                         <Send size={12} />
                       </button>

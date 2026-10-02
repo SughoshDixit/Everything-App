@@ -1,0 +1,10 @@
+{
+  "description": "Tracks and analyzes elite football and endurance athlete performance with advanced telemetry, readiness metrics, and customizable visual summaries.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

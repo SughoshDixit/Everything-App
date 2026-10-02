@@ -46,6 +46,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   initialPost,
   todayGpsActivities,
   todayWorkoutLogs,
+  todayFootballDrills = [],
   currentProfile,
   quotesList,
   onSavePost,
@@ -55,7 +56,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   // ---------------------------------------------------------------------------
-  // 1. COMPILE TODAY'S WORKOUTS (STRICTLY EXCLUDING WARM-UPS)
+  // 1. COMPILE TODAY'S WORKOUTS (DESELECTED BY DEFAULT AS REQUESTED)
   // ---------------------------------------------------------------------------
   const buildInitialCompiledItems = (): CompiledActivityItem[] => {
     if (initialPost && initialPost.activities.length > 0) {
@@ -64,7 +65,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
 
     const items: CompiledActivityItem[] = [];
 
-    // Add GPS activities (Walk, Run, Cycle, Drive)
+    // Add GPS activities (Walk, Run, Cycle, Drive) - DESELECTED BY DEFAULT
     todayGpsActivities.forEach((gps) => {
       const typeLabel = gps.activityType === 'run' ? '🏃 Run' : gps.activityType === 'cycle' ? '🚴 Ride' : gps.activityType === 'walk' ? '🚶 Walk' : '🚗 Drive';
       items.push({
@@ -73,11 +74,11 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         title: `${gps.distanceKm} km ${typeLabel}`,
         details: `${Math.floor(gps.durationSeconds / 60)}m • ${gps.avgPaceMinKm} • +${gps.elevationGainMeters || 0}m`,
         gpsActivityId: gps.id,
-        includedInPost: true
+        includedInPost: false // Deselected by default!
       });
     });
 
-    // Add Calisthenics workouts (sets & reps, NO warm-up)
+    // Add Calisthenics workouts (sets & reps) - DESELECTED BY DEFAULT
     todayWorkoutLogs.forEach((w) => {
       const totalReps = w.repsCompleted.reduce((a, b) => a + b, 0);
       items.push({
@@ -86,7 +87,18 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         title: `💪 ${w.exerciseName}`,
         details: `${w.setsCompleted} Sets (${w.repsCompleted.join(', ')} reps) • ${totalReps} Reps`,
         workoutLogId: w.id,
-        includedInPost: true
+        includedInPost: false // Deselected by default!
+      });
+    });
+
+    // Add Football Drills if logged today - DESELECTED BY DEFAULT
+    todayFootballDrills.forEach((drill) => {
+      items.push({
+        id: `comp_fb_${drill.id}`,
+        category: 'football',
+        title: `⚽ ${drill.title}`,
+        details: `${drill.intensity.toUpperCase()} • ${drill.durationMinutes}m drill`,
+        includedInPost: false // Deselected by default!
       });
     });
 
@@ -147,6 +159,23 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const handleToggleActivity = (id: string) => {
     setActivities((prev) =>
       prev.map((a) => (a.id === id ? { ...a, includedInPost: !a.includedInPost } : a))
+    );
+  };
+
+  const handleSelectAll = () => {
+    setActivities((prev) => prev.map((a) => ({ ...a, includedInPost: true })));
+  };
+
+  const handleDeselectAll = () => {
+    setActivities((prev) => prev.map((a) => ({ ...a, includedInPost: false })));
+  };
+
+  const handleSelectLatestOnly = () => {
+    setActivities((prev) =>
+      prev.map((a, idx) => ({
+        ...a,
+        includedInPost: idx === 0 || (prev.length > 1 && idx === 1 && a.category !== prev[0].category)
+      }))
     );
   };
 
@@ -277,7 +306,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
     setSavedBadge(true);
     setTimeout(() => {
       onClose();
-    }, 1000);
+    }, 900);
   };
 
   const handleShare = async () => {
@@ -291,12 +320,12 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   };
 
   return (
-    <div className="modal-backdrop" style={{ zIndex: 10000 }}>
-      <div className="modal-content google-card animate-scale-up max-w-lg w-full max-h-[92vh] overflow-y-auto p-6 flex flex-col gap-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4">
+      <div className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0e131b] p-5 sm:p-6 shadow-2xl text-foreground font-sans flex flex-col gap-4">
         {/* App Bar Header */}
-        <div className="flex items-center justify-between border-b border-glass pb-3">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <button
-            className="btn-google-outlined text-xs py-1.5 px-3 flex items-center gap-1"
+            className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:border-white/20 hover:text-white transition"
             onClick={onClose}
           >
             <ChevronLeft size={16} />
@@ -304,64 +333,99 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
           </button>
 
           <div className="text-center">
-            <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest block">
-              ACTIVITY POST STUDIO
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary flex items-center justify-center gap-1">
+              <Sparkles size={11} /> POST STUDIO
             </span>
-            <h3 className="text-sm md:text-base font-black text-main mt-0.5">
+            <h3 className="text-sm md:text-base font-extrabold text-white mt-0.5 font-display">
               {initialPost ? 'Edit Post' : "Compile Today's Post"}
             </h3>
           </div>
 
-          <button className="btn-google-icon" onClick={onClose} aria-label="Close">
-            <X size={18} />
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-white transition"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X size={16} />
           </button>
         </div>
 
         {/* ------------------------------------------------------------------- */}
-        {/* 1. WORKOUT COMPILATION CARD */}
+        {/* 1. WORKOUT COMPILATION CARD (DESELECTED BY DEFAULT + QUICK BUTTONS) */}
         {/* ------------------------------------------------------------------- */}
-        <div className="bg-card p-4 rounded-2xl border border-glass flex flex-col gap-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-sub uppercase tracking-wider flex items-center gap-1.5">
-              <Layers size={14} className="text-cyan-500" />
-              <span>Activities Included ({includedItems.length})</span>
+        <div className="rounded-2xl border border-border bg-[#10151d] p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 font-display">
+              <Layers size={14} className="text-primary" />
+              <span>Activities Included ({includedItems.length} of {activities.length})</span>
             </span>
-            <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold">
-              {includedItems.length > 0 ? 'Tap to toggle' : 'None selected'}
-            </span>
+
+            {/* Quick Action Selection Buttons */}
+            {activities.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleSelectLatestOnly}
+                  className="rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary hover:bg-primary/20 transition"
+                  title="Select only today's most recent activities"
+                >
+                  Latest Only
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-white transition"
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeselectAll}
+                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-white transition"
+                >
+                  Deselect All
+                </button>
+              </div>
+            )}
           </div>
 
           {activities.length === 0 ? (
-            <div className="py-4 flex flex-col items-center justify-center text-center">
-              <Sparkles size={20} className="text-cyan-500 mb-1.5 opacity-80" />
-              <p className="text-xs text-sub font-medium">No workouts logged yet today.</p>
-              <span className="text-[11px] text-muted mt-0.5">Track a run, ride, or calisthenics session to auto-compile!</span>
+            <div className="py-5 flex flex-col items-center justify-center text-center">
+              <Sparkles size={22} className="text-primary mb-2 opacity-80" />
+              <p className="text-xs text-white font-semibold">No workouts logged yet today.</p>
+              <span className="text-[11px] text-muted-foreground mt-0.5">Track a run, ride, calisthenics or football drill to compile!</span>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
               {activities.map((act) => (
                 <div
                   key={act.id}
                   onClick={() => handleToggleActivity(act.id)}
-                  className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+                  className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                     act.includedInPost
-                      ? 'bg-purple-500/10 border-[#55198B]/50 text-main shadow-sm'
-                      : 'bg-card border-glass text-sub opacity-50'
+                      ? 'border-primary/50 bg-primary/10 text-white shadow-sm'
+                      : 'border-white/5 bg-[#141a24]/50 text-muted-foreground hover:border-white/15'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xl">
-                      {act.category === 'calisthenics' ? '⚡' : act.category.includes('run') ? '🏃' : '🚴'}
+                      {act.category === 'calisthenics' ? '⚡' : act.category === 'football' ? '⚽' : act.category.includes('run') ? '🏃' : '🚴'}
                     </span>
                     <div>
-                      <h4 className="text-xs font-bold text-main">{act.title}</h4>
-                      <p className="text-[11px] text-[#55198B] dark:text-[#c084fc] font-medium mt-0.5">{act.details}</p>
+                      <h4 className={`text-xs font-bold ${act.includedInPost ? 'text-white' : 'text-slate-300'}`}>
+                        {act.title}
+                      </h4>
+                      <p className={`text-[11px] font-medium mt-0.5 ${act.includedInPost ? 'text-primary' : 'text-muted-foreground'}`}>
+                        {act.details}
+                      </p>
                     </div>
                   </div>
 
                   <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                      act.includedInPost ? 'bg-[#55198B] border-[#7b29be] text-white shadow-sm' : 'border-slate-600'
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all ${
+                      act.includedInPost
+                        ? 'bg-primary border-primary text-primary-foreground shadow-sm'
+                        : 'border-white/20 bg-white/5 text-transparent'
                     }`}
                   >
                     {act.includedInPost && <Check size={14} strokeWidth={3} />}
@@ -375,26 +439,26 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         {/* ------------------------------------------------------------------- */}
         {/* 2. POST TITLE & EXERTION (RPE) */}
         {/* ------------------------------------------------------------------- */}
-        <div className="bg-card p-4 rounded-2xl border border-glass flex flex-col gap-3">
+        <div className="rounded-2xl border border-border bg-[#10151d] p-4 flex flex-col gap-3">
           <div>
-            <label className="text-[11px] font-bold text-sub uppercase tracking-wider block mb-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5 font-display">
               Post Title
             </label>
             <input
               type="text"
               value={postTitle}
               onChange={(e) => setPostTitle(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-slate-900 border border-glass rounded-2xl px-4 py-2.5 text-xs font-bold text-main outline-none focus:border-cyan-500 transition-all"
+              className="w-full bg-[#080b11] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-primary/50 transition-all placeholder:text-muted-foreground/60"
               placeholder="e.g. Explosive Push & 5K Tempo Run..."
             />
           </div>
 
           <div className="flex items-center justify-between gap-4 pt-1">
             <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-sub uppercase">Exertion (RPE)</span>
-                <span className="text-xs font-black font-mono text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
-                  <Zap size={12} className="text-amber-500" />
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-display">Exertion (RPE)</span>
+                <span className="text-xs font-black font-mono text-primary flex items-center gap-1">
+                  <Zap size={12} className="text-dude" />
                   <span>{rpe} / 10</span>
                 </span>
               </div>
@@ -404,20 +468,20 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
                 max="10"
                 value={rpe}
                 onChange={(e) => setRpe(Number(e.target.value))}
-                className="w-full accent-cyan-500 cursor-pointer h-2 bg-slate-200 dark:bg-slate-800 rounded-lg"
+                className="w-full accent-[#ccff00] cursor-pointer h-1.5 bg-white/10 rounded-lg"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-sub uppercase tracking-wider block mb-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5 font-display">
               Athlete Notes
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full bg-slate-100 dark:bg-slate-900 border border-glass rounded-2xl p-3 text-xs text-main outline-none focus:border-cyan-500 transition-all resize-none"
+              className="w-full bg-[#080b11] border border-white/10 rounded-xl p-3 text-xs text-white outline-none focus:border-primary/50 transition-all resize-none placeholder:text-muted-foreground/60"
               placeholder="Felt strong on the final sprint. Clean form throughout sets..."
             />
           </div>
@@ -426,14 +490,15 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         {/* ------------------------------------------------------------------- */}
         {/* 3. POSTER THEME & CUSTOM PHOTO */}
         {/* ------------------------------------------------------------------- */}
-        <div className="bg-card p-4 rounded-2xl border border-glass flex flex-col gap-2.5">
-          <label className="text-[11px] font-bold text-sub uppercase tracking-wider block">
+        <div className="rounded-2xl border border-border bg-[#10151d] p-4 flex flex-col gap-2.5">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block font-display">
             Poster Visual Theme & Media
           </label>
           <div className="grid grid-cols-5 gap-2">
             <button
-              className={`py-2.5 px-2 rounded-2xl border text-[11px] font-bold flex flex-col items-center justify-center text-center transition-all ${
-                theme === 'cyber_neon' ? 'bg-cyan-500/20 border-cyan-400 text-cyan-600 dark:text-cyan-400 shadow-sm' : 'bg-card border-glass text-sub'
+              type="button"
+              className={`py-2 px-1.5 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center text-center transition-all ${
+                theme === 'cyber_neon' ? 'bg-primary/15 border-primary text-primary shadow-sm' : 'bg-[#080b11] border-white/10 text-muted-foreground hover:text-white'
               }`}
               onClick={() => setTheme('cyber_neon')}
             >
@@ -442,8 +507,9 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
             </button>
 
             <button
-              className={`py-2.5 px-2 rounded-2xl border text-[11px] font-bold flex flex-col items-center justify-center text-center transition-all ${
-                theme === 'strava_sunset' ? 'bg-amber-500/20 border-amber-400 text-amber-500 shadow-sm' : 'bg-card border-glass text-sub'
+              type="button"
+              className={`py-2 px-1.5 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center text-center transition-all ${
+                theme === 'strava_sunset' ? 'bg-[#fc4c02]/15 border-[#fc4c02] text-[#ff9667] shadow-sm' : 'bg-[#080b11] border-white/10 text-muted-foreground hover:text-white'
               }`}
               onClick={() => setTheme('strava_sunset')}
             >
@@ -452,8 +518,9 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
             </button>
 
             <button
-              className={`py-2.5 px-2 rounded-2xl border text-[11px] font-bold flex flex-col items-center justify-center text-center transition-all ${
-                theme === 'electric_aurora' ? 'bg-emerald-500/20 border-emerald-400 text-emerald-500 shadow-sm' : 'bg-card border-glass text-sub'
+              type="button"
+              className={`py-2 px-1.5 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center text-center transition-all ${
+                theme === 'electric_aurora' ? 'bg-emerald-500/15 border-emerald-400 text-emerald-400 shadow-sm' : 'bg-[#080b11] border-white/10 text-muted-foreground hover:text-white'
               }`}
               onClick={() => setTheme('electric_aurora')}
             >
@@ -462,8 +529,9 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
             </button>
 
             <button
-              className={`py-2.5 px-2 rounded-2xl border text-[11px] font-bold flex flex-col items-center justify-center text-center transition-all ${
-                theme === 'monochrome_titanium' ? 'bg-slate-500/20 border-slate-400 text-slate-300 shadow-sm' : 'bg-card border-glass text-sub'
+              type="button"
+              className={`py-2 px-1.5 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center text-center transition-all ${
+                theme === 'monochrome_titanium' ? 'bg-slate-400/15 border-slate-400 text-slate-300 shadow-sm' : 'bg-[#080b11] border-white/10 text-muted-foreground hover:text-white'
               }`}
               onClick={() => setTheme('monochrome_titanium')}
             >
@@ -472,8 +540,8 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
             </button>
 
             {/* Custom Photo Upload */}
-            <label className="py-2.5 px-2 rounded-2xl border border-glass bg-card hover:bg-card-hover text-[11px] font-bold text-[#55198B] dark:text-[#c084fc] flex flex-col items-center justify-center text-center cursor-pointer transition-all">
-              <ImageIcon size={18} />
+            <label className="py-2 px-1.5 rounded-xl border border-white/10 bg-[#080b11] hover:border-white/20 text-[11px] font-bold text-dude flex flex-col items-center justify-center text-center cursor-pointer transition-all">
+              <ImageIcon size={17} />
               <span className="mt-1">{photos.length > 0 ? `${photos.length} Photo${photos.length > 1 ? 's' : ''}` : 'Photos'}</span>
               <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
             </label>
@@ -481,7 +549,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
 
           {/* Photos thumbnail preview row */}
           {photos.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-glass">
+            <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-white/10">
               {photos.map((p, idx) => (
                 <div
                   key={idx}
@@ -491,7 +559,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
                     setTheme('custom_image');
                   }}
                   className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 cursor-pointer transition-all ${
-                    selectedPhotoIdx === idx ? 'border-[#55198B] scale-105 shadow-md' : 'border-glass opacity-70'
+                    selectedPhotoIdx === idx ? 'border-primary scale-105 shadow-md' : 'border-white/10 opacity-70'
                   }`}
                 >
                   <img src={p} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
@@ -504,17 +572,17 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         {/* ------------------------------------------------------------------- */}
         {/* 4. POST QUOTE & ATHLETE FEELING */}
         {/* ------------------------------------------------------------------- */}
-        <div className="bg-card border border-glass p-3.5 rounded-2xl flex flex-col gap-2.5">
+        <div className="rounded-2xl border border-border bg-[#10151d] p-4 flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-sub uppercase tracking-wider flex items-center gap-1">
-              <span>✍️ Post Quote & Feeling</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1 font-display">
+              <span>✍️ Post Quote & Motivation</span>
             </span>
-            <div className="flex items-center gap-1 bg-black/20 p-0.5 rounded-full border border-glass">
+            <div className="flex items-center gap-1 bg-[#080b11] p-0.5 rounded-lg border border-white/10">
               <button
                 type="button"
                 onClick={() => setUseCustomQuote(true)}
-                className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all ${
-                  useCustomQuote ? 'bg-amber-500 text-black shadow-sm' : 'text-sub hover:text-main'
+                className={`text-[10px] font-bold py-1 px-2.5 rounded-md transition-all ${
+                  useCustomQuote ? 'bg-dude text-black shadow-sm' : 'text-muted-foreground hover:text-white'
                 }`}
               >
                 My Own Quote
@@ -522,8 +590,8 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
               <button
                 type="button"
                 onClick={() => setUseCustomQuote(false)}
-                className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all ${
-                  !useCustomQuote ? 'bg-[#55198B] text-white shadow-sm' : 'text-sub hover:text-main'
+                className={`text-[10px] font-bold py-1 px-2.5 rounded-md transition-all ${
+                  !useCustomQuote ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-white'
                 }`}
               >
                 Preset Quotes
@@ -538,30 +606,30 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
                 onChange={(e) => setCustomQuoteText(e.target.value)}
                 placeholder="Type your own quote, workout feeling, or thought (e.g. Legs were on fire, but the mind stayed peaceful!)..."
                 rows={2}
-                className="w-full bg-slate-900/60 border border-amber-500/40 rounded-xl p-2.5 text-xs text-main font-medium placeholder-zinc-500 outline-none focus:border-amber-400 transition-all resize-none"
+                className="w-full bg-[#080b11] border border-white/10 rounded-xl p-2.5 text-xs text-white font-medium placeholder:text-muted-foreground/60 outline-none focus:border-primary/50 transition-all resize-none"
               />
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 flex-1">
-                  <span className="text-[10px] font-bold text-sub">Author:</span>
+                  <span className="text-[10px] font-bold text-muted-foreground">Author:</span>
                   <input
                     type="text"
                     value={customQuoteAuthor}
                     onChange={(e) => setCustomQuoteAuthor(e.target.value)}
                     placeholder="Your Name / Sughosh"
-                    className="bg-slate-900/60 border border-glass rounded-lg px-2 py-1 text-[11px] text-amber-400 font-bold outline-none flex-1"
+                    className="bg-[#080b11] border border-white/10 rounded-lg px-2 py-1 text-[11px] text-primary font-bold outline-none flex-1"
                   />
                 </div>
-                <span className="text-[10px] text-zinc-400 font-medium">Will appear on poster & video ✨</span>
+                <span className="text-[10px] text-muted-foreground">Will appear on poster & video ✨</span>
               </div>
             </div>
           ) : (
-            <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
-              <p className="text-xs font-medium text-main italic truncate flex-1">
+            <div className="bg-[#080b11] border border-white/10 p-2.5 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
+              <p className="text-xs font-medium text-white italic truncate flex-1">
                 "{defaultActiveQuote.text}"
               </p>
               <button
                 type="button"
-                className="btn-google-tonal text-xs py-1 px-2.5 flex items-center gap-1 shrink-0 rounded-full"
+                className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-white hover:border-white/20 shrink-0 transition"
                 onClick={() => setQuoteIndex((prev) => prev + 1)}
                 title="Cycle Quote"
               >
@@ -575,17 +643,27 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
         {/* ------------------------------------------------------------------- */}
         {/* 5. FORMAT & PRIMARY ACTIONS */}
         {/* ------------------------------------------------------------------- */}
-        <div className="flex flex-col gap-3 pt-2 border-t border-glass">
+        <div className="flex flex-col gap-3 pt-2 border-t border-white/10">
           {/* Format Selector Pills */}
           <div className="flex items-center justify-center gap-2">
             <button
-              className={format === 'story' ? 'btn-google-primary text-xs py-1.5 px-4' : 'btn-google-outlined text-xs py-1.5 px-4'}
+              type="button"
+              className={`text-xs py-1.5 px-4 rounded-xl font-bold transition-all ${
+                format === 'story'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'border border-white/10 bg-white/5 text-muted-foreground hover:text-white'
+              }`}
               onClick={() => setFormat('story')}
             >
               Story (9:16)
             </button>
             <button
-              className={format === 'square' ? 'btn-google-primary text-xs py-1.5 px-4' : 'btn-google-outlined text-xs py-1.5 px-4'}
+              type="button"
+              className={`text-xs py-1.5 px-4 rounded-xl font-bold transition-all ${
+                format === 'square'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'border border-white/10 bg-white/5 text-muted-foreground hover:text-white'
+              }`}
               onClick={() => setFormat('square')}
             >
               Feed Post (1:1)
@@ -593,20 +671,20 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
           </div>
 
           {/* Video Studio CTA Banner */}
-          <div className="p-3 rounded-2xl bg-gradient-to-r from-[#55198B]/20 to-cyan-500/20 border border-glass flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-[#55198B] text-white">
+          <div className="p-3 rounded-2xl bg-gradient-to-r from-primary/10 via-[#fc4c02]/10 to-transparent border border-white/10 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-primary text-primary-foreground">
                 <Video size={16} />
               </div>
               <div>
-                <span className="text-xs font-bold text-main block">Create Video Clip with Audio</span>
-                <span className="text-[10px] text-sub">Satellite / Map animated track + add local song/BGM</span>
+                <span className="text-xs font-bold text-white block">Create Video Clip with Audio</span>
+                <span className="text-[10px] text-muted-foreground">Animated track route + high-res export</span>
               </div>
             </div>
             {onOpenShareStudio && (
               <button
                 type="button"
-                className="btn-google-primary text-xs py-1.5 px-3 rounded-full font-bold shadow-md"
+                className="text-xs py-1.5 px-3 rounded-xl font-bold bg-white/10 text-white hover:bg-white/20 transition shrink-0"
                 onClick={() => onOpenShareStudio(cardData)}
               >
                 Open Studio &rarr;
@@ -617,15 +695,17 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
           {/* Main Action Buttons Grid */}
           <div className="grid grid-cols-3 gap-2.5">
             <button
-              className="btn-google-primary text-xs py-3 flex items-center justify-center gap-1.5 shadow-md"
+              type="button"
+              className="rounded-xl bg-primary text-primary-foreground py-3 text-xs font-bold flex items-center justify-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(204,255,0,0.25)]"
               onClick={handleSave}
             >
-              {savedBadge ? <CheckCircle2 size={16} className="text-white" /> : <Sparkles size={16} />}
+              {savedBadge ? <CheckCircle2 size={16} /> : <Sparkles size={16} />}
               <span>{savedBadge ? 'Saved!' : 'Save Post'}</span>
             </button>
 
             <button
-              className="btn-google-tonal text-xs py-3 flex items-center justify-center gap-1.5"
+              type="button"
+              className="rounded-xl border border-primary/40 bg-primary/10 text-primary py-3 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-primary/20 active:scale-95 transition-all"
               onClick={handleShare}
               disabled={isSharing}
             >
@@ -634,7 +714,8 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
             </button>
 
             <button
-              className="btn-google-outlined text-xs py-3 flex items-center justify-center gap-1.5"
+              type="button"
+              className="rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white hover:border-white/25 py-3 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
               onClick={handleDownload}
             >
               <Download size={16} />

@@ -104,52 +104,52 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
   ].slice(0, Math.max(1, Math.ceil(activity.totalDistanceKm))) : []);
 
   return (
-    <div className="modal-backdrop z-50 p-2 sm:p-4 overflow-y-auto">
-      <div className="google-card w-full max-w-2xl bg-white dark:bg-[#141820] border border-black/10 dark:border-white/10 shadow-2xl rounded-3xl overflow-hidden my-auto animate-scale-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 overflow-y-auto font-sans">
+      <div className="w-full max-w-2xl bg-[#0e131b] border border-white/10 shadow-2xl rounded-3xl overflow-hidden my-auto animate-scale-up text-foreground">
         {/* Header Bar */}
-        <div className="p-4 sm:p-5 border-b border-glass flex items-center justify-between bg-slate-50 dark:bg-[#1a1e28]">
+        <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-[#10151d]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-500/15 text-[#55198B] dark:text-[#c084fc] flex items-center justify-center text-lg font-black shadow-sm">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-lg font-black shadow-sm">
               {athleteAvatar}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-black text-main">{athleteName}</h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#55198B] text-white uppercase tracking-wider">
+                <h3 className="text-sm font-bold text-white font-display">{athleteName}</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 uppercase tracking-wider">
                   {sportIcon} {sportName}
                 </span>
               </div>
-              <p className="text-[11px] text-sub font-medium flex items-center gap-1.5 mt-0.5">
+              <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 mt-0.5">
                 <Clock size={11} /> {activity.date} &bull; Everything App Performance
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => onOpenSocialShare(activity)}
-              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-sub hover:text-main transition-colors"
+              className="p-2 rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white hover:border-white/25 transition"
               title="Share Strava Card"
             >
-              <Share2 size={18} />
+              <Share2 size={16} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-sub hover:text-main transition-colors"
+              className="p-2 rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white hover:border-white/25 transition"
             >
-              <X size={20} />
+              <X size={16} />
             </button>
           </div>
         </div>
 
         {/* Sub-Navigation Tabs */}
-        <div className="flex border-b border-glass bg-slate-100 dark:bg-[#181c26] px-4 pt-1 overflow-x-auto">
+        <div className="flex border-b border-white/10 bg-[#080b11] px-4 pt-1 overflow-x-auto gap-2">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
+            className={`py-2.5 px-3 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
               activeTab === 'overview'
-                ? 'border-[#55198B] text-[#55198B] dark:text-[#c084fc]'
-                : 'border-transparent text-sub hover:text-main'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
             Overview
@@ -157,10 +157,10 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           {(allPhotos.length > 0 || allVideos.length > 0) && (
             <button
               onClick={() => setActiveTab('media')}
-              className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap flex items-center gap-1.5 ${
+              className={`py-2.5 px-3 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === 'media'
-                  ? 'border-[#55198B] text-[#55198B] dark:text-[#c084fc]'
-                  : 'border-transparent text-sub hover:text-main'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-white'
               }`}
             >
               <ImageIcon size={13} />
@@ -170,24 +170,24 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           {splits.length > 0 && (
             <button
               onClick={() => setActiveTab('splits')}
-              className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
+              className={`py-2.5 px-3 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
                 activeTab === 'splits'
-                  ? 'border-[#55198B] text-[#55198B] dark:text-[#c084fc]'
-                  : 'border-transparent text-sub hover:text-main'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-white'
               }`}
             >
-              Kilometer Splits ({splits.length})
+              Splits ({splits.length})
             </button>
           )}
           <button
             onClick={() => setActiveTab('analysis')}
-            className={`py-2.5 px-4 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
+            className={`py-2.5 px-3 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${
               activeTab === 'analysis'
-                ? 'border-[#55198B] text-[#55198B] dark:text-[#c084fc]'
-                : 'border-transparent text-sub hover:text-main'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-white'
             }`}
           >
-            Suffer Score &amp; Power
+            Analysis &amp; Power
           </button>
         </div>
 
@@ -227,40 +227,40 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           {activeTab === 'overview' && (
             <div className="space-y-6">
               {/* Big 3 Hero Telemetry Grid */}
-              <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-[#1a1e28] border border-glass text-center">
+              <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-[#121824] border border-white/5 text-center">
                 <div>
-                  <div className="text-[10px] font-bold text-sub uppercase tracking-wider">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-display">
                     {activity.sportType === 'calisthenics' ? 'TOTAL SETS' : 'DISTANCE'}
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-main font-mono mt-0.5">
+                  <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-0.5">
                     {activity.sportType === 'calisthenics'
                       ? `${activity.totalSets || 12}`
                       : `${activity.totalDistanceKm.toFixed(2)}`}
-                    <span className="text-xs font-bold text-sub ml-0.5">
+                    <span className="text-xs font-bold text-muted-foreground ml-0.5">
                       {activity.sportType === 'calisthenics' ? 'sets' : 'km'}
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-[10px] font-bold text-sub uppercase tracking-wider">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-display">
                     {activity.sportType === 'calisthenics' ? 'TOTAL REPS' : 'AVG PACE'}
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-main font-mono mt-0.5">
+                  <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-0.5">
                     {activity.sportType === 'calisthenics'
                       ? `${activity.totalReps || 160}`
                       : (activity.avgPaceMinKm || '5:04')}
-                    <span className="text-xs font-bold text-sub ml-0.5">
+                    <span className="text-xs font-bold text-muted-foreground ml-0.5">
                       {activity.sportType === 'calisthenics' ? 'reps' : '/km'}
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-[10px] font-bold text-sub uppercase tracking-wider">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-display">
                     MOVING TIME
                   </div>
-                  <div className="text-2xl sm:text-3xl font-black text-main font-mono mt-0.5">
+                  <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-0.5">
                     {formatDuration(activity.totalMoveMinutes * 60 || 2400)}
                   </div>
                 </div>
@@ -268,39 +268,39 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
 
               {/* Extended Metrics Strip */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="p-3 rounded-xl bg-card border border-glass text-center">
-                  <div className="text-[10px] font-bold text-sub uppercase flex items-center justify-center gap-1">
-                    <TrendingUp size={12} className="text-emerald-500" /> Elevation Gain
+                <div className="p-3 rounded-xl bg-[#121824] border border-white/5 text-center">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-center gap-1">
+                    <TrendingUp size={12} className="text-emerald-400" /> Elevation Gain
                   </div>
-                  <div className="text-lg font-black text-main font-mono mt-0.5">
-                    +{activity.elevationGainMeters || 68} <span className="text-xs font-normal text-sub">m</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-card border border-glass text-center">
-                  <div className="text-[10px] font-bold text-sub uppercase flex items-center justify-center gap-1">
-                    <Flame size={12} className="text-amber-500" /> Calories
-                  </div>
-                  <div className="text-lg font-black text-main font-mono mt-0.5">
-                    {activity.totalCalories || 520} <span className="text-xs font-normal text-sub">kcal</span>
+                  <div className="text-lg font-bold text-white font-mono mt-0.5">
+                    +{activity.elevationGainMeters || 68} <span className="text-xs font-normal text-muted-foreground">m</span>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-card border border-glass text-center">
-                  <div className="text-[10px] font-bold text-sub uppercase flex items-center justify-center gap-1">
-                    <Zap size={12} className="text-[#55198B] dark:text-[#c084fc]" /> Heart Points
+                <div className="p-3 rounded-xl bg-[#121824] border border-white/5 text-center">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-center gap-1">
+                    <Flame size={12} className="text-dude" /> Calories
                   </div>
-                  <div className="text-lg font-black text-main font-mono mt-0.5">
-                    {activity.totalHeartPoints || 38} <span className="text-xs font-normal text-sub">pts</span>
+                  <div className="text-lg font-bold text-white font-mono mt-0.5">
+                    {activity.totalCalories || 520} <span className="text-xs font-normal text-muted-foreground">kcal</span>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-card border border-glass text-center">
-                  <div className="text-[10px] font-bold text-sub uppercase flex items-center justify-center gap-1">
-                    <ShieldCheck size={12} className="text-rose-500" /> Suffer Score
+                <div className="p-3 rounded-xl bg-[#121824] border border-white/5 text-center">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-center gap-1">
+                    <Zap size={12} className="text-primary" /> Heart Points
                   </div>
-                  <div className="text-lg font-black text-rose-500 font-mono mt-0.5">
-                    {activity.sufferScore || (activity.rpe ? activity.rpe * 10 : 75)} <span className="text-xs font-normal text-sub">/100</span>
+                  <div className="text-lg font-bold text-white font-mono mt-0.5">
+                    {activity.totalHeartPoints || 38} <span className="text-xs font-normal text-muted-foreground">pts</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#121824] border border-white/5 text-center">
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase flex items-center justify-center gap-1">
+                    <ShieldCheck size={12} className="text-rose-400" /> Suffer Score
+                  </div>
+                  <div className="text-lg font-bold text-rose-400 font-mono mt-0.5">
+                    {activity.sufferScore || (activity.rpe ? activity.rpe * 10 : 75)} <span className="text-xs font-normal text-muted-foreground">/100</span>
                   </div>
                 </div>
               </div>
@@ -334,12 +334,12 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-sub flex items-center gap-1.5">
-                      <ImageIcon size={14} className="text-[#55198B] dark:text-[#c084fc]" />
+                      <ImageIcon size={14} className="text-[#ccff00]" />
                       <span>Photos &amp; Videos ({allPhotos.length + allVideos.length})</span>
                     </h4>
                     <button
                       onClick={() => setActiveTab('media')}
-                      className="text-[11px] font-bold text-[#55198B] dark:text-[#c084fc] hover:underline cursor-pointer"
+                      className="text-[11px] font-bold text-[#ccff00] hover:underline cursor-pointer"
                     >
                       View All &rarr;
                     </button>
@@ -440,8 +440,8 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                       key={s.splitNumber}
                       className={`p-3 rounded-xl border flex items-center justify-between text-xs font-mono ${
                         isFastest
-                          ? 'bg-purple-500/10 border-[#55198B] shadow-sm'
-                          : 'bg-card border-glass'
+                          ? 'bg-[#ccff00]/10 border-[#ccff00]/40 shadow-sm'
+                          : 'bg-[#141923] border-white/10'
                       }`}
                     >
                       <div className="flex items-center gap-2 w-12 font-bold text-main">
@@ -449,7 +449,7 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                         <span>{s.splitNumber}</span>
                       </div>
 
-                      <div className="font-bold text-[#55198B] dark:text-[#c084fc] flex-1 text-center">
+                      <div className="font-bold text-[#ccff00] flex-1 text-center">
                         {s.paceMinKm}
                       </div>
 
@@ -518,7 +518,7 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                       <span className="font-mono font-bold">10 mins (24%)</span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                      <div className="bg-[#55198B] h-full rounded-full" style={{ width: '24%' }}></div>
+                      <div className="bg-[#38bdf8] h-full rounded-full" style={{ width: '24%' }}></div>
                     </div>
                   </div>
 
@@ -544,7 +544,7 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
               {allVideos.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-main flex items-center gap-1.5">
-                    <VideoIcon size={14} className="text-[#55198B] dark:text-[#c084fc]" />
+                    <VideoIcon size={14} className="text-[#ccff00]" />
                     <span>Workout Videos ({allVideos.length})</span>
                   </h4>
                   <div className="space-y-3">
@@ -573,7 +573,7 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
               {allPhotos.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-main flex items-center gap-1.5">
-                    <ImageIcon size={14} className="text-[#55198B] dark:text-[#c084fc]" />
+                    <ImageIcon size={14} className="text-[#ccff00]" />
                     <span>Activity Photos ({allPhotos.length})</span>
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -581,7 +581,7 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                       <div
                         key={pIdx}
                         onClick={() => setZoomImage({ src: photoUrl, title: `${activity.title} (Photo ${pIdx + 1})` })}
-                        className="group relative rounded-2xl overflow-hidden bg-slate-900 aspect-square cursor-pointer border border-glass hover:border-[#55198B] transition-all shadow-md"
+                        className="group relative rounded-2xl overflow-hidden bg-slate-900 aspect-square cursor-pointer border border-glass hover:border-[#ccff00] transition-all shadow-md"
                       >
                         <img
                           src={photoUrl}
@@ -609,14 +609,14 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           {/* ----------------------------------------------------------------- */}
           {/* SOCIAL & COMMENTS SECTION (AUTHENTIC STRAVA COMMENTS) */}
           {/* ----------------------------------------------------------------- */}
-          <div className="pt-4 border-t border-glass space-y-4">
+          <div className="pt-4 border-t border-white/10 space-y-4">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => onKudos(activity.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
                   activity.isLiked
-                    ? 'bg-[#55198B] text-white shadow-md'
-                    : 'bg-slate-100 dark:bg-slate-800 text-sub hover:text-main'
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:border-white/20'
                 }`}
               >
                 <span>👏</span>
@@ -627,7 +627,7 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
               {onOpenFlyby && activity.gpsActivity && (
                 <button
                   onClick={() => onOpenFlyby(activity)}
-                  className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5"
+                  className="rounded-xl border border-white/10 bg-white/5 text-xs py-2 px-3 text-muted-foreground hover:text-white flex items-center gap-1.5 transition"
                 >
                   <span>🛰️ 3D Flyby Replay</span>
                 </button>
@@ -636,7 +636,7 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
 
             {/* Comments Thread */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-sub flex items-center gap-1.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 font-display">
                 <MessageSquare size={13} />
                 <span>Comments &amp; Athlete Banter ({activity.comments?.length || 0})</span>
               </h4>
@@ -646,21 +646,21 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                   {activity.comments.map((c) => (
                     <div
                       key={c.id}
-                      className="p-3 rounded-xl bg-slate-50 dark:bg-[#1a1e28] border border-glass flex items-start gap-2.5"
+                      className="p-3 rounded-xl bg-[#121824] border border-white/5 flex items-start gap-2.5"
                     >
                       <span className="text-base">{c.avatar}</span>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <h5 className="text-xs font-bold text-main">{c.userName}</h5>
-                          <span className="text-[10px] text-sub">Just now</span>
+                          <h5 className="text-xs font-bold text-white font-display">{c.userName}</h5>
+                          <span className="text-[10px] text-muted-foreground font-mono">Just now</span>
                         </div>
-                        <p className="text-xs text-sub mt-0.5 leading-relaxed">{c.text}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{c.text}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-sub italic">No comments yet. Be the first to cheer!</p>
+                <p className="text-xs text-muted-foreground italic">No comments yet. Be the first to cheer!</p>
               )}
 
               {/* Add Comment Input */}
@@ -670,12 +670,12 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                   placeholder="Leave athlete encouragement..."
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-xl bg-card border border-glass text-xs text-main focus:outline-none focus:border-[#55198B]"
+                  className="flex-1 px-3 py-2 rounded-xl bg-[#121824] border border-white/10 text-xs text-white placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50 transition"
                 />
                 <button
                   type="submit"
                   disabled={!commentText.trim()}
-                  className="btn-google-primary text-xs px-4 py-2 disabled:opacity-50"
+                  className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:brightness-110 disabled:opacity-50 transition shadow-sm flex items-center gap-1"
                 >
                   <Send size={13} />
                   <span>Send</span>

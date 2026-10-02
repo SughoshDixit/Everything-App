@@ -119,21 +119,21 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
   }, [dailyMetrics, selectedYear]);
 
   return (
-    <div className="bg-card rounded-3xl border border-glass p-5 md:p-6 shadow-xl my-4 animate-fade-in">
+    <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg animate-fade-in font-sans">
       {/* Section Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2 border-b border-glass pb-4 mb-5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+      <div className="flex items-center justify-between flex-wrap gap-3 border-b border-white/10 pb-4 mb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
             <TrendingUp size={20} />
           </div>
           <div>
-            <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest block">
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary block font-display">
               HISTORICAL FITNESS INTELLIGENCE
             </span>
-            <h3 className="text-base md:text-lg font-black text-main flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 font-display">
               <span>Multi-Year Journey (2019 – 2026)</span>
               {isLoading && (
-                <span className="text-[10px] text-amber-500 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 animate-pulse">
+                <span className="text-[10px] text-dude font-semibold px-2 py-0.5 rounded-full bg-dude/10 animate-pulse">
                   Syncing Firestore...
                 </span>
               )}
@@ -142,13 +142,13 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
         </div>
 
         {/* Metric Selector Pills */}
-        <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-glass text-xs">
+        <div className="flex items-center gap-1 bg-[#121824] p-1 rounded-xl border border-white/10 text-xs">
           <button
             onClick={() => setSelectedMetricView('distance')}
             className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
               selectedMetricView === 'distance'
-                ? 'bg-[#55198B] text-white shadow'
-                : 'text-sub hover:text-main'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-white'
             }`}
           >
             Distance (km)
@@ -157,8 +157,8 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
             onClick={() => setSelectedMetricView('calories')}
             className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
               selectedMetricView === 'calories'
-                ? 'bg-[#55198B] text-white shadow'
-                : 'text-sub hover:text-main'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-white'
             }`}
           >
             Calories (kcal)
@@ -167,8 +167,8 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
             onClick={() => setSelectedMetricView('activeDays')}
             className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
               selectedMetricView === 'activeDays'
-                ? 'bg-[#55198B] text-white shadow'
-                : 'text-sub hover:text-main'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-white'
             }`}
           >
             Active Days
@@ -177,66 +177,66 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
       </div>
 
       {/* 1. LIFETIME HERO METRIC STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 relative overflow-hidden">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="p-4 rounded-xl bg-[#121824] border border-white/5 relative overflow-hidden">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">TOTAL CALORIES</span>
-            <Flame size={16} className="text-amber-500" />
+            <span className="text-[9px] font-bold uppercase text-dude tracking-wider">TOTAL CALORIES</span>
+            <Flame size={15} className="text-dude" />
           </div>
-          <div className="text-xl md:text-2xl font-black text-main font-mono">
-            {totalLifetimeCalories.toLocaleString()} <span className="text-xs font-normal text-sub">kcal</span>
+          <div className="text-xl sm:text-2xl font-extrabold text-white font-mono">
+            {totalLifetimeCalories.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">kcal</span>
           </div>
-          <p className="text-[10px] text-sub mt-1">Google Fit Lifetime Burn</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Google Fit Lifetime Burn</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 relative overflow-hidden">
+        <div className="p-4 rounded-xl bg-[#121824] border border-white/5 relative overflow-hidden">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-black uppercase text-emerald-500 tracking-wider">RUNNING VOLUME</span>
-            <Activity size={16} className="text-emerald-500" />
+            <span className="text-[9px] font-bold uppercase text-primary tracking-wider">RUNNING VOLUME</span>
+            <Activity size={15} className="text-primary" />
           </div>
-          <div className="text-xl md:text-2xl font-black text-main font-mono">
-            {totalLifetimeRunKm} <span className="text-xs font-normal text-sub">km</span>
+          <div className="text-xl sm:text-2xl font-extrabold text-white font-mono">
+            {totalLifetimeRunKm} <span className="text-xs font-normal text-muted-foreground">km</span>
           </div>
-          <p className="text-[10px] text-sub mt-1">Strava Logged Running</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Strava Logged Running</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-[#FC4C02]/10 to-transparent border border-[#FC4C02]/20 relative overflow-hidden">
+        <div className="p-4 rounded-xl bg-[#121824] border border-white/5 relative overflow-hidden">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-black uppercase text-[#FC4C02] tracking-wider">CYCLING VOLUME</span>
-            <Zap size={16} className="text-[#FC4C02]" />
+            <span className="text-[9px] font-bold uppercase text-[#ff9667] tracking-wider">CYCLING VOLUME</span>
+            <Zap size={15} className="text-[#ff9667]" />
           </div>
-          <div className="text-xl md:text-2xl font-black text-main font-mono">
-            {totalLifetimeCycleKm} <span className="text-xs font-normal text-sub">km</span>
+          <div className="text-xl sm:text-2xl font-extrabold text-white font-mono">
+            {totalLifetimeCycleKm} <span className="text-xs font-normal text-muted-foreground">km</span>
           </div>
-          <p className="text-[10px] text-sub mt-1">Longest: {milestones.longestCycleKm || 10.7} km</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Longest: {milestones.longestCycleKm || 10.7} km</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 relative overflow-hidden">
+        <div className="p-4 rounded-xl bg-[#121824] border border-white/5 relative overflow-hidden">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-black uppercase text-purple-400 tracking-wider">JOURNEY TRACKED</span>
-            <Calendar size={16} className="text-purple-400" />
+            <span className="text-[9px] font-bold uppercase text-sky-400 tracking-wider">JOURNEY TRACKED</span>
+            <Calendar size={15} className="text-sky-400" />
           </div>
-          <div className="text-xl md:text-2xl font-black text-main font-mono">
-            {totalRecordedDays} <span className="text-xs font-normal text-sub">Days</span>
+          <div className="text-xl sm:text-2xl font-extrabold text-white font-mono">
+            {totalRecordedDays} <span className="text-xs font-normal text-muted-foreground">Days</span>
           </div>
-          <p className="text-[10px] text-sub mt-1">2019 – 2026 Archive</p>
+          <p className="text-[10px] text-muted-foreground mt-1">2019 – 2026 Archive</p>
         </div>
       </div>
 
       {/* 2. MULTI-YEAR VOLUME PROGRESSION (2019 - 2026) */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-black text-sub uppercase tracking-wider flex items-center gap-1.5">
-            <BarChart3 size={15} className="text-[#55198B] dark:text-[#c084fc]" />
+          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 font-display">
+            <BarChart3 size={15} className="text-primary" />
             <span>Year-over-Year Fitness Volume</span>
           </h4>
-          <span className="text-[11px] font-bold text-sub">
+          <span className="text-[11px] font-bold text-white">
             {selectedMetricView === 'distance' ? 'Total Distance' : selectedMetricView === 'calories' ? 'Calorie Burn' : 'Days Active'}
           </span>
         </div>
 
         {/* Visual Bar Chart */}
-        <div className="grid grid-cols-8 gap-2 items-end h-44 p-3 bg-black/20 rounded-2xl border border-glass">
+        <div className="grid grid-cols-8 gap-2 items-end h-44 p-3 bg-[#080b11] rounded-xl border border-white/10">
           {yearlyStats.map((y) => {
             const rawVal =
               selectedMetricView === 'distance'
@@ -254,7 +254,7 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
                 onClick={() => setSelectedYear(y.year)}
               >
                 {/* Tooltip value on hover */}
-                <span className="text-[9px] font-mono font-bold text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity mb-1 whitespace-nowrap">
+                <span className="text-[9px] font-mono font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity mb-1 whitespace-nowrap">
                   {selectedMetricView === 'distance'
                     ? `${rawVal.toFixed(0)}km`
                     : selectedMetricView === 'calories'
@@ -264,16 +264,16 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
 
                 {/* Animated Column */}
                 <div
-                  className={`w-full max-w-[28px] rounded-t-lg transition-all duration-500 ${
+                  className={`w-full max-w-[28px] rounded-t-md transition-all duration-500 ${
                     selectedYear === y.year
-                      ? 'bg-gradient-to-t from-orange-500 to-amber-400 shadow-lg shadow-orange-500/30'
-                      : 'bg-gradient-to-t from-[#55198B] to-[#7B2CBF] hover:from-[#7B2CBF] hover:to-[#c084fc]'
+                      ? 'bg-primary shadow-lg shadow-primary/30'
+                      : 'bg-primary/25 hover:bg-primary/50'
                   }`}
                   style={{ height: `${heightPct}%` }}
                 />
 
                 {/* Year Label */}
-                <span className={`text-[10px] font-bold font-mono mt-2 ${selectedYear === y.year ? 'text-amber-400 font-black' : 'text-sub'}`}>
+                <span className={`text-[10px] font-bold font-mono mt-2 ${selectedYear === y.year ? 'text-primary font-black' : 'text-muted-foreground'}`}>
                   {y.year}
                 </span>
               </div>
@@ -283,15 +283,15 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
       </div>
 
       {/* 3. MONTHLY DETAIL FOR SELECTED YEAR */}
-      <div className="p-4 rounded-2xl bg-black/15 border border-glass">
+      <div className="p-4 rounded-xl bg-[#080b11] border border-white/10">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black text-main uppercase">
+            <span className="text-xs font-bold text-white uppercase font-display">
               {selectedYear === 'all' ? '2026' : selectedYear} Monthly Breakdown
             </span>
-            <span className="text-[10px] text-sub font-semibold">(Click any year bar above to change)</span>
+            <span className="text-[10px] text-muted-foreground font-semibold">(Tap any year bar above to change)</span>
           </div>
-          <span className="text-[10px] text-emerald-400 font-bold">12-Month Progression</span>
+          <span className="text-[10px] text-primary font-bold">12-Month Progression</span>
         </div>
 
         <div className="grid grid-cols-6 md:grid-cols-12 gap-1.5 items-end h-28 pt-2">
@@ -303,11 +303,11 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
             return (
               <div key={m.month} className="flex flex-col items-center h-full justify-end">
                 <div
-                  className="w-full max-w-[16px] rounded-t-md bg-gradient-to-t from-cyan-600 to-emerald-400 transition-all duration-300"
+                  className="w-full max-w-[16px] rounded-t-sm bg-gradient-to-t from-primary/30 to-primary transition-all duration-300"
                   style={{ height: `${barH}%` }}
                   title={`${m.month}: ${val.toFixed(1)}`}
                 />
-                <span className="text-[9px] font-mono text-sub mt-1.5">{m.month}</span>
+                <span className="text-[9px] font-mono text-muted-foreground mt-1.5">{m.month}</span>
               </div>
             );
           })}
@@ -315,56 +315,56 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
       </div>
 
       {/* 4. ALL-TIME TROPHY CASE & PRS */}
-      <div className="mt-5 pt-4 border-t border-glass">
-        <h4 className="text-xs font-black text-sub uppercase tracking-wider mb-3 flex items-center gap-1.5">
-          <Award size={15} className="text-amber-400" />
+      <div className="mt-5 pt-4 border-t border-white/10">
+        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5 font-display">
+          <Award size={15} className="text-dude" />
           <span>All-Time Personal Records Hall of Fame</span>
         </h4>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-          <div className="p-3 rounded-xl bg-card border border-glass flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-3 rounded-xl bg-[#121824] border border-white/5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-dude/10 text-dude flex items-center justify-center font-bold">
               🥇
             </div>
             <div>
-              <div className="text-[9px] text-sub font-bold uppercase">FASTEST 1 KM</div>
-              <div className="text-sm font-black text-main font-mono">
+              <div className="text-[9px] text-muted-foreground font-bold uppercase">FASTEST 1 KM</div>
+              <div className="text-sm font-bold text-white font-mono">
                 {milestones.fastest1kRunSeconds ? `${Math.floor(milestones.fastest1kRunSeconds / 60)}m ${milestones.fastest1kRunSeconds % 60}s` : '4m 34s'}
               </div>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-card border border-glass flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
+          <div className="p-3 rounded-xl bg-[#121824] border border-white/5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
               🥈
             </div>
             <div>
-              <div className="text-[9px] text-sub font-bold uppercase">LONGEST RUN</div>
-              <div className="text-sm font-black text-main font-mono">
+              <div className="text-[9px] text-muted-foreground font-bold uppercase">LONGEST RUN</div>
+              <div className="text-sm font-bold text-white font-mono">
                 {milestones.longestRunKm || 4.31} km
               </div>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-card border border-glass flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#FC4C02]/10 text-[#FC4C02] flex items-center justify-center font-bold">
+          <div className="p-3 rounded-xl bg-[#121824] border border-white/5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#fc4c02]/10 text-[#ff9667] flex items-center justify-center font-bold">
               🚴
             </div>
             <div>
-              <div className="text-[9px] text-sub font-bold uppercase">LONGEST CYCLE</div>
-              <div className="text-sm font-black text-main font-mono">
+              <div className="text-[9px] text-muted-foreground font-bold uppercase">LONGEST CYCLE</div>
+              <div className="text-sm font-bold text-white font-mono">
                 {milestones.longestCycleKm || 10.69} km
               </div>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-card border border-glass flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">
+          <div className="p-3 rounded-xl bg-[#121824] border border-white/5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-sky-400/10 text-sky-400 flex items-center justify-center font-bold">
               ⚡
             </div>
             <div>
-              <div className="text-[9px] text-sub font-bold uppercase">PEAK SPEED</div>
-              <div className="text-sm font-black text-main font-mono">
+              <div className="text-[9px] text-muted-foreground font-bold uppercase">PEAK SPEED</div>
+              <div className="text-sm font-bold text-white font-mono">
                 {milestones.topSpeedRunKmh || 53.8} km/h
               </div>
             </div>
