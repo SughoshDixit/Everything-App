@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { StravaActivityPost, UserProfile } from '../types';
 import {
   X,
@@ -12,9 +12,18 @@ import {
   Send,
   ShieldCheck,
   Image as ImageIcon,
-  Video as VideoIcon
+  Video as VideoIcon,
+  ChevronRight,
+  Compass
 } from 'lucide-react';
 import { ZoomableImageModal } from './ZoomableImageModal';
+import { RouteIntelligenceFirestoreService } from '../services/routeIntelligence/routeFirestoreService';
+
+const ActivityRouteDetailView = React.lazy(() =>
+  import('./routeIntelligence/ActivityRouteDetailView').then((m) => ({
+    default: m.ActivityRouteDetailView
+  }))
+);
 
 interface StravaActivityDetailModalProps {
   activity: StravaActivityPost;
@@ -35,8 +44,14 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
   onOpenFlyby
 }) => {
   const [commentText, setCommentText] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'splits' | 'analysis' | 'media'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'route' | 'splits' | 'analysis' | 'media'>('overview');
   const [zoomImage, setZoomImage] = useState<{ src: string; title: string } | null>(null);
+
+  // Defer route normalization until the route tab is opened to keep modal open instant
+  const routeResult = useMemo(() => {
+    if (activeTab !== 'route') return null;
+    return RouteIntelligenceFirestoreService.normalizeFromStravaPost(activity);
+  }, [activity, activeTab]);
 
   const sportIcon =
     activity.sportType === 'run'
@@ -154,6 +169,17 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           >
             Overview
           </button>
+          <button
+            onClick={() => setActiveTab('route')}
+            className={`py-2.5 px-3 font-bold text-xs uppercase tracking-wider transition-all border-b-2 whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'route'
+                ? 'border-[#FC5200] text-[#FC5200]'
+                : 'border-transparent text-muted-foreground hover:text-white'
+            }`}
+          >
+            <Compass size={13} className={activeTab === 'route' ? 'text-[#FC5200]' : ''} />
+            <span>Route &amp; Video</span>
+          </button>
           {(allPhotos.length > 0 || allVideos.length > 0) && (
             <button
               onClick={() => setActiveTab('media')}
@@ -226,6 +252,30 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
           {/* ----------------------------------------------------------------- */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
+              {/* Route Intelligence Hero Teaser Banner */}
+              <div
+                onClick={() => setActiveTab('route')}
+                className="p-4 rounded-2xl bg-gradient-to-r from-[#172033] to-[#101622] border border-[#FC5200]/30 hover:border-[#FC5200]/60 transition cursor-pointer flex items-center justify-between group shadow-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#FC5200]/20 text-[#FC5200] flex items-center justify-center text-lg">
+                    🗺️
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-white group-hover:text-[#ff9667] transition">
+                      <span>Route Intelligence &amp; Trail Video</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#FC5200]/20 text-[#FC5200] uppercase font-mono font-bold">
+                        Precision GPS
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Dark obsidian route hero &bull; Precision geodesic distance &bull; 9:16 vertical trail video export
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-white/40 group-hover:text-white transition" />
+              </div>
+
               {/* Big 3 Hero Telemetry Grid */}
               <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-[#121824] border border-white/5 text-center">
                 <div>
@@ -415,6 +465,29 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ----------------------------------------------------------------- */}
+          {/* TAB: ROUTE INTELLIGENCE & MAP */}
+          {/* ----------------------------------------------------------------- */}
+          {activeTab === 'route' && routeResult && (
+            <div className="space-y-4">
+              <React.Suspense
+                fallback={
+                  <div className="w-full h-80 rounded-3xl bg-[#090C12] border border-white/10 flex items-center justify-center">
+                    <span className="text-xs text-white/50 font-mono animate-pulse">
+                      Loading Route Intelligence Map...
+                    </span>
+                  </div>
+                }
+              >
+                <ActivityRouteDetailView
+                  activity={routeResult.activity}
+                  geometries={routeResult.geometries}
+                  onOpenSocialShare={() => onOpenSocialShare(activity)}
+                />
+              </React.Suspense>
             </div>
           )}
 

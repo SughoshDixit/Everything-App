@@ -170,11 +170,11 @@ export const AthleteAppProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [workoutLogs]);
 
   useEffect(() => {
-    saveToStorage(KEYS.GPS_ACTIVITIES, gpsActivities);
+    saveToStorage(KEYS.GPS_ACTIVITIES, gpsActivities, 1500);
   }, [gpsActivities]);
 
   useEffect(() => {
-    saveToStorage(KEYS.STRAVA_POSTS, stravaPosts);
+    saveToStorage(KEYS.STRAVA_POSTS, stravaPosts, 1500);
   }, [stravaPosts]);
 
   useEffect(() => {

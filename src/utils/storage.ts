@@ -334,11 +334,24 @@ export function loadFromStorage<T>(key: string, defaultValue: T): T {
   }
 }
 
-export function saveToStorage<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (err) {
-    console.error(`Error saving key ${key}:`, err);
+const saveTimeouts = new Map<string, number>();
+
+export function saveToStorage<T>(key: string, value: T, debounceMs = 0): void {
+  const doSave = () => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (err) {
+      console.warn(`Storage quota exceeded or error saving key ${key}:`, err);
+    }
+  };
+
+  if (debounceMs > 0 && typeof window !== 'undefined') {
+    const existing = saveTimeouts.get(key);
+    if (existing) window.clearTimeout(existing);
+    const t = window.setTimeout(doSave, debounceMs);
+    saveTimeouts.set(key, t);
+  } else {
+    doSave();
   }
 }
 

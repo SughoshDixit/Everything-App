@@ -565,7 +565,7 @@ declare global {
       downloadBase64File: (base64Data: string, fileName: string, mimeType: string) => boolean;
       shareBase64Media: (base64Data: string, fileName: string, mimeType: string, title: string, text: string) => boolean;
       startLocationTracking?: (activityType: string) => boolean;
-      stopLocationTracking?: () => boolean;
+      stopLocationTracking?: () => string | boolean;
       getBufferedGpsPoints?: () => string;
       speakText?: (text: string) => boolean;
       stopSpeech?: () => boolean;

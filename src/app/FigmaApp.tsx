@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState, lazy, Suspense } from "react"
 import {
   Armor,
   Community,
@@ -22,22 +22,27 @@ import {
   useLocation,
   useNavigate,
 } from "react-router"
-import { GoogleFitHomeDashboard } from "../components/GoogleFitHomeDashboard"
-import { DisciplineTab } from "../components/DisciplineTab"
-import { FootballTab } from "../components/FootballTab"
-import { NutritionTab } from "../components/NutritionTab"
-import { PeriodTab } from "../components/PeriodTab"
-import { MusicVedasTab } from "../components/MusicVedasTab"
-import { SettingsVaultTab } from "../components/SettingsVaultTab"
-import { SughoshDixitPortfolioTab } from "../components/SughoshDixitPortfolioTab"
-import { GpsActivityTrackerModal } from "../components/GpsActivityTrackerModal"
-import { StravaRouteFlybyPlayer } from "../components/StravaRouteFlybyPlayer"
-import { SocialWorkoutShareModal } from "../components/SocialWorkoutShareModal"
-import { CreateActivityPostModal } from "../components/CreateActivityPostModal"
-import { StravaActivityDetailModal } from "../components/StravaActivityDetailModal"
-import { StravaAthleteProfileModal } from "../components/StravaAthleteProfileModal"
+import { RouteIntelligenceFirestoreService } from "../services/routeIntelligence/routeFirestoreService"
 import { useAthleteApp } from "../context/AthleteAppContext"
+
+// Code-split tabs and modals to minimize initial bundle size on mobile devices
+const GoogleFitHomeDashboard = lazy(() => import("../components/GoogleFitHomeDashboard").then((m) => ({ default: m.GoogleFitHomeDashboard })))
+const DisciplineTab = lazy(() => import("../components/DisciplineTab").then((m) => ({ default: m.DisciplineTab })))
+const FootballTab = lazy(() => import("../components/FootballTab").then((m) => ({ default: m.FootballTab })))
+const NutritionTab = lazy(() => import("../components/NutritionTab").then((m) => ({ default: m.NutritionTab })))
+const PeriodTab = lazy(() => import("../components/PeriodTab").then((m) => ({ default: m.PeriodTab })))
+const MusicVedasTab = lazy(() => import("../components/MusicVedasTab").then((m) => ({ default: m.MusicVedasTab })))
+const SettingsVaultTab = lazy(() => import("../components/SettingsVaultTab").then((m) => ({ default: m.SettingsVaultTab })))
+const SughoshDixitPortfolioTab = lazy(() => import("../components/SughoshDixitPortfolioTab").then((m) => ({ default: m.SughoshDixitPortfolioTab })))
+const GpsActivityTrackerModal = lazy(() => import("../components/GpsActivityTrackerModal").then((m) => ({ default: m.GpsActivityTrackerModal })))
+const StravaRouteFlybyPlayer = lazy(() => import("../components/StravaRouteFlybyPlayer").then((m) => ({ default: m.StravaRouteFlybyPlayer })))
+const SocialWorkoutShareModal = lazy(() => import("../components/SocialWorkoutShareModal").then((m) => ({ default: m.SocialWorkoutShareModal })))
+const CreateActivityPostModal = lazy(() => import("../components/CreateActivityPostModal").then((m) => ({ default: m.CreateActivityPostModal })))
+const StravaActivityDetailModal = lazy(() => import("../components/StravaActivityDetailModal").then((m) => ({ default: m.StravaActivityDetailModal })))
+const StravaAthleteProfileModal = lazy(() => import("../components/StravaAthleteProfileModal").then((m) => ({ default: m.StravaAthleteProfileModal })))
+const ActivityRouteDetailView = lazy(() => import("../components/routeIntelligence/ActivityRouteDetailView").then((m) => ({ default: m.ActivityRouteDetailView })))
 import type { UserProfile, GpsActivityLog, StravaActivityPost } from "../types"
+import type { ActivityDocument } from "../types/routeIntelligence"
 import {
   Activity,
   ArrowDownToLine,
@@ -49,6 +54,7 @@ import {
   Check,
   ChevronRight,
   Clock3,
+  Compass,
   Dumbbell,
   Flame,
   Footprints,
@@ -421,6 +427,7 @@ function AppShell() {
   const [filter, setFilter] = useState<Sport>("All activities")
   const [list, setList] = useState(false)
   const [selected, setSelected] = useState<Workout | null>(null)
+  const [routeDetailActivity, setRouteDetailActivity] = useState<ActivityDocument | null>(null)
   const [notification, setNotification] = useState(false)
   const [session, setSession] = useState(false)
   const [activityLauncherOpen, setActivityLauncherOpen] = useState(false)
@@ -779,6 +786,7 @@ function AppShell() {
             </button>
           </div>
 
+          <Suspense fallback={<div className="p-8 text-center text-xs text-white/40 font-mono animate-pulse">Loading view...</div>}>
           {playbook ? (
             <Playbook />
           ) : page === "/armor" ? (
@@ -1299,6 +1307,7 @@ function AppShell() {
           ) : (
             <Performance open={() => setSelected(workouts[3])} />
           )}
+          </Suspense>
 
           <footer className="mt-10 flex items-center justify-between border-t border-border pt-5 text-[8px] text-[#667180]">
             <span>KUCHH BHII · INTENTION OVER EVERYTHING.</span>
@@ -1388,10 +1397,51 @@ function AppShell() {
           <Splits />
           <button
             onClick={() => {
+              const distKm = parseFloat(selected.distance) || 5.0;
+              const result = RouteIntelligenceFirestoreService.normalizeFromHistoricalGpsLog({
+                id: `act_${selected.id}`,
+                title: selected.title,
+                activityType: selected.sport === "Running" ? "run" : selected.sport === "Cycling" ? "cycle" : "walk",
+                date: selected.date,
+                startTime: Date.now() - 3600000,
+                endTime: Date.now(),
+                durationSeconds: 1800,
+                distanceKm: distKm,
+                avgSpeedKmh: 12.5,
+                topSpeedKmh: 18.2,
+                avgPaceMinKm: selected.pace,
+                elevationGainMeters: 85,
+                caloriesBurned: 450,
+                heartPointsEarned: 35,
+                stepsCount: 5400,
+                splits: [],
+                routePoints: [
+                  { latitude: 12.9716, longitude: 77.5946, timestamp: Date.now() - 1800000, speed: 3.2, accuracy: 4.5 },
+                  { latitude: 12.9725, longitude: 77.5960, timestamp: Date.now() - 1500000, speed: 3.5, accuracy: 4.2 },
+                  { latitude: 12.9740, longitude: 77.5985, timestamp: Date.now() - 1200000, speed: 3.4, accuracy: 4.8 },
+                  { latitude: 12.9765, longitude: 77.6010, timestamp: Date.now() - 900000, speed: 3.1, accuracy: 5.1 },
+                  { latitude: 12.9785, longitude: 77.6040, timestamp: Date.now() - 600000, speed: 3.6, accuracy: 4.0 },
+                  { latitude: 12.9805, longitude: 77.6075, timestamp: Date.now() - 300000, speed: 3.3, accuracy: 4.3 },
+                  { latitude: 12.9820, longitude: 77.6095, timestamp: Date.now(), speed: 3.0, accuracy: 3.9 }
+                ],
+                milestonesReached: [],
+                userId: currentProfile === "women" ? "women" : "men"
+              });
+
+              setSelected(null);
+              setRouteDetailActivity(result.activity);
+            }}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[#FC5200]/40 bg-[#FC5200]/10 py-3 text-xs font-semibold text-[#FC5200] hover:bg-[#FC5200]/20 transition cursor-pointer"
+          >
+            <Compass size={14} />
+            Route Intelligence &amp; Trail Video
+          </button>
+          <button
+            onClick={() => {
               setSelected(null)
               navigate("/studio")
             }}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-xs font-semibold text-primary-foreground"
+            className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-xs font-semibold text-primary-foreground"
           >
             <Sparkles size={14} />
             Make an activity poster
@@ -1580,6 +1630,7 @@ function AppShell() {
       )}
 
       {/* REAL CORE MODALS */}
+      <Suspense fallback={null}>
       {selectedStravaActivityDetail && (
         <StravaActivityDetailModal
           activity={selectedStravaActivityDetail}
@@ -1595,6 +1646,21 @@ function AppShell() {
             }
           }}
         />
+      )}
+
+      {/* ROUTE INTELLIGENCE MODAL */}
+      {routeDetailActivity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4">
+          <div className="w-full max-w-2xl h-[90vh] bg-[#0E131B] border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-scale-up">
+            <ActivityRouteDetailView
+              activity={routeDetailActivity}
+              onClose={() => setRouteDetailActivity(null)}
+              onOpenSocialShare={() => {
+                setRouteDetailActivity(null)
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {showAthleteProfileModal && (
@@ -1661,6 +1727,7 @@ function AppShell() {
           onClose={() => setActiveShareCardData(null)}
         />
       )}
+      </Suspense>
 
       {activeSession && !session && (
         <button

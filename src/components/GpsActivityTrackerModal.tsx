@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { GpsActivityLog, GpsLocationPoint, PersonalMilestones, UserProfile } from '../types';
 import {
   formatDuration,
@@ -69,6 +69,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const filterStateRef = useRef<GpsFilterState>(createGpsFilterState());
+  const lastRoutePointsUpdateRef = useRef<number>(0);
   const isTrackingRef = useRef<boolean>(false);
   const isPausedRef = useRef<boolean>(false);
 
@@ -125,11 +126,16 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
 
     if (result.accepted) {
       setDistanceKm(filterStateRef.current.totalDistanceKm);
-      setRoutePoints([...filterStateRef.current.points]);
-
       setCurrentSpeedKmh(result.calculatedSpeedKmh);
       if (result.calculatedSpeedKmh > 0) {
         setTopSpeedKmh((top) => Math.max(top, result.calculatedSpeedKmh));
+      }
+
+      // Throttle array copying and SVG re-render to every 2 seconds
+      const now = Date.now();
+      if (now - lastRoutePointsUpdateRef.current > 2000) {
+        setRoutePoints([...filterStateRef.current.points]);
+        lastRoutePointsUpdateRef.current = now;
       }
     } else {
       setCurrentSpeedKmh(0);
@@ -304,10 +310,17 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
     }
   };
 
-  // SVG route path for live mini-map visualization
-  const routeSvgPath = generateRouteSvgPath(routePoints, 320, 160);
+  // SVG route path for live mini-map visualization (memoized on routePoints length)
+  const routeSvgPath = useMemo(() => {
+    return generateRouteSvgPath(routePoints, 320, 160);
+  }, [routePoints]);
+
   const avgSpeedDisplay = durationSeconds > 0 ? (distanceKm / (durationSeconds / 3600)).toFixed(1) : '0.0';
-  const liveElevationGain = calculateElevationGain(routePoints);
+
+  const liveElevationGain = useMemo(() => {
+    return calculateElevationGain(routePoints);
+  }, [routePoints]);
+
   const liveSteps = estimateSteps(activityType, distanceKm);
 
   return (

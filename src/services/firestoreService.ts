@@ -7,11 +7,14 @@ import {
   query,
   orderBy,
   limit,
+  startAfter,
   deleteDoc,
   updateDoc,
   arrayUnion,
   arrayRemove,
-  onSnapshot
+  onSnapshot,
+  type QueryDocumentSnapshot,
+  type DocumentData
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import type {
@@ -74,7 +77,7 @@ export async function saveGpsActivityToFirestore(
 
 export async function fetchGpsActivitiesFromFirestore(
   userId: string = DEFAULT_USER_ID,
-  maxResults: number = 100
+  maxResults: number = 25
 ): Promise<GpsActivityLog[]> {
   const colRef = collection(db, 'users', userId, 'gps_activities');
   const q = query(colRef, orderBy('startTime', 'desc'), limit(maxResults));
@@ -82,10 +85,32 @@ export async function fetchGpsActivitiesFromFirestore(
   return snap.docs.map((d) => d.data() as GpsActivityLog);
 }
 
+export async function fetchGpsActivitiesPaginated(
+  userId: string = DEFAULT_USER_ID,
+  pageSize: number = 15,
+  lastDoc?: QueryDocumentSnapshot<DocumentData>
+): Promise<{
+  activities: GpsActivityLog[];
+  lastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}> {
+  const colRef = collection(db, 'users', userId, 'gps_activities');
+  const q = lastDoc
+    ? query(colRef, orderBy('startTime', 'desc'), startAfter(lastDoc), limit(pageSize))
+    : query(colRef, orderBy('startTime', 'desc'), limit(pageSize));
+
+  const snap = await getDocs(q);
+  const activities = snap.docs.map((d) => d.data() as GpsActivityLog);
+  const lastVisibleDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+  const hasMore = snap.docs.length === pageSize;
+
+  return { activities, lastVisibleDoc, hasMore };
+}
+
 export function subscribeGpsActivities(
   userId: string = DEFAULT_USER_ID,
   onData: (activities: GpsActivityLog[]) => void,
-  maxResults: number = 100
+  maxResults: number = 25
 ) {
   const colRef = collection(db, 'users', userId, 'gps_activities');
   const q = query(colRef, orderBy('startTime', 'desc'), limit(maxResults));
@@ -168,16 +193,37 @@ export async function deleteActivityPostFromFirestore(postId: string): Promise<v
   await deleteDoc(docRef);
 }
 
-export async function fetchFeedPostsFromFirestore(maxPosts: number = 60): Promise<StravaActivityPost[]> {
+export async function fetchFeedPostsFromFirestore(maxPosts: number = 20): Promise<StravaActivityPost[]> {
   const colRef = collection(db, 'activity_feed_posts');
   const q = query(colRef, orderBy('timestamp', 'desc'), limit(maxPosts));
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as StravaActivityPost);
 }
 
+export async function fetchFeedPostsPaginated(
+  pageSize: number = 15,
+  lastDoc?: QueryDocumentSnapshot<DocumentData>
+): Promise<{
+  posts: StravaActivityPost[];
+  lastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}> {
+  const colRef = collection(db, 'activity_feed_posts');
+  const q = lastDoc
+    ? query(colRef, orderBy('timestamp', 'desc'), startAfter(lastDoc), limit(pageSize))
+    : query(colRef, orderBy('timestamp', 'desc'), limit(pageSize));
+
+  const snap = await getDocs(q);
+  const posts = snap.docs.map((d) => d.data() as StravaActivityPost);
+  const lastVisibleDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+  const hasMore = snap.docs.length === pageSize;
+
+  return { posts, lastVisibleDoc, hasMore };
+}
+
 export function subscribeFeedPosts(
   onData: (posts: StravaActivityPost[]) => void,
-  maxPosts: number = 60
+  maxPosts: number = 20
 ) {
   const colRef = collection(db, 'activity_feed_posts');
   const q = query(colRef, orderBy('timestamp', 'desc'), limit(maxPosts));

@@ -129,11 +129,11 @@ class LocationTrackingService : Service(), LocationListener {
                 if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                     lm.requestLocationUpdates(
                         LocationManager.GPS_PROVIDER,
-                        1000L, // 1 second
-                        0.5f,  // 0.5 meter
+                        3000L, // 3 seconds - battery-conscious interval
+                        2.5f,  // 2.5 meters displacement threshold
                         this
                     )
-                    Log.d(TAG, "GPS_PROVIDER location listener registered")
+                    Log.d(TAG, "GPS_PROVIDER battery-conscious location listener registered (3s / 2.5m)")
                 }
             }
         } catch (e: SecurityException) {

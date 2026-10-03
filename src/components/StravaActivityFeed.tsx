@@ -22,6 +22,45 @@ import {
 import { ZoomableImageModal } from './ZoomableImageModal';
 import { enrichPostsWithMilestones } from '../utils/milestonesTracker';
 
+const LazyVideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  if (!isPlaying) {
+    return (
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsPlaying(true);
+        }}
+        className="relative rounded-2xl overflow-hidden bg-[#090C12] h-48 sm:h-56 flex items-center justify-center border border-white/10 cursor-pointer group"
+      >
+        {poster ? (
+          <img src={poster} alt="Video preview" className="w-full h-full object-cover opacity-80" loading="lazy" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+        )}
+        <div className="relative z-10 flex items-center gap-2 px-4 py-2 rounded-full bg-[#FC5200] hover:bg-[#e04800] text-white font-bold text-xs shadow-lg shadow-[#FC5200]/30 group-hover:scale-105 transition-transform">
+          <Play size={13} fill="currentColor" />
+          <span>Play Video Replay</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden bg-black max-h-72 flex items-center justify-center border border-white/10">
+      <video
+        src={src}
+        controls
+        autoPlay
+        playsInline
+        preload="metadata"
+        className="w-full max-h-72 object-contain rounded-2xl"
+      />
+    </div>
+  );
+};
+
 interface StravaActivityFeedProps {
   currentProfile: UserProfile;
   posts: StravaActivityPost[];
@@ -368,15 +407,11 @@ export const StravaActivityFeed: React.FC<StravaActivityFeedProps> = ({
                     <div className="space-y-2 pt-0.5 pb-1">
                       {/* Videos */}
                       {allVideos.map((vidUrl, vIdx) => (
-                        <div key={vIdx} className="relative rounded-2xl overflow-hidden bg-black max-h-72 flex items-center justify-center border border-glass">
-                          <video
-                            src={vidUrl}
-                            controls
-                            playsInline
-                            preload="metadata"
-                            className="w-full max-h-72 object-contain rounded-2xl"
-                          />
-                        </div>
+                        <LazyVideoPlayer
+                          key={vIdx}
+                          src={vidUrl}
+                          poster={allPhotos[0]}
+                        />
                       ))}
 
                       {/* Photos Grid */}
