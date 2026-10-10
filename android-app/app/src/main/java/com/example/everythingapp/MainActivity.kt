@@ -49,6 +49,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.speech.tts.TextToSpeech
 import android.media.ToneGenerator
 import android.media.AudioManager
+import android.media.AudioAttributes
 import java.util.Locale
 
 class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
@@ -90,11 +91,11 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         super.onCreate(savedInstanceState)
         instance = this
 
+        initTts()
         try {
-            tts = TextToSpeech(applicationContext, this)
             toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
         } catch (e: Exception) {
-            Log.e("MainActivity", "Failed to initialize TTS or ToneGenerator", e)
+            Log.e("MainActivity", "Failed to initialize ToneGenerator", e)
         }
 
         // Request runtime permissions including audio & images for Android 13+ and legacy
@@ -159,19 +160,44 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    private fun initTts() {
+        try {
+            tts = TextToSpeech(this, this)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to instantiate TextToSpeech with activity context", e)
+            try {
+                tts = TextToSpeech(applicationContext, this)
+            } catch (e2: Exception) {
+                Log.e("MainActivity", "Failed to instantiate TextToSpeech with applicationContext", e2)
+            }
+        }
+    }
+
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale.US)
-            if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
-                isTtsReady = true
-                tts?.setSpeechRate(0.95f)
-                tts?.setPitch(1.0f)
-                Log.d("MainActivity", "Native TTS successfully initialized and ready")
-            } else {
-                Log.w("MainActivity", "US English language not supported or missing data in TTS, falling back to default locale")
-                tts?.setLanguage(Locale.getDefault())
-                isTtsReady = true
+            var langResult = tts?.setLanguage(Locale.US)
+            if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.w("MainActivity", "US English language not supported, falling back to default locale")
+                langResult = tts?.setLanguage(Locale.getDefault())
+                if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.w("MainActivity", "Default locale not supported, falling back to Locale.ENGLISH")
+                    tts?.setLanguage(Locale.ENGLISH)
+                }
             }
+
+            isTtsReady = true
+            tts?.setSpeechRate(0.95f)
+            tts?.setPitch(1.0f)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                val audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+                tts?.setAudioAttributes(audioAttributes)
+            }
+
+            Log.d("MainActivity", "Native TTS successfully initialized and ready")
 
             synchronized(pendingSpeechQueue) {
                 for (text in pendingSpeechQueue) {
@@ -181,22 +207,28 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             }
         } else {
             Log.e("MainActivity", "TTS onInit failed with status: $status")
+            isTtsReady = false
         }
     }
 
     fun speakTextNative(text: String) {
         runOnUiThread {
             try {
+                if (tts == null) {
+                    initTts()
+                }
                 if (isTtsReady && tts != null) {
                     tts?.stop()
                     val params = Bundle().apply {
                         putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
                         putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
                     }
-                    tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "WorkoutVoice_${System.currentTimeMillis()}")
+                    val utteranceId = "WorkoutVoice_${System.currentTimeMillis()}"
+                    val result = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+                    Log.d("MainActivity", "TTS queued text (result=$result): $text")
                 } else {
+                    Log.d("MainActivity", "TTS not ready yet, queuing text: $text")
                     synchronized(pendingSpeechQueue) {
-                        pendingSpeechQueue.clear()
                         pendingSpeechQueue.add(text)
                     }
                 }

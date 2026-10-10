@@ -17,6 +17,7 @@ import {
   type InAppNotification,
   type ReminderConfig,
 } from '../services/notificationService';
+import { speakText } from '../utils/audioCoach';
 
 interface NotificationCenterDrawerProps {
   isOpen: boolean;
@@ -75,6 +76,7 @@ export const NotificationCenterDrawer: React.FC<NotificationCenterDrawerProps> =
       'Kuchh Bhii Alert System Active',
       '⏰ Your native alarm & split notifications are calibrated for peak performance!'
     );
+    speakText('Native notification and audio coach test successful!');
     setTestSent(true);
     setNotifications(notificationService.getInAppNotifications());
     setTimeout(() => setTestSent(false), 3000);

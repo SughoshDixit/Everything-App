@@ -12,7 +12,7 @@ import {
   estimateSteps,
   generateSampleGpsActivity
 } from '../utils/milestonesTracker';
-import { playBeepTone } from '../utils/audioCoach';
+import { playBeepTone, speakText, isAudioMuted, setAudioMuted } from '../utils/audioCoach';
 import {
   createGpsFilterState,
   processRawGpsPoint,
@@ -66,7 +66,8 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   const [signalQuality, setSignalQuality] = useState<GpsSignalQuality>('good');
   const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
-  const [audioCoachEnabled, setAudioCoachEnabled] = useState<boolean>(true);
+  const [audioCoachEnabled, setAudioCoachEnabled] = useState<boolean>(!isAudioMuted());
+  const [voiceTesting, setVoiceTesting] = useState<boolean>(false);
 
   const watchIdRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -144,18 +145,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
         const speechText = `Kilometer ${currentWholeKm} complete. Current pace ${paceStr}.`;
 
         if (audioCoachEnabled) {
-          if (typeof window !== 'undefined' && window.AndroidBridge?.speakText) {
-            window.AndroidBridge.speakText(speechText);
-          } else if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            try {
-              window.speechSynthesis.cancel();
-              const utterance = new SpeechSynthesisUtterance(speechText);
-              utterance.rate = 1.05;
-              window.speechSynthesis.speak(utterance);
-            } catch (err) {
-              console.warn('Speech synthesis error:', err);
-            }
-          }
+          speakText(speechText);
         }
 
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -270,6 +260,11 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
         }
       );
     }
+
+    if (audioCoachEnabled) {
+      const sportName = activityType === 'run' ? 'run' : activityType === 'cycle' ? 'ride' : activityType === 'walk' ? 'walk' : 'drive';
+      speakText(`Activity started. Tracking outdoor ${sportName}.`);
+    }
   };
 
   const stopGpsTracking = () => {
@@ -291,11 +286,37 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
     const nextPaused = !isPaused;
     setIsPaused(nextPaused);
     isPausedRef.current = nextPaused;
+    if (audioCoachEnabled) {
+      speakText(nextPaused ? 'Workout paused.' : 'Workout resumed.');
+    }
+  };
+
+  const handleToggleAudioCoach = () => {
+    const nextVal = !audioCoachEnabled;
+    setAudioCoachEnabled(nextVal);
+    setAudioMuted(!nextVal);
+    if (nextVal) {
+      speakText('Voice coach enabled.');
+    }
+  };
+
+  const handleTestVoiceCoach = () => {
+    setVoiceTesting(true);
+    setAudioCoachEnabled(true);
+    setAudioMuted(false);
+    speakText('Voice coach is online and ready. Audio output working perfectly!', 0.95, () => {
+      setVoiceTesting(false);
+    });
+    setTimeout(() => setVoiceTesting(false), 3500);
   };
 
   const handleFinishAndSave = () => {
     stopGpsTracking();
     setIsTracking(false);
+
+    if (audioCoachEnabled) {
+      speakText(`Workout complete! Total distance ${distanceKm.toFixed(2)} kilometers. Great effort!`);
+    }
 
     const avgSpeed = durationSeconds > 0 ? (distanceKm / (durationSeconds / 3600)) : 0;
     const paceStr = formatPace(distanceKm, durationSeconds);
@@ -405,12 +426,20 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
 
           <div className="flex items-center gap-1.5">
             <button
+              onClick={handleTestVoiceCoach}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#CCFF00]/30 bg-[#CCFF00]/10 text-[#CCFF00] text-[11px] font-bold hover:bg-[#CCFF00]/20 transition active:scale-95"
+              title="Test Voice Coach Audio Output"
+            >
+              <Volume2 size={13} />
+              <span>{voiceTesting ? 'Speaking...' : 'Test Voice'}</span>
+            </button>
+            <button
               className={`flex h-8 w-8 items-center justify-center rounded-xl border transition ${
                 audioCoachEnabled
                   ? 'border-[#CCFF00]/40 bg-[#CCFF00]/15 text-[#CCFF00]'
                   : 'border-white/10 bg-white/5 text-muted-foreground'
               }`}
-              onClick={() => setAudioCoachEnabled(!audioCoachEnabled)}
+              onClick={handleToggleAudioCoach}
               title={audioCoachEnabled ? 'Voice Coaching On (Tap to Mute)' : 'Voice Coaching Muted'}
             >
               {audioCoachEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}

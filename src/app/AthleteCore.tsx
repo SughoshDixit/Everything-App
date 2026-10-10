@@ -37,6 +37,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react"
+import { speakText, cancelSpeech } from "../utils/audioCoach"
 
 const box = "rounded-2xl border border-white/10 bg-[#0e131b] shadow-xl shadow-black/40"
 const yellowButton =
@@ -1150,9 +1151,8 @@ export function WorkoutPlayer() {
     ? "Move gently, breathe steadily. You’re preparing, not performing."
     : current.detail
   function speak(text: string) {
-    if (audio && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance(text))
+    if (audio) {
+      speakText(text)
     }
   }
   function endWorkout() {
@@ -1199,7 +1199,7 @@ export function WorkoutPlayer() {
         } ${current.cues.join(". ")}`,
       )
     return () => {
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel()
+      cancelSpeech()
     }
   }, [index, set, audio])
   useEffect(() => {

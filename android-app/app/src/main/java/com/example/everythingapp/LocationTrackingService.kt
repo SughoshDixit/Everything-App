@@ -21,6 +21,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Collections
 import kotlin.math.roundToInt
+import android.speech.tts.TextToSpeech
+import android.media.AudioAttributes
+import android.media.AudioManager
+import java.util.Locale
 
 class LocationTrackingService : Service(), LocationListener {
 
@@ -68,10 +72,13 @@ class LocationTrackingService : Service(), LocationListener {
     private var lastLocation: Location? = null
     private var totalDistanceMeters: Double = 0.0
     private var lastAnnouncedSplitKm: Int = 0
+    private var serviceTts: TextToSpeech? = null
+    private var isServiceTtsReady: Boolean = false
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        initServiceTts()
         locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
 
         val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
@@ -80,6 +87,51 @@ class LocationTrackingService : Service(), LocationListener {
             "EverythingApp:WorkoutTrackingWakeLock"
         )?.apply {
             setReferenceCounted(false)
+        }
+    }
+
+    private fun initServiceTts() {
+        try {
+            serviceTts = TextToSpeech(applicationContext) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    var langResult = serviceTts?.setLanguage(Locale.US)
+                    if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        langResult = serviceTts?.setLanguage(Locale.getDefault())
+                        if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                            serviceTts?.setLanguage(Locale.ENGLISH)
+                        }
+                    }
+                    serviceTts?.setSpeechRate(0.95f)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        val audioAttributes = AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build()
+                        serviceTts?.setAudioAttributes(audioAttributes)
+                    }
+                    isServiceTtsReady = true
+                    Log.d(TAG, "LocationTrackingService background TTS initialized successfully")
+                } else {
+                    Log.w(TAG, "LocationTrackingService TTS onInit failed with status $status")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to instantiate background TTS in LocationTrackingService", e)
+        }
+    }
+
+    private fun speakSplitText(announcement: String) {
+        val mainAct = MainActivity.instance
+        if (mainAct != null) {
+            mainAct.speakTextNative(announcement)
+        } else if (isServiceTtsReady && serviceTts != null) {
+            val params = Bundle().apply {
+                putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
+                putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
+            }
+            serviceTts?.speak(announcement, TextToSpeech.QUEUE_FLUSH, params, "ServiceSplit_${System.currentTimeMillis()}")
+        } else {
+            initServiceTts()
         }
     }
 
@@ -222,7 +274,7 @@ class LocationTrackingService : Service(), LocationListener {
         if (currentWholeKm > lastAnnouncedSplitKm && currentWholeKm > 0) {
             lastAnnouncedSplitKm = currentWholeKm
             try {
-                MainActivity.instance?.speakTextNative("Kilometer $currentWholeKm completed. Average speed $speedStr")
+                speakSplitText("Kilometer $currentWholeKm completed. Average speed $speedStr")
             } catch (e: Exception) {
                 Log.w(TAG, "Audio split announcement failed", e)
             }
@@ -261,6 +313,13 @@ class LocationTrackingService : Service(), LocationListener {
 
     override fun onDestroy() {
         stopTracking()
+        try {
+            serviceTts?.stop()
+            serviceTts?.shutdown()
+            serviceTts = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cleaning service TTS", e)
+        }
         super.onDestroy()
     }
 

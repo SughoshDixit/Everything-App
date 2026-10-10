@@ -48,6 +48,11 @@ export function cancelSpeech(): void {
   }
 }
 
+export function testVoiceCoach(): void {
+  setAudioMuted(false);
+  speakText('Voice coach is active and ready. Audio output working perfectly!');
+}
+
 export function speakText(text: string, rate: number = 0.95, onEnd?: () => void): void {
   if (isMutedState) {
     if (onEnd) onEnd();
@@ -62,17 +67,26 @@ export function speakText(text: string, rate: number = 0.95, onEnd?: () => void)
 
   // 1. Android Native TTS Engine (100% loud, crisp & reliable on device/headphones)
   if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.speakText === 'function') {
-    window.AndroidBridge.speakText(cleanText);
-    if (onEnd) {
-      const estimatedMs = Math.max(800, Math.round(cleanText.length * 70));
-      setTimeout(onEnd, estimatedMs);
+    try {
+      const handled = window.AndroidBridge.speakText(cleanText);
+      if (handled !== false) {
+        if (onEnd) {
+          const estimatedMs = Math.max(800, Math.round(cleanText.length * 70));
+          setTimeout(onEnd, estimatedMs);
+        }
+        return;
+      }
+    } catch (e) {
+      console.warn('Native speakText exception, attempting Web Speech fallback:', e);
     }
-    return;
   }
 
-  // 2. Web SpeechSynthesis API fallback (for Desktop / Chrome)
+  // 2. Web SpeechSynthesis API fallback (for Desktop / Chrome / Safari)
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
       window.speechSynthesis.cancel(); // Cancel any ongoing speech
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.rate = rate; // 0.95 natural human cadence
