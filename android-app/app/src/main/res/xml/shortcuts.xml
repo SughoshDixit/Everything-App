@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="start_run"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_run_short"
+        android:shortcutLongLabel="@string/shortcut_run_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.everythingapp"
+            android:targetClass="com.example.everythingapp.MainActivity"
+            android:data="https://appassets.androidplatform.net/assets/index.html?action=start_run" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="log_workout"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_workout_short"
+        android:shortcutLongLabel="@string/shortcut_workout_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.everythingapp"
+            android:targetClass="com.example.everythingapp.MainActivity"
+            android:data="https://appassets.androidplatform.net/assets/index.html?action=log_workout" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="football_match"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_football_short"
+        android:shortcutLongLabel="@string/shortcut_football_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.everythingapp"
+            android:targetClass="com.example.everythingapp.MainActivity"
+            android:data="https://appassets.androidplatform.net/assets/index.html?action=football" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="vedas_audio"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_vedas_short"
+        android:shortcutLongLabel="@string/shortcut_vedas_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.example.everythingapp"
+            android:targetClass="com.example.everythingapp.MainActivity"
+            android:data="https://appassets.androidplatform.net/assets/index.html?action=vedas" />
+    </shortcut>
+</shortcuts>

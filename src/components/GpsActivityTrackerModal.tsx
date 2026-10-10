@@ -29,7 +29,9 @@ import {
   X,
   Trophy,
   Mountain,
-  Footprints
+  Footprints,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 interface GpsActivityTrackerModalProps {
@@ -64,12 +66,14 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   const [signalQuality, setSignalQuality] = useState<GpsSignalQuality>('good');
   const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
+  const [audioCoachEnabled, setAudioCoachEnabled] = useState<boolean>(true);
 
   const watchIdRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const filterStateRef = useRef<GpsFilterState>(createGpsFilterState());
   const lastRoutePointsUpdateRef = useRef<number>(0);
+  const lastAnnouncedSplitKmRef = useRef<number>(0);
   const isTrackingRef = useRef<boolean>(false);
   const isPausedRef = useRef<boolean>(false);
 
@@ -129,6 +133,36 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
       setCurrentSpeedKmh(result.calculatedSpeedKmh);
       if (result.calculatedSpeedKmh > 0) {
         setTopSpeedKmh((top) => Math.max(top, result.calculatedSpeedKmh));
+      }
+
+      // Live 1km Split Audio Coaching & Haptic Cue
+      const currentWholeKm = Math.floor(filterStateRef.current.totalDistanceKm);
+      if (currentWholeKm > lastAnnouncedSplitKmRef.current && currentWholeKm > 0) {
+        lastAnnouncedSplitKmRef.current = currentWholeKm;
+        const elapsedSec = Math.max(1, Math.floor((Date.now() - startTimeRef.current) / 1000));
+        const paceStr = formatPace(filterStateRef.current.totalDistanceKm, elapsedSec);
+        const speechText = `Kilometer ${currentWholeKm} complete. Current pace ${paceStr}.`;
+
+        if (audioCoachEnabled) {
+          if (typeof window !== 'undefined' && window.AndroidBridge?.speakText) {
+            window.AndroidBridge.speakText(speechText);
+          } else if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            try {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(speechText);
+              utterance.rate = 1.05;
+              window.speechSynthesis.speak(utterance);
+            } catch (err) {
+              console.warn('Speech synthesis error:', err);
+            }
+          }
+        }
+
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate([100, 50, 100]);
+          } catch {}
+        }
       }
 
       // Throttle array copying and SVG re-render to every 2 seconds
@@ -191,6 +225,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
     isTrackingRef.current = true;
     isPausedRef.current = false;
     startTimeRef.current = Date.now();
+    lastAnnouncedSplitKmRef.current = 0;
     filterStateRef.current = createGpsFilterState();
 
     // 1. Android Native Background Location Service (Keeps CPU awake & tracks when locked)
@@ -368,16 +403,29 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
             )}
           </div>
 
-          <button
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white transition"
-            onClick={() => {
-              stopGpsTracking();
-              onClose();
-            }}
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              className={`flex h-8 w-8 items-center justify-center rounded-xl border transition ${
+                audioCoachEnabled
+                  ? 'border-[#CCFF00]/40 bg-[#CCFF00]/15 text-[#CCFF00]'
+                  : 'border-white/10 bg-white/5 text-muted-foreground'
+              }`}
+              onClick={() => setAudioCoachEnabled(!audioCoachEnabled)}
+              title={audioCoachEnabled ? 'Voice Coaching On (Tap to Mute)' : 'Voice Coaching Muted'}
+            >
+              {audioCoachEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white transition"
+              onClick={() => {
+                stopGpsTracking();
+                onClose();
+              }}
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Activity Selector & Sample Loader (when not yet started) */}

@@ -437,6 +437,60 @@ class AndroidNativeBridge(private val context: Context) {
         getActivity()?.playBeepNative(durationMs)
         return true
     }
+
+    @JavascriptInterface
+    fun scheduleAlarm(requestCode: Int, hour: Int, minute: Int, title: String, message: String): Boolean {
+        return try {
+            val scheduler = AlarmScheduler(context)
+            scheduler.scheduleExactAlarm(requestCode, hour, minute, title, message)
+            true
+        } catch (e: Exception) {
+            Log.e("AndroidNativeBridge", "Failed to schedule alarm", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun cancelAlarm(requestCode: Int): Boolean {
+        return try {
+            val scheduler = AlarmScheduler(context)
+            scheduler.cancelAlarm(requestCode)
+        } catch (e: Exception) {
+            Log.e("AndroidNativeBridge", "Failed to cancel alarm", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun showNotification(title: String, message: String): Boolean {
+        return try {
+            val scheduler = AlarmScheduler(context)
+            scheduler.showInstantNotification(title, message)
+            true
+        } catch (e: Exception) {
+            Log.e("AndroidNativeBridge", "Failed to post notification", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun checkNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    @JavascriptInterface
+    fun requestNotificationPermission(): Boolean {
+        val act = getActivity()
+        if (act != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(act, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 102)
+            return true
+        }
+        return false
+    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")

@@ -41,6 +41,10 @@ const CreateActivityPostModal = lazy(() => import("../components/CreateActivityP
 const StravaActivityDetailModal = lazy(() => import("../components/StravaActivityDetailModal").then((m) => ({ default: m.StravaActivityDetailModal })))
 const StravaAthleteProfileModal = lazy(() => import("../components/StravaAthleteProfileModal").then((m) => ({ default: m.StravaAthleteProfileModal })))
 const ActivityRouteDetailView = lazy(() => import("../components/routeIntelligence/ActivityRouteDetailView").then((m) => ({ default: m.ActivityRouteDetailView })))
+const NotificationCenterDrawer = lazy(() => import("../components/NotificationCenterDrawer").then((m) => ({ default: m.NotificationCenterDrawer })))
+const AiCoachBriefingCard = lazy(() => import("../components/AiCoachBriefingCard").then((m) => ({ default: m.AiCoachBriefingCard })))
+const AthleteSkillTreeModal = lazy(() => import("../components/AthleteSkillTreeModal").then((m) => ({ default: m.AthleteSkillTreeModal })))
+import { notificationService } from "../services/notificationService"
 import type { UserProfile, GpsActivityLog, StravaActivityPost } from "../types"
 import type { ActivityDocument } from "../types/routeIntelligence"
 import {
@@ -429,6 +433,7 @@ function AppShell() {
   const [selected, setSelected] = useState<Workout | null>(null)
   const [routeDetailActivity, setRouteDetailActivity] = useState<ActivityDocument | null>(null)
   const [notification, setNotification] = useState(false)
+  const [skillTreeOpen, setSkillTreeOpen] = useState(false)
   const [session, setSession] = useState(false)
   const [activityLauncherOpen, setActivityLauncherOpen] = useState(false)
   const [activeSession, setActiveSession] = useState(false)
@@ -478,6 +483,25 @@ function AppShell() {
     setSelected(null)
     window.scrollTo(0, 0)
   }, [page])
+
+  useEffect(() => {
+    try {
+      notificationService.syncAllActiveAlarms()
+      const params = new URLSearchParams(window.location.search)
+      const action = params.get("action")
+      if (action === "start_run") {
+        setGpsModalActivityType("run")
+      } else if (action === "football") {
+        navigate("/football")
+      } else if (action === "log_workout") {
+        navigate("/discipline")
+      } else if (action === "vedas") {
+        navigate("/vedas")
+      }
+    } catch (e) {
+      console.warn("Shortcut parameter parsing error:", e)
+    }
+  }, [])
 
   const formattedTime = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`
 
@@ -676,40 +700,29 @@ function AppShell() {
             </span>
           </NavLink>
           <div className="flex items-center gap-3 sm:gap-5">
-            <span className="flex items-center gap-1.5 rounded-full border border-[#fc4c02]/20 bg-[#fc4c02]/7 px-3 py-1.5 text-[9px] font-semibold tracking-[0.06em] text-[#ff8952]">
-              <Flame size={13} fill="currentColor" />
-              14 <span className="hidden sm:inline">DAY STREAK</span>
-            </span>
+            <button
+              onClick={() => setSkillTreeOpen(true)}
+              className="flex items-center gap-1.5 rounded-full border border-[#fc4c02]/20 bg-[#fc4c02]/10 px-2.5 py-1 text-[9px] font-bold tracking-[0.06em] text-[#ff8952] hover:bg-[#fc4c02]/20 transition"
+              title="Click to view Athlete Skill Tree & Levels"
+            >
+              <Flame size={13} fill="currentColor" className="text-[#FC5200]" />
+              14 <span className="hidden sm:inline">DAY STREAK • LVL 8</span>
+            </button>
             <div className="relative">
               <button
-                onClick={() => setNotification(!notification)}
+                onClick={() => setNotification(true)}
                 aria-label="Notifications"
                 aria-expanded={notification}
-                className="relative block text-muted-foreground hover:text-white"
+                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white transition"
+                title="Open Notification Center & Alarms"
               >
-                <Bell size={18} />
-                <span className="absolute right-0 top-0 h-1 w-1 rounded-full bg-primary" />
+                <Bell size={17} />
+                {notificationService.getUnreadCount() > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#FC5200] text-[9px] font-black text-white shadow-sm">
+                    {notificationService.getUnreadCount()}
+                  </span>
+                )}
               </button>
-              {notification && (
-                <div className="absolute right-0 top-9 z-40 w-72 rounded-xl border border-border bg-[#151b24] p-5 shadow-2xl">
-                  <h3 className="text-sm font-semibold">
-                    Looking good, {currentProfile === "women" ? "Shreya" : "Sughosh"}.
-                  </h3>
-                  <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                    Your recovery is balanced this week. You’re in peak condition for training and match day.
-                  </p>
-                  <div className="mt-4 flex items-center gap-2 text-xs text-[#ffd700]">
-                    <Trophy size={15} />
-                    New fastest 1K: {milestones.fastest1kRunSeconds ? `${Math.floor(milestones.fastest1kRunSeconds / 60)}:${String(milestones.fastest1kRunSeconds % 60).padStart(2, '0')} /km` : "3:52 /km"}
-                  </div>
-                  {(milestones.longestRunKm || milestones.longestCycleKm || 0) > 0 && (
-                    <div className="mt-2 flex items-center gap-2 text-xs text-sky-400">
-                      <Footprints size={14} />
-                      Longest effort: {(milestones.longestRunKm || milestones.longestCycleKm || 0).toFixed(1)} km
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
             <div className="h-6 w-px bg-border" />
             <button
@@ -788,7 +801,19 @@ function AppShell() {
 
           <Suspense fallback={<div className="p-8 text-center text-xs text-white/40 font-mono animate-pulse">Loading view...</div>}>
           {playbook ? (
-            <Playbook />
+            <div className="space-y-6">
+              <AiCoachBriefingCard
+                athleteName={currentProfile === "women" ? "Shreya" : "Sughosh"}
+                streakCount={14}
+                weeklyDistanceKm={milestones.longestRunKm || 18.5}
+                recentPace={milestones.fastest1kRunSeconds ? `${Math.floor(milestones.fastest1kRunSeconds / 60)}:${String(milestones.fastest1kRunSeconds % 60).padStart(2, '0')} /km` : "4:52 /km"}
+                onQuickAction={(action) => {
+                  if (action === "run") setGpsModalActivityType("run")
+                  else if (action === "football") navigate("/football")
+                }}
+              />
+              <Playbook />
+            </div>
           ) : page === "/armor" ? (
             <Armor />
           ) : page === "/community" ? (
@@ -881,6 +906,14 @@ function AppShell() {
             <SettingsVaultTab quotes={quotes} onAddQuote={handleAddQuote} />
           ) : activities ? (
             <>
+              <div className="mb-6">
+                <AiCoachBriefingCard
+                  athleteName={currentProfile === "women" ? "Shreya" : "Sughosh"}
+                  streakCount={14}
+                  weeklyDistanceKm={milestones.longestRunKm || 64.8}
+                  recentPace={milestones.fastest1kRunSeconds ? `${Math.floor(milestones.fastest1kRunSeconds / 60)}:${String(milestones.fastest1kRunSeconds % 60).padStart(2, '0')} /km` : "4:45 /km"}
+                />
+              </div>
               <div className="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
                 {[
                   {
@@ -1725,6 +1758,28 @@ function AppShell() {
           initialData={activeShareCardData}
           quotesList={quotes}
           onClose={() => setActiveShareCardData(null)}
+        />
+      )}
+
+      {notification && (
+        <NotificationCenterDrawer
+          isOpen={notification}
+          onClose={() => setNotification(false)}
+          onNavigateTab={(tab) => {
+            if (tab === "discipline") navigate("/discipline")
+            else if (tab === "activities") navigate("/activities")
+            else navigate(`/${tab}`)
+          }}
+        />
+      )}
+
+      {skillTreeOpen && (
+        <AthleteSkillTreeModal
+          isOpen={skillTreeOpen}
+          onClose={() => setSkillTreeOpen(false)}
+          streakCount={14}
+          totalDistanceKm={milestones.longestRunKm || 142.8}
+          athleteName={currentProfile === "women" ? "Shreya" : "Sughosh"}
         />
       )}
       </Suspense>

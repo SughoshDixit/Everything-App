@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Kuchh Bhii</string>
+    <string name="shortcut_run_short">Start Run</string>
+    <string name="shortcut_run_long">Start GPS Run Tracker</string>
+    <string name="shortcut_workout_short">Log Workout</string>
+    <string name="shortcut_workout_long">Log Calisthenics Routine</string>
+    <string name="shortcut_football_short">Match Log</string>
+    <string name="shortcut_football_long">Log Football Match</string>
+    <string name="shortcut_vedas_short">Vedas Chants</string>
+    <string name="shortcut_vedas_long">Play Vedic Chants</string>
 </resources>

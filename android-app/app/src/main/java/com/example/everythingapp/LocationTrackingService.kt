@@ -67,6 +67,7 @@ class LocationTrackingService : Service(), LocationListener {
     private var startTimeMs: Long = 0L
     private var lastLocation: Location? = null
     private var totalDistanceMeters: Double = 0.0
+    private var lastAnnouncedSplitKm: Int = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -100,6 +101,7 @@ class LocationTrackingService : Service(), LocationListener {
         isServiceActive = true
         startTimeMs = System.currentTimeMillis()
         totalDistanceMeters = 0.0
+        lastAnnouncedSplitKm = 0
         lastLocation = null
         clearBufferedPoints()
 
@@ -215,6 +217,17 @@ class LocationTrackingService : Service(), LocationListener {
         val distStr = String.format("%.2f km", distKm)
         val speedStr = String.format("%.1f km/h", speedKmh)
 
+        // Trigger Audio split announcement when crossing each whole kilometer
+        val currentWholeKm = distKm.toInt()
+        if (currentWholeKm > lastAnnouncedSplitKm && currentWholeKm > 0) {
+            lastAnnouncedSplitKm = currentWholeKm
+            try {
+                MainActivity.instance?.speakTextNative("Kilometer $currentWholeKm completed. Average speed $speedStr")
+            } catch (e: Exception) {
+                Log.w(TAG, "Audio split announcement failed", e)
+            }
+        }
+
         val sportEmoji = when (activityType.lowercase()) {
             "cycle", "ride" -> "🚴"
             "walk" -> "🚶"
@@ -222,7 +235,7 @@ class LocationTrackingService : Service(), LocationListener {
             else -> "🏃"
         }
 
-        val title = "$sportEmoji Everything App Tracking • $distStr"
+        val title = "$sportEmoji Kuchh Bhii Tracking • $distStr"
         val content = "Time: $timeStr | Speed: $speedStr"
 
         val notification = buildNotification(title, content)

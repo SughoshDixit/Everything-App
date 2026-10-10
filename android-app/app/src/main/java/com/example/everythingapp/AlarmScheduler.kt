@@ -60,4 +60,30 @@ class AlarmScheduler(private val context: Context) {
             e.printStackTrace()
         }
     }
+
+    fun cancelAlarm(requestCode: Int): Boolean {
+        return try {
+            val intent = Intent(context, AlarmReceiver::class.java)
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    fun showInstantNotification(title: String, message: String) {
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            putExtra("EXTRA_TITLE", title)
+            putExtra("EXTRA_MESSAGE", message)
+        }
+        context.sendBroadcast(intent)
+    }
 }

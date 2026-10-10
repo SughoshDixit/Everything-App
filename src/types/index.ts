@@ -570,6 +570,12 @@ declare global {
       speakText?: (text: string) => boolean;
       stopSpeech?: () => boolean;
       playBeepTone?: (durationMs: number) => boolean;
+      isLocationTrackingActive?: () => boolean;
+      scheduleAlarm?: (requestCode: number, hour: number, minute: number, title: string, message: string) => boolean;
+      cancelAlarm?: (requestCode: number) => boolean;
+      showNotification?: (title: string, message: string) => boolean;
+      checkNotificationPermission?: () => boolean;
+      requestNotificationPermission?: () => boolean;
     };
     onNativeGpsUpdate?: (pos: any) => void;
   }
