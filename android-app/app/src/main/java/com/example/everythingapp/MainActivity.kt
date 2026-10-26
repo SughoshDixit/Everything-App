@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private var toneGenerator: ToneGenerator? = null
     private var isTtsReady = false
     private val pendingSpeechQueue = mutableListOf<String>()
+    var pendingNotificationAction: String? = null
 
     val filePickerLauncher: ActivityResultLauncher<Intent> = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -91,6 +92,11 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         super.onCreate(savedInstanceState)
         instance = this
 
+        val notifAction = intent?.getStringExtra("NOTIFICATION_ACTION")
+        if (!notifAction.isNullOrEmpty()) {
+            pendingNotificationAction = notifAction
+        }
+
         initTts()
         try {
             toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
@@ -103,6 +109,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            permissions.add(Manifest.permission.ACTIVITY_RECOGNITION)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
             permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
@@ -117,6 +126,13 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         }
         if (neededPermissions.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, neededPermissions.toTypedArray(), 101)
+        }
+
+        // Initialize low-power background activity detector for missed workouts
+        try {
+            AutoActivityDetector.getInstance(this).startListening()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed starting AutoActivityDetector", e)
         }
 
         enableEdgeToEdge()
@@ -259,6 +275,25 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, durationMs)
         } catch (e: Exception) {
             Log.e("MainActivity", "ToneGenerator failed", e)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val notifAction = intent.getStringExtra("NOTIFICATION_ACTION")
+        if (!notifAction.isNullOrEmpty()) {
+            pendingNotificationAction = notifAction
+            dispatchActionToWebView(notifAction)
+        }
+    }
+
+    fun dispatchActionToWebView(action: String) {
+        webView?.post {
+            webView?.evaluateJavascript(
+                "window.dispatchEvent(new CustomEvent('kuchh_bhii_deep_link', { detail: { action: '$action' } }))",
+                null
+            )
         }
     }
 
@@ -523,6 +558,61 @@ class AndroidNativeBridge(private val context: Context) {
         }
         return false
     }
+
+    @JavascriptInterface
+    fun getPendingNotificationAction(): String {
+        val act = getActivity()?.pendingNotificationAction ?: ""
+        getActivity()?.pendingNotificationAction = null
+        return act
+    }
+
+    @JavascriptInterface
+    fun scheduleAlarmWithAction(requestCode: Int, hour: Int, minute: Int, title: String, message: String, action: String): Boolean {
+        return try {
+            val scheduler = AlarmScheduler(context)
+            scheduler.scheduleExactAlarm(requestCode, hour, minute, title, message, action)
+            true
+        } catch (e: Exception) {
+            Log.e("AndroidNativeBridge", "Failed to schedule alarm with action", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun getAutoDetectedActivitiesJson(): String {
+        return AutoActivityDetector.getPendingActivitiesJson(context)
+    }
+
+    @JavascriptInterface
+    fun confirmAutoDetectedActivity(id: String): Boolean {
+        return AutoActivityDetector.confirmActivity(context, id)
+    }
+
+    @JavascriptInterface
+    fun discardAutoDetectedActivity(id: String): Boolean {
+        return AutoActivityDetector.discardActivity(context, id)
+    }
+
+    @JavascriptInterface
+    fun simulateBackgroundActivityDetection(type: String, durationMinutes: Int, distanceKm: Double): String {
+        return AutoActivityDetector.simulateActivity(context, type, durationMinutes, distanceKm)
+    }
+
+    @JavascriptInterface
+    fun isAutoDetectionServiceActive(): Boolean {
+        return AutoActivityDetector.getInstance(context).isListening()
+    }
+
+    @JavascriptInterface
+    fun toggleAutoDetectionService(enabled: Boolean): Boolean {
+        val detector = AutoActivityDetector.getInstance(context)
+        if (enabled) {
+            detector.startListening()
+        } else {
+            detector.stopListening()
+        }
+        return detector.isListening()
+    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -675,6 +765,14 @@ fun AppWebView(
                             "EverythingAppWeb",
                             "WebView Error: ${error?.description} for ${request?.url}"
                         )
+                    }
+
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        val mainAct = context as? MainActivity ?: MainActivity.instance
+                        mainAct?.pendingNotificationAction?.let { act ->
+                            mainAct.dispatchActionToWebView(act)
+                        }
                     }
                 }
 

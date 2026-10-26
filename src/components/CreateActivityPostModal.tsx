@@ -27,8 +27,20 @@ import {
   Sparkles,
   Zap,
   Layers,
-  Video
+  Video,
+  Flame,
+  Copy,
+  CheckCheck,
+  Dices,
+  Shield
 } from 'lucide-react';
+import {
+  TacticalAiEngine,
+  LIVERPOOL_FC_QUOTES,
+  INDIAN_ARMY_QUOTES,
+  POPULAR_CURRENT_EVENTS
+} from '../services/tacticalAiEngine';
+import type { AiCaptionSuggestion } from '../types/tactical';
 
 interface CreateActivityPostModalProps {
   initialPost?: StravaActivityPost | null;
@@ -37,6 +49,7 @@ interface CreateActivityPostModalProps {
   todayFootballDrills?: FootballDrill[];
   currentProfile: UserProfile;
   quotesList: MotivationalQuote[];
+  isDailyRecapMode?: boolean;
   onSavePost: (post: StravaActivityPost) => void;
   onOpenShareStudio?: (data: SocialShareCardData) => void;
   onClose: () => void;
@@ -49,6 +62,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   todayFootballDrills = [],
   currentProfile,
   quotesList,
+  isDailyRecapMode = false,
   onSavePost,
   onOpenShareStudio,
   onClose
@@ -56,7 +70,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   // ---------------------------------------------------------------------------
-  // 1. COMPILE TODAY'S WORKOUTS (DESELECTED BY DEFAULT AS REQUESTED)
+  // 1. COMPILE TODAY'S WORKOUTS (SELECT ALL IF DAILY RECAP MODE)
   // ---------------------------------------------------------------------------
   const buildInitialCompiledItems = (): CompiledActivityItem[] => {
     if (initialPost && initialPost.activities.length > 0) {
@@ -65,40 +79,65 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
 
     const items: CompiledActivityItem[] = [];
 
-    // Add GPS activities (Walk, Run, Cycle, Drive) - DESELECTED BY DEFAULT
+    // Add GPS & Sport activities (Badminton, Football, Run, Cycle, Walk)
     todayGpsActivities.forEach((gps) => {
-      const typeLabel = gps.activityType === 'run' ? '🏃 Run' : gps.activityType === 'cycle' ? '🚴 Ride' : gps.activityType === 'walk' ? '🚶 Walk' : '🚗 Drive';
+      const typeLabel =
+        gps.activityType === 'badminton'
+          ? '🏸 Badminton Match'
+          : gps.activityType === 'football'
+          ? '⚽ Football Match'
+          : gps.activityType === 'run'
+          ? '🏃 Run'
+          : gps.activityType === 'cycle'
+          ? '🚴 Ride'
+          : gps.activityType === 'walk'
+          ? '🚶 Walk'
+          : '⚡ Sport';
+
+      const cat: CompiledActivityItem['category'] =
+        gps.activityType === 'badminton'
+          ? 'badminton'
+          : gps.activityType === 'football'
+          ? 'football'
+          : gps.activityType === 'run'
+          ? 'gps_run'
+          : gps.activityType === 'cycle'
+          ? 'gps_cycle'
+          : 'gps_walk';
+
       items.push({
         id: `comp_gps_${gps.id}`,
-        category: gps.activityType === 'run' ? 'gps_run' : gps.activityType === 'cycle' ? 'gps_cycle' : 'gps_walk',
-        title: `${gps.distanceKm} km ${typeLabel}`,
-        details: `${Math.floor(gps.durationSeconds / 60)}m • ${gps.avgPaceMinKm} • +${gps.elevationGainMeters || 0}m`,
+        category: cat,
+        title: gps.title || `${gps.distanceKm > 0 ? `${gps.distanceKm} km ` : ''}${typeLabel}`,
+        details: gps.distanceKm > 0
+          ? `${Math.floor(gps.durationSeconds / 60)}m • ${gps.avgPaceMinKm} • +${gps.elevationGainMeters || 0}m`
+          : `${Math.floor(gps.durationSeconds / 60)}m • ${gps.notes || 'Match Session'} • ~${gps.caloriesBurned} kcal`,
         gpsActivityId: gps.id,
-        includedInPost: false // Deselected by default!
+        includedInPost: isDailyRecapMode ? true : false // If Daily Recap mode, pre-selected!
       });
     });
 
-    // Add Calisthenics workouts (sets & reps) - DESELECTED BY DEFAULT
+    // Add Calisthenics workouts (sets & reps)
     todayWorkoutLogs.forEach((w) => {
       const totalReps = w.repsCompleted.reduce((a, b) => a + b, 0);
       items.push({
         id: `comp_w_${w.id}`,
         category: 'calisthenics',
         title: `💪 ${w.exerciseName}`,
-        details: `${w.setsCompleted} Sets (${w.repsCompleted.join(', ')} reps) • ${totalReps} Reps`,
+        details: `${w.setsCompleted} Set${w.setsCompleted > 1 ? 's' : ''} (${w.repsCompleted.join(', ')} reps) • ${totalReps} Reps`,
         workoutLogId: w.id,
-        includedInPost: false // Deselected by default!
+        includedInPost: isDailyRecapMode ? true : false
       });
     });
 
-    // Add Football Drills if logged today - DESELECTED BY DEFAULT
+    // Add Football Drills if logged today
     todayFootballDrills.forEach((drill) => {
       items.push({
         id: `comp_fb_${drill.id}`,
         category: 'football',
         title: `⚽ ${drill.title}`,
         details: `${drill.intensity.toUpperCase()} • ${drill.durationMinutes}m drill`,
-        includedInPost: false // Deselected by default!
+        includedInPost: isDailyRecapMode ? true : false
       });
     });
 
@@ -108,6 +147,19 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const [activities, setActivities] = useState<CompiledActivityItem[]>(buildInitialCompiledItems);
   const [postTitle, setPostTitle] = useState<string>(() => {
     if (initialPost) return initialPost.title;
+
+    if (isDailyRecapMode) {
+      const summaryParts: string[] = [];
+      if (todayGpsActivities.some(g => g.activityType === 'badminton')) summaryParts.push('Badminton 🏸');
+      if (todayGpsActivities.some(g => g.activityType === 'football')) summaryParts.push('Football ⚽');
+      if (todayWorkoutLogs.length > 0) {
+        const totalReps = todayWorkoutLogs.reduce((acc, w) => acc + w.repsCompleted.reduce((a, b) => a + b, 0), 0);
+        summaryParts.push(`${totalReps} Push/Pull Reps 💪`);
+      }
+      if (todayGpsActivities.some(g => g.activityType === 'run')) summaryParts.push('Cardio Run 🏃');
+      return summaryParts.length > 0 ? `Daily Recap: ${summaryParts.join(' + ')}` : 'Daily Consolidated Athletic Recap 🔥';
+    }
+
     const hasWalk = todayGpsActivities.some(g => g.activityType === 'walk');
     const hasRun = todayGpsActivities.some(g => g.activityType === 'run');
     const hasCycle = todayGpsActivities.some(g => g.activityType === 'cycle');
@@ -122,7 +174,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
       return 'Outdoor Cardio & Calisthenics Combo 💪';
     } else if (todayGpsActivities.length > 0) {
       const first = todayGpsActivities[0];
-      return `${first.distanceKm} km ${first.activityType === 'run' ? 'Tempo Run' : first.activityType === 'walk' ? 'Mindful Walk' : 'Cycling Session'}`;
+      return `${first.distanceKm > 0 ? `${first.distanceKm} km ` : ''}${first.activityType === 'run' ? 'Tempo Run' : first.activityType === 'walk' ? 'Mindful Walk' : first.title || 'Athletic Session'}`;
     } else if (todayWorkoutLogs.length > 0) {
       return 'Explosive Calisthenics Session';
     }
@@ -140,6 +192,9 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const [selectedPhotoIdx, setSelectedPhotoIdx] = useState<number>(0);
   const [customMediaUrl, setCustomMediaUrl] = useState<string | undefined>(initialPost?.customMediaUrl);
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
+  const [anfieldQuoteIndex, setAnfieldQuoteIndex] = useState<number>(0);
+  const [indianArmyQuoteIndex, setIndianArmyQuoteIndex] = useState<number>(0);
+  const [quoteMode, setQuoteMode] = useState<'custom' | 'presets' | 'anfield' | 'indian_army'>('presets');
   const [customQuoteText, setCustomQuoteText] = useState<string>(initialPost?.motivationalQuote || '');
   const [customQuoteAuthor, setCustomQuoteAuthor] = useState<string>(initialPost?.quoteAuthor || (currentProfile === 'men' ? 'Sughosh' : 'Shreya'));
   const [useCustomQuote, setUseCustomQuote] = useState<boolean>(!!initialPost?.motivationalQuote);
@@ -147,14 +202,85 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
   const [isSharing, setIsSharing] = useState<boolean>(false);
   const [savedBadge, setSavedBadge] = useState<boolean>(false);
 
+  // AI Caption Generator States
+  const [showAiCaptions, setShowAiCaptions] = useState<boolean>(false);
+  const [customContextInput, setCustomContextInput] = useState<string>('');
+  const [aiSuggestions, setAiSuggestions] = useState<AiCaptionSuggestion[]>([]);
+  const [appliedCaptionId, setAppliedCaptionId] = useState<string | null>(null);
+  const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
+
   const defaultActiveQuote = quotesList[quoteIndex % Math.max(1, quotesList.length)] || {
     text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.',
     author: 'Aristotle'
   };
 
-  const activeQuote = useCustomQuote && customQuoteText.trim()
+  const anfieldActiveQuote = LIVERPOOL_FC_QUOTES[anfieldQuoteIndex % LIVERPOOL_FC_QUOTES.length];
+  const indianArmyActiveQuote = INDIAN_ARMY_QUOTES[indianArmyQuoteIndex % INDIAN_ARMY_QUOTES.length];
+
+  const activeQuote = quoteMode === 'anfield'
+    ? { text: anfieldActiveQuote.text, author: anfieldActiveQuote.speaker }
+    : quoteMode === 'indian_army'
+    ? { text: indianArmyActiveQuote.text, author: indianArmyActiveQuote.speaker }
+    : useCustomQuote && customQuoteText.trim()
     ? { text: customQuoteText.trim(), author: customQuoteAuthor.trim() || (currentProfile === 'men' ? 'Sughosh' : 'Shreya') }
     : defaultActiveQuote;
+
+  const handleGenerateAiCaptions = (overrideContext?: string) => {
+    const selectedActs = activities.filter((a) => a.includedInPost);
+    const primaryCat = selectedActs[0]?.category || 'calisthenics';
+    const sportName = primaryCat.includes('run')
+      ? 'Running'
+      : primaryCat.includes('cycle')
+      ? 'Cycling'
+      : primaryCat.includes('badminton')
+      ? 'Badminton'
+      : primaryCat.includes('football')
+      ? 'Football'
+      : 'Calisthenics';
+
+    const distanceStr = primaryCat.includes('run') || primaryCat.includes('cycle')
+      ? `${totalDistance.toFixed(2)} km`
+      : `${selectedActs.length > 0 ? selectedActs.length : 1} Activities / Sets`;
+
+    const contextToUse = overrideContext !== undefined ? overrideContext : customContextInput;
+
+    const suggestions = TacticalAiEngine.generateSocialCaptions({
+      sport: sportName,
+      distanceOrReps: distanceStr,
+      activities: selectedActs.map((a) => a.title),
+      streakCount: 14,
+      persona: currentProfile,
+      customContext: contextToUse,
+    });
+    setAiSuggestions(suggestions);
+    setShowAiCaptions(true);
+  };
+
+  const handleRandomCurrentEvent = () => {
+    const randomEvent = POPULAR_CURRENT_EVENTS[Math.floor(Math.random() * POPULAR_CURRENT_EVENTS.length)];
+    setCustomContextInput(randomEvent);
+    handleGenerateAiCaptions(randomEvent);
+  };
+
+  const handleApplyCaption = (s: AiCaptionSuggestion) => {
+    setPostTitle(s.title);
+    setDescription(`${s.description}\n\n${s.hashtags.join(' ')}`);
+    setCustomQuoteText(s.quoteText);
+    setCustomQuoteAuthor(s.quoteAuthor);
+    setUseCustomQuote(true);
+    setQuoteMode('custom');
+    setAppliedCaptionId(s.id);
+    setTimeout(() => setAppliedCaptionId(null), 2500);
+  };
+
+  const handleCopyCaption = (s: AiCaptionSuggestion) => {
+    const text = `${s.title}\n\n${s.description}\n\n"${s.quoteText}" — ${s.quoteAuthor}\n\n${s.hashtags.join(' ')}`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
+    setCopiedCaptionId(s.id);
+    setTimeout(() => setCopiedCaptionId(null), 2500);
+  };
 
   const handleToggleActivity = (id: string) => {
     setActivities((prev) =>
@@ -248,7 +374,7 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
     activityItems: includedItems.map((i) => ({
       title: i.title,
       details: i.details,
-      icon: i.category === 'calisthenics' ? '⚡' : i.category.includes('run') ? '🏃' : '🚴'
+      icon: i.category === 'badminton' ? '🏸' : i.category === 'football' ? '⚽' : i.category === 'calisthenics' ? '⚡' : i.category.includes('run') ? '🏃' : '🚴'
     })),
     motivationalQuote: activeQuote.text,
     quoteAuthor: activeQuote.author,
@@ -485,6 +611,198 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
               placeholder="Felt strong on the final sprint. Clean form throughout sets..."
             />
           </div>
+
+          {/* AI Suggest Captions & Anfield Hype */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                if (!showAiCaptions || aiSuggestions.length === 0) {
+                  handleGenerateAiCaptions();
+                } else {
+                  setShowAiCaptions(!showAiCaptions);
+                }
+              }}
+              className="flex w-full items-center justify-between rounded-xl border border-red-500/30 bg-gradient-to-r from-red-950/40 via-red-900/20 to-black p-2.5 text-xs font-bold text-red-200 hover:border-red-500/60 transition shadow-lg"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles size={15} className="text-red-400" />
+                <span>✨ AI Suggest Captions & Anfield Hype</span>
+              </div>
+              <span className="flex items-center gap-1 text-[10px] font-mono text-red-400 bg-red-500/20 px-2 py-0.5 rounded-full">
+                <Flame size={11} className="text-red-500" />
+                {showAiCaptions ? 'Hide AI Ideas' : 'Generate 4 Styles'}
+              </span>
+            </button>
+
+            {/* AI Caption Cards Drawer */}
+            {showAiCaptions && (
+              <div className="mt-2.5 space-y-2.5 animate-in fade-in duration-200">
+                {/* On-The-Go Creative Context Box */}
+                <div className="rounded-xl border border-white/10 bg-black/70 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5 font-mono">
+                      <Sparkles size={12} className="text-[#CCFF00]" />
+                      <span>On-The-Go Context & Current Events</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRandomCurrentEvent}
+                      className="flex items-center gap-1 text-[10px] font-bold text-amber-300 hover:text-white bg-amber-500/20 hover:bg-amber-500/30 px-2 py-0.5 rounded-md transition"
+                      title="Generate random sports banter or historic battle cry"
+                    >
+                      <Dices size={11} />
+                      <span>🎲 Random Event Hype</span>
+                    </button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customContextInput}
+                      onChange={(e) => setCustomContextInput(e.target.value)}
+                      placeholder="e.g. 'Liverpool beat United 3-0 yesterday', 'Yeh Dil Mange More', 'Rainy 5K'..."
+                      className="flex-1 bg-black/50 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-[#CCFF00] transition"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleGenerateAiCaptions(customContextInput);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateAiCaptions(customContextInput)}
+                      className="rounded-lg bg-[#CCFF00] text-black px-3 py-1.5 text-xs font-black uppercase hover:bg-[#b8e600] transition shrink-0"
+                    >
+                      Generate
+                    </button>
+                  </div>
+
+                  {/* Quick Context Chips */}
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {[
+                      '🔴 Liverpool beat United 3-0',
+                      '🇮🇳 Yeh Dil Mange More!',
+                      '💪 Maggi arms post-pushups',
+                      '⚽ Slot-ball masterclass',
+                      '🏏 Kohli chase mentality',
+                      '⚡ 15 Chest-to-Deck reps'
+                    ].map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => {
+                          setCustomContextInput(chip);
+                          handleGenerateAiCaptions(chip);
+                        }}
+                        className="text-[10px] font-medium border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-zinc-300 px-2 py-0.5 rounded-md transition"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] text-zinc-400 px-1 font-mono pt-1">
+                  <span>SELECT A CAPTION TO POPULATE POST:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateAiCaptions(customContextInput)}
+                    className="flex items-center gap-1 text-red-400 hover:text-white"
+                  >
+                    <RefreshCw size={10} />
+                    <span>Shuffle AI Ideas</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2">
+                  {aiSuggestions.map((sug) => {
+                    const isApplied = appliedCaptionId === sug.id;
+                    const isCopied = copiedCaptionId === sug.id;
+                    const isAnfield = sug.category === 'anfield_spirit';
+                    const isIndianArmy = sug.category === 'indian_army';
+                    const isCalisthenics = sug.category === 'calisthenics_humor';
+
+                    return (
+                      <div
+                        key={sug.id}
+                        className={`rounded-xl border p-3 text-xs transition relative ${
+                          isAnfield
+                            ? 'border-red-500/40 bg-gradient-to-br from-red-950/30 to-[#120a0d]'
+                            : isIndianArmy
+                            ? 'border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-[#18150f] to-black'
+                            : isCalisthenics
+                            ? 'border-emerald-500/30 bg-gradient-to-br from-emerald-950/20 to-black'
+                            : 'border-white/10 bg-black/40 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span
+                            className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md font-mono ${
+                              isAnfield
+                                ? 'bg-red-500 text-white'
+                                : isIndianArmy
+                                ? 'bg-amber-500 text-black font-black'
+                                : isCalisthenics
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-white/10 text-[#CCFF00]'
+                            }`}
+                          >
+                            {sug.badge}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyCaption(sug)}
+                              className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 px-2 py-1 rounded-lg"
+                              title="Copy to clipboard"
+                            >
+                              {isCopied ? <CheckCheck size={11} className="text-emerald-400" /> : <Copy size={11} />}
+                              <span>{isCopied ? 'Copied' : 'Copy'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleApplyCaption(sug)}
+                              className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-lg transition active:scale-95 ${
+                                isApplied
+                                  ? 'bg-emerald-500 text-black'
+                                  : isAnfield
+                                  ? 'bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/20'
+                                  : isIndianArmy
+                                  ? 'bg-amber-500 hover:bg-amber-400 text-black font-black'
+                                  : 'bg-[#CCFF00] hover:bg-[#b8e600] text-black'
+                              }`}
+                            >
+                              {isApplied ? <Check size={12} strokeWidth={3} /> : <CheckCircle2 size={12} />}
+                              <span>{isApplied ? 'Applied!' : 'Apply to Post'}</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {sug.wittyTagline && (
+                          <p className="text-[10px] font-mono text-[#CCFF00] mb-1 font-semibold">
+                            "{sug.wittyTagline}"
+                          </p>
+                        )}
+
+                        <h5 className="font-bold text-white text-[11px] mb-1">
+                          {sug.title}
+                        </h5>
+                        <p className="text-[11px] text-zinc-300 leading-relaxed mb-2 whitespace-pre-line">
+                          {sug.description}
+                        </p>
+                        <div className="flex items-center justify-between border-t border-white/5 pt-1.5 text-[10px] text-zinc-400">
+                          <span className="italic truncate max-w-[200px]">"{sug.quoteText}"</span>
+                          <span className="font-bold text-white shrink-0">— {sug.quoteAuthor}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ------------------------------------------------------------------- */}
@@ -580,26 +898,98 @@ export const CreateActivityPostModal: React.FC<CreateActivityPostModalProps> = (
             <div className="flex items-center gap-1 bg-[#080b11] p-0.5 rounded-lg border border-white/10">
               <button
                 type="button"
-                onClick={() => setUseCustomQuote(true)}
+                onClick={() => {
+                  setQuoteMode('custom');
+                  setUseCustomQuote(true);
+                }}
                 className={`text-[10px] font-bold py-1 px-2.5 rounded-md transition-all ${
-                  useCustomQuote ? 'bg-dude text-black shadow-sm' : 'text-muted-foreground hover:text-white'
+                  quoteMode === 'custom' && useCustomQuote ? 'bg-dude text-black shadow-sm' : 'text-muted-foreground hover:text-white'
                 }`}
               >
-                My Own Quote
+                My Own
               </button>
               <button
                 type="button"
-                onClick={() => setUseCustomQuote(false)}
+                onClick={() => {
+                  setQuoteMode('presets');
+                  setUseCustomQuote(false);
+                }}
                 className={`text-[10px] font-bold py-1 px-2.5 rounded-md transition-all ${
-                  !useCustomQuote ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-white'
+                  quoteMode === 'presets' && !useCustomQuote ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-white'
                 }`}
               >
-                Preset Quotes
+                Presets
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuoteMode('anfield');
+                  setUseCustomQuote(false);
+                }}
+                className={`text-[10px] font-bold py-1 px-2 rounded-md transition-all flex items-center gap-1 ${
+                  quoteMode === 'anfield' ? 'bg-red-500 text-white font-black shadow-sm' : 'text-red-400 hover:text-white'
+                }`}
+              >
+                <Flame size={10} className={quoteMode === 'anfield' ? 'text-white' : 'text-red-400'} />
+                <span>🔴 Anfield</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuoteMode('indian_army');
+                  setUseCustomQuote(false);
+                }}
+                className={`text-[10px] font-bold py-1 px-2 rounded-md transition-all flex items-center gap-1 ${
+                  quoteMode === 'indian_army' ? 'bg-amber-600 text-white font-black shadow-sm' : 'text-amber-400 hover:text-white'
+                }`}
+              >
+                <Shield size={10} className={quoteMode === 'indian_army' ? 'text-white' : 'text-amber-400'} />
+                <span>🇮🇳 Army</span>
               </button>
             </div>
           </div>
 
-          {useCustomQuote ? (
+          {quoteMode === 'anfield' ? (
+            <div className="bg-gradient-to-r from-red-950/40 via-red-900/20 to-black border border-red-500/30 p-2.5 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
+              <div className="flex-1 min-w-0">
+                <span className="text-[9px] font-black uppercase text-red-400 font-mono block">
+                  🔴 {anfieldActiveQuote.speaker} • {anfieldActiveQuote.context}
+                </span>
+                <p className="text-xs font-medium text-white italic truncate mt-0.5">
+                  "{anfieldActiveQuote.text}"
+                </p>
+              </div>
+              <button
+                type="button"
+                className="flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/20 px-2.5 py-1 text-xs font-semibold text-red-300 hover:text-white hover:bg-red-500/30 shrink-0 transition"
+                onClick={() => setAnfieldQuoteIndex((prev) => prev + 1)}
+                title="Next Anfield Quote"
+              >
+                <RefreshCw size={11} />
+                <span>Next</span>
+              </button>
+            </div>
+          ) : quoteMode === 'indian_army' ? (
+            <div className="bg-gradient-to-r from-amber-950/40 via-yellow-950/20 to-black border border-amber-500/30 p-2.5 rounded-xl flex items-center justify-between gap-3 animate-fade-in">
+              <div className="flex-1 min-w-0">
+                <span className="text-[9px] font-black uppercase text-amber-400 font-mono block">
+                  🇮🇳 {indianArmyActiveQuote.speaker} ({indianArmyActiveQuote.regimentOrRank}) • {indianArmyActiveQuote.battleCry}
+                </span>
+                <p className="text-xs font-medium text-white italic truncate mt-0.5">
+                  "{indianArmyActiveQuote.text}"
+                </p>
+              </div>
+              <button
+                type="button"
+                className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:text-white hover:bg-amber-500/30 shrink-0 transition"
+                onClick={() => setIndianArmyQuoteIndex((prev) => prev + 1)}
+                title="Next Indian Army Quote"
+              >
+                <RefreshCw size={11} />
+                <span>Next</span>
+              </button>
+            </div>
+          ) : quoteMode === 'custom' || useCustomQuote ? (
             <div className="flex flex-col gap-2 animate-fade-in">
               <textarea
                 value={customQuoteText}

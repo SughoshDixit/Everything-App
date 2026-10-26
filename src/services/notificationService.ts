@@ -3,6 +3,8 @@
  * Bridges native Android AlarmManager / NotificationManager and web in-app alerts.
  */
 
+import { TacticalAiEngine } from './tacticalAiEngine';
+
 export interface ReminderConfig {
   id: number;
   key: string;
@@ -11,6 +13,7 @@ export interface ReminderConfig {
   enabled: boolean;
   time: string; // "HH:MM" 24h format
   category: 'workout' | 'streak' | 'football' | 'vedas' | 'cycle';
+  targetAction?: string;
 }
 
 export interface InAppNotification {
@@ -22,7 +25,8 @@ export interface InAppNotification {
   type: 'milestone' | 'streak' | 'workout' | 'media' | 'social';
   actionPayload?: {
     tab?: string;
-    modal?: string;
+    modal?: 'manual_log' | 'daily_recap' | 'calisthenics' | 'share';
+    initialCategory?: 'calisthenics' | 'football' | 'badminton' | 'run' | 'walk';
     activityId?: string;
   };
 }
@@ -39,24 +43,37 @@ export const DEFAULT_REMINDERS: ReminderConfig[] = [
     enabled: true,
     time: '07:00',
     category: 'workout',
+    targetAction: 'manual_calisthenics',
   },
   {
     id: 102,
     key: 'football_prep',
-    title: 'Football Training & Pitch Prep',
-    message: 'Hydrate and foam roll. Check tactical chalkboard and pitch gear.',
+    title: 'Football / Badminton Match Session',
+    message: 'Time for pitch prep, match play, and recording your athletic stats!',
     enabled: true,
     time: '17:30',
     category: 'football',
+    targetAction: 'manual_football',
   },
   {
     id: 103,
     key: 'streak_safeguard',
-    title: '🔥 Daily Streak Safeguard',
-    message: "Don't break the flame! Log your workout or discipline block before midnight.",
+    title: '🔥 Daily Activity Recap & Social Card',
+    message: "Consolidate today's badminton, calisthenics, and football into an athlete social post!",
     enabled: true,
     time: '20:30',
     category: 'streak',
+    targetAction: 'daily_recap',
+  },
+  {
+    id: 105,
+    key: 'random_motivation',
+    title: '🔴 Liverpool FC & Surprise Motivation',
+    message: 'Random midday kicks from Anfield and commanders to keep you locked on track!',
+    enabled: true,
+    time: '14:15',
+    category: 'football',
+    targetAction: 'manual_calisthenics',
   },
   {
     id: 104,
@@ -71,11 +88,38 @@ export const DEFAULT_REMINDERS: ReminderConfig[] = [
 
 export const INITIAL_NOTIFICATIONS: InAppNotification[] = [
   {
+    id: 'notif-recap',
+    title: '🎨 End-of-Day Activity Recap Ready',
+    message: 'Consolidate today’s badminton matches, push-ups and running into a 4K shareable social post!',
+    timestamp: Date.now() - 1000 * 60 * 30,
+    read: false,
+    type: 'social',
+    actionPayload: { tab: 'feed', modal: 'daily_recap' },
+  },
+  {
+    id: 'notif-quick-pushups',
+    title: '💪 Quick Calisthenics Log',
+    message: 'Crushed 15 push-ups or strict pull-ups? Tap to document your reps immediately.',
+    timestamp: Date.now() - 1000 * 60 * 120,
+    read: false,
+    type: 'workout',
+    actionPayload: { tab: 'calisthenics', modal: 'manual_log', initialCategory: 'calisthenics' },
+  },
+  {
+    id: 'notif-match-log',
+    title: '🏸 Match Day Logger',
+    message: 'Played badminton or football? Document your score, game duration, and intensity.',
+    timestamp: Date.now() - 1000 * 60 * 240,
+    read: false,
+    type: 'workout',
+    actionPayload: { tab: 'activities', modal: 'manual_log', initialCategory: 'badminton' },
+  },
+  {
     id: 'notif-1',
     title: '🔥 14-Day Streak Unlocked',
     message: 'Incredible discipline! You are now in the top 5% consistency tier.',
-    timestamp: Date.now() - 3600000 * 2,
-    read: false,
+    timestamp: Date.now() - 3600000 * 12,
+    read: true,
     type: 'streak',
     actionPayload: { tab: 'discipline' },
   },
@@ -83,18 +127,9 @@ export const INITIAL_NOTIFICATIONS: InAppNotification[] = [
     id: 'notif-2',
     title: '⚡ Personal Record: Fastest 1K',
     message: 'New record pace 3:52 /km registered from your recent athletic interval.',
-    timestamp: Date.now() - 3600000 * 18,
-    read: false,
-    type: 'milestone',
-    actionPayload: { tab: 'activities' },
-  },
-  {
-    id: 'notif-3',
-    title: '🎬 Route Video Engine Ready',
-    message: 'Your Google Maps cinematic trail videos now render with 60 FPS motion blur.',
-    timestamp: Date.now() - 3600000 * 36,
+    timestamp: Date.now() - 3600000 * 24,
     read: true,
-    type: 'media',
+    type: 'milestone',
     actionPayload: { tab: 'activities' },
   },
 ];
@@ -222,7 +257,7 @@ class NotificationService {
   }
 
   public syncNativeAlarm(reminder: ReminderConfig) {
-    if (typeof window === 'undefined' || !window.AndroidBridge?.scheduleAlarm) return;
+    if (typeof window === 'undefined') return;
 
     const [hourStr, minStr] = reminder.time.split(':');
     const hour = parseInt(hourStr, 10);
@@ -230,18 +265,96 @@ class NotificationService {
 
     if (isNaN(hour) || isNaN(minute)) return;
 
-    window.AndroidBridge.scheduleAlarm(
-      reminder.id,
-      hour,
-      minute,
-      reminder.title,
-      reminder.message
+    const action = reminder.targetAction || '';
+
+    // If native bridge supports action deep-linking
+    if (window.AndroidBridge && typeof window.AndroidBridge.scheduleAlarmWithAction === 'function') {
+      window.AndroidBridge.scheduleAlarmWithAction(
+        reminder.id,
+        hour,
+        minute,
+        reminder.title,
+        reminder.message,
+        action
+      );
+    } else if (window.AndroidBridge?.scheduleAlarm) {
+      window.AndroidBridge.scheduleAlarm(
+        reminder.id,
+        hour,
+        minute,
+        reminder.title,
+        reminder.message
+      );
+    }
+
+    // If this is the random motivation reminder, schedule additional daytime surprise intervals
+    if (reminder.key === 'random_motivation') {
+      this.scheduleRandomSurpriseAlerts();
+    }
+  }
+
+  /**
+   * Schedules randomized surprise motivation alerts during active daytime hours
+   * to keep the user motivated with Liverpool FC & military discipline punches.
+   */
+  public scheduleRandomSurpriseAlerts(count: number = 3) {
+    const bridge = typeof window !== 'undefined' ? window.AndroidBridge : undefined;
+    if (!bridge || !bridge.scheduleAlarmWithAction) return;
+
+    // Window: 10:00 to 19:30 (spread throughout active day)
+    const baseWindows = [
+      { startH: 10, endH: 12, reqCode: 701 },
+      { startH: 14, endH: 16, reqCode: 702 },
+      { startH: 17, endH: 19, reqCode: 703 },
+    ];
+
+    const scheduleFn = bridge.scheduleAlarmWithAction;
+
+    baseWindows.slice(0, count).forEach((win) => {
+      const hour = Math.floor(Math.random() * (win.endH - win.startH + 1)) + win.startH;
+      const minute = Math.floor(Math.random() * 60);
+
+      const alert = TacticalAiEngine.getRandomMotivationAlert();
+
+      try {
+        scheduleFn(
+          win.reqCode,
+          hour,
+          minute,
+          alert.title,
+          alert.message,
+          alert.targetAction
+        );
+      } catch (e) {
+        console.warn('Failed scheduling surprise motivation alarm:', e);
+      }
+    });
+  }
+
+  /**
+   * Triggers an immediate random Liverpool FC / Tactical motivation pulse
+   */
+  public triggerInstantMotivationPulse(): { title: string; message: string; quote: string; speaker: string } {
+    const alert = TacticalAiEngine.getRandomMotivationAlert();
+
+    this.postInstantAlert(
+      alert.title,
+      alert.message,
+      alert.targetAction
     );
+
+    return alert;
   }
 
   public cancelNativeAlarm(id: number) {
-    if (typeof window === 'undefined' || !window.AndroidBridge?.cancelAlarm) return;
-    window.AndroidBridge.cancelAlarm(id);
+    const bridge = typeof window !== 'undefined' ? window.AndroidBridge : undefined;
+    if (!bridge || !bridge.cancelAlarm) return;
+    const cancelFn = bridge.cancelAlarm;
+    cancelFn(id);
+    if (id === 105) {
+      // Cancel surprise alarms as well
+      [701, 702, 703].forEach((c) => cancelFn(c));
+    }
   }
 
   public syncAllActiveAlarms() {
@@ -254,7 +367,7 @@ class NotificationService {
     });
   }
 
-  public postInstantAlert(title: string, message: string) {
+  public postInstantAlert(title: string, message: string, targetAction: string = '') {
     // 1. Post to native system notification tray if on Android
     if (typeof window !== 'undefined' && window.AndroidBridge?.showNotification) {
       window.AndroidBridge.showNotification(title, message);
@@ -266,10 +379,20 @@ class NotificationService {
     }
 
     // 3. Add to In-App notification feed
+    const actionPayload: InAppNotification['actionPayload'] =
+      targetAction === 'manual_calisthenics'
+        ? { tab: 'calisthenics', modal: 'manual_log', initialCategory: 'calisthenics' }
+        : targetAction === 'manual_football'
+        ? { tab: 'activities', modal: 'manual_log', initialCategory: 'football' }
+        : targetAction === 'daily_recap'
+        ? { tab: 'feed', modal: 'daily_recap' }
+        : undefined;
+
     this.addInAppNotification({
       title,
       message,
       type: 'workout',
+      actionPayload,
     });
   }
 }

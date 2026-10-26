@@ -44,9 +44,16 @@ const ActivityRouteDetailView = lazy(() => import("../components/routeIntelligen
 const NotificationCenterDrawer = lazy(() => import("../components/NotificationCenterDrawer").then((m) => ({ default: m.NotificationCenterDrawer })))
 const AiCoachBriefingCard = lazy(() => import("../components/AiCoachBriefingCard").then((m) => ({ default: m.AiCoachBriefingCard })))
 const AthleteSkillTreeModal = lazy(() => import("../components/AthleteSkillTreeModal").then((m) => ({ default: m.AthleteSkillTreeModal })))
+const ManualActivityLogModal = lazy(() => import("../components/ManualActivityLogModal").then((m) => ({ default: m.ManualActivityLogModal })))
+const AutoDetectedActivityModal = lazy(() => import("../components/AutoDetectedActivityModal").then((m) => ({ default: m.AutoDetectedActivityModal })))
+import type { ManualCategory } from "../components/ManualActivityLogModal"
 import { notificationService } from "../services/notificationService"
-import type { UserProfile, GpsActivityLog, StravaActivityPost } from "../types"
-import type { ActivityDocument } from "../types/routeIntelligence"
+import { autoActivityDetectionService } from "../services/autoActivityDetectionService"
+import { ActivityMapPreview } from "../components/ActivityMapPreview"
+import { getRoutePointsForWorkout } from "../utils/routeGeometryGenerator"
+import { ActivityExportService } from "../utils/activityExportService"
+import type { UserProfile, GpsActivityLog, StravaActivityPost, SocialShareCardData, Workout, Sport, AutoDetectedActivity } from "../types"
+import type { ActivityDocument, RouteGeometryDocument } from "../types/routeIntelligence"
 import {
   Activity,
   ArrowDownToLine,
@@ -59,6 +66,7 @@ import {
   ChevronRight,
   Clock3,
   Compass,
+  Download,
   Dumbbell,
   Flame,
   Footprints,
@@ -82,24 +90,12 @@ import {
   Upload,
   Users,
   Utensils,
+  Share2,
+  Video,
   X,
   Zap,
 } from "lucide-react"
 
-type Sport = "All activities" | "Football" | "Running" | "Cycling" | "Calisthenics"
-type Workout = {
-  id: number
-  title: string
-  sport: Exclude<Sport, "All activities">
-  date: string
-  distance: string
-  time: string
-  pace: string
-  color: string
-  route: string
-  record?: string
-  location: string
-}
 const workouts: Workout[] = [
   {
     id: 1,
@@ -406,7 +402,7 @@ function AppShell() {
     handleToggleRoutine,
     handleAddRoutine,
     handleAddQuote,
-    /* handleLogWorkout, */
+    handleLogWorkout,
     handleSaveGpsActivity,
     handleSaveStravaPost,
     /* handleDeletePost, */
@@ -431,11 +427,24 @@ function AppShell() {
   const [filter, setFilter] = useState<Sport>("All activities")
   const [list, setList] = useState(false)
   const [selected, setSelected] = useState<Workout | null>(null)
-  const [routeDetailActivity, setRouteDetailActivity] = useState<ActivityDocument | null>(null)
+  const [routeDetailData, setRouteDetailData] = useState<{
+    activity: ActivityDocument;
+    geometries: Record<string, RouteGeometryDocument>;
+  } | null>(null)
+  const [activityPreviewMode, setActivityPreviewMode] = useState<'map' | 'art'>('map')
+  const [exportingPoster, setExportingPoster] = useState(false)
+  const [exportingVideo, setExportingVideo] = useState(false)
+  const [videoExportProgress, setVideoExportProgress] = useState(0)
+  const [activitiesViewMode, setActivitiesViewMode] = useState<'simple' | 'pro'>('simple')
   const [notification, setNotification] = useState(false)
   const [skillTreeOpen, setSkillTreeOpen] = useState(false)
   const [session, setSession] = useState(false)
   const [activityLauncherOpen, setActivityLauncherOpen] = useState(false)
+  const [manualLogOpen, setManualLogOpen] = useState(false)
+  const [manualLogCategory, setManualLogCategory] = useState<ManualCategory>('calisthenics')
+  const [isDailyRecapMode, setIsDailyRecapMode] = useState(false)
+  const [autoActivitiesModalOpen, setAutoActivitiesModalOpen] = useState(false)
+  const [pendingAutoActivities, setPendingAutoActivities] = useState<AutoDetectedActivity[]>([])
   const [activeSession, setActiveSession] = useState(false)
   const [sessionSport, setSessionSport] = useState("Running")
   const [elapsed, setElapsed] = useState(0)
@@ -484,7 +493,32 @@ function AppShell() {
     window.scrollTo(0, 0)
   }, [page])
 
+  const handleExecuteNotificationAction = (payload: { tab?: string; modal?: string; initialCategory?: string }) => {
+    if (payload.tab) {
+      if (payload.tab === "discipline") navigate("/discipline")
+      else if (payload.tab === "activities") navigate("/activities")
+      else if (payload.tab === "calisthenics") navigate("/workout")
+      else navigate(`/${payload.tab}`)
+    }
+
+    if (payload.modal === 'manual_log') {
+      if (payload.initialCategory) {
+        setManualLogCategory(payload.initialCategory as ManualCategory)
+      }
+      setManualLogOpen(true)
+    } else if (payload.modal === 'daily_recap') {
+      setIsDailyRecapMode(true)
+      setEditingPost(null)
+    } else if (payload.modal === 'auto_detected_review') {
+      setAutoActivitiesModalOpen(true)
+    }
+  }
+
   useEffect(() => {
+    // Load pending auto-detected missed activities
+    autoActivityDetectionService.getPendingActivities().then(setPendingAutoActivities).catch(console.error)
+    const unsubscribeAuto = autoActivityDetectionService.subscribe(setPendingAutoActivities)
+
     try {
       notificationService.syncAllActiveAlarms()
       const params = new URLSearchParams(window.location.search)
@@ -497,9 +531,54 @@ function AppShell() {
         navigate("/discipline")
       } else if (action === "vedas") {
         navigate("/vedas")
+      } else if (action === "manual_log") {
+        const cat = (params.get("category") as ManualCategory) || "calisthenics"
+        setManualLogCategory(cat)
+        setManualLogOpen(true)
+      } else if (action === "daily_recap") {
+        setIsDailyRecapMode(true)
+        setEditingPost(null)
+      } else if (action === "auto_review") {
+        setAutoActivitiesModalOpen(true)
       }
     } catch (e) {
       console.warn("Shortcut parameter parsing error:", e)
+    }
+
+    const handleDeepLink = (e: any) => {
+      const act = e.detail?.action
+      if (act === 'daily_recap') {
+        setIsDailyRecapMode(true)
+        setEditingPost(null)
+      } else if (act === 'manual_calisthenics' || act === 'calisthenics') {
+        setManualLogCategory('calisthenics')
+        setManualLogOpen(true)
+      } else if (act === 'manual_badminton' || act === 'badminton') {
+        setManualLogCategory('badminton')
+        setManualLogOpen(true)
+      } else if (act === 'manual_football' || act === 'football') {
+        setManualLogCategory('football')
+        setManualLogOpen(true)
+      } else if (act === 'discipline' || act === 'anfield_pulse') {
+        navigate('/discipline')
+      } else if (act === 'OPEN_AUTO_DETECTED_REVIEW' || act === 'auto_detected_review') {
+        setAutoActivitiesModalOpen(true)
+      }
+    }
+
+    window.addEventListener('kuchh_bhii_deep_link', handleDeepLink)
+
+    // Check AndroidBridge on boot for notification click
+    if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.getPendingNotificationAction === 'function') {
+      const pending = window.AndroidBridge.getPendingNotificationAction()
+      if (pending) {
+        handleDeepLink({ detail: { action: pending } })
+      }
+    }
+
+    return () => {
+      window.removeEventListener('kuchh_bhii_deep_link', handleDeepLink)
+      unsubscribeAuto()
     }
   }, [])
 
@@ -802,6 +881,43 @@ function AppShell() {
           <Suspense fallback={<div className="p-8 text-center text-xs text-white/40 font-mono animate-pulse">Loading view...</div>}>
           {playbook ? (
             <div className="space-y-6">
+              {pendingAutoActivities.length > 0 && (
+                <div className="overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 via-[#18231c] to-black/60 p-4 backdrop-blur-md shadow-xl shadow-primary/10 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3.5">
+                      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-black font-extrabold shadow-lg shadow-primary/25">
+                        <Compass className="h-5 w-5 animate-pulse" />
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-primary">
+                            🎯 Missed Workout Detected
+                          </span>
+                          <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+                            {pendingAutoActivities.length} Unconfirmed
+                          </span>
+                        </div>
+                        <p className="text-xs text-white/80 line-clamp-1 mt-0.5">
+                          {pendingAutoActivities[0].suggestedTitle} • {pendingAutoActivities[0].distanceKm.toFixed(1)} km in {Math.round(pendingAutoActivities[0].durationSeconds / 60)}m ({pendingAutoActivities[0].avgCadenceSpm} spm)
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      <button
+                        onClick={() => setAutoActivitiesModalOpen(true)}
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-extrabold text-black shadow-lg shadow-primary/25 hover:brightness-110 active:scale-95 transition-all w-full sm:w-auto"
+                      >
+                        <span>Review & Add</span>
+                        <ChevronRight className="h-4 w-4 stroke-[3]" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
               <AiCoachBriefingCard
                 athleteName={currentProfile === "women" ? "Shreya" : "Sughosh"}
                 streakCount={14}
@@ -906,6 +1022,111 @@ function AppShell() {
             <SettingsVaultTab quotes={quotes} onAddQuote={handleAddQuote} />
           ) : activities ? (
             <>
+              {/* TOP PERFORMANCE DASHBOARD HEADER & SIMPLIFIED TOGGLE */}
+              <div className="mb-5 flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2 font-display">
+                    <span>Performance Dashboard</span>
+                    <span className="rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[9px] font-bold text-primary">
+                      {activitiesViewMode === 'simple' ? '✨ Simple Mode' : '📊 Lab Telemetry'}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {activitiesViewMode === 'simple'
+                      ? 'Clean, intuitive overview of your training, movement, and progress.'
+                      : 'Comprehensive biomechanical data, ridgeline climbs, and weekly pace distribution.'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setAutoActivitiesModalOpen(true)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                      pendingAutoActivities.length > 0
+                        ? 'border-primary/50 bg-primary/20 text-primary shadow-lg shadow-primary/20 animate-pulse'
+                        : 'border-white/10 bg-[#0E131B] text-zinc-300 hover:text-white'
+                    }`}
+                    title="Continuous low-power sensor cadence & passive activity tracker"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    <span>Passive Detection</span>
+                    {pendingAutoActivities.length > 0 && (
+                      <span className="ml-1 rounded-full bg-primary px-1.5 py-0.2 text-[9px] font-black text-black">
+                        {pendingAutoActivities.length}
+                      </span>
+                    )}
+                  </button>
+
+                  <div className="flex rounded-xl border border-white/10 bg-[#0E131B] p-0.5 shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setActivitiesViewMode('simple')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        activitiesViewMode === 'simple'
+                          ? 'bg-primary text-black font-black shadow-sm'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      ✨ Simple
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivitiesViewMode('pro')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        activitiesViewMode === 'pro'
+                          ? 'bg-[#38bdf8] text-black font-black shadow-sm'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      📊 Lab Pro
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* RECOVERED AUTO-DETECTED ACTIVITIES BANNER */}
+              {pendingAutoActivities.length > 0 && (
+                <div className="mb-6 overflow-hidden rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 via-[#18231c] to-black/60 p-4 backdrop-blur-md shadow-xl shadow-primary/10 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3.5">
+                      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-black font-extrabold shadow-lg shadow-primary/25">
+                        <Compass className="h-5 w-5 animate-pulse" />
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-primary">
+                            🎯 Missed Activity Detected in Background
+                          </span>
+                          <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+                            {pendingAutoActivities.length} Unconfirmed
+                          </span>
+                        </div>
+                        <p className="text-xs text-white/80 line-clamp-1 mt-0.5">
+                          {pendingAutoActivities[0].suggestedTitle} • {pendingAutoActivities[0].distanceKm.toFixed(1)} km in {Math.round(pendingAutoActivities[0].durationSeconds / 60)}m ({pendingAutoActivities[0].avgCadenceSpm} spm)
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      <button
+                        onClick={() => setAutoActivitiesModalOpen(true)}
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-extrabold text-black shadow-lg shadow-primary/25 hover:brightness-110 active:scale-95 transition-all w-full sm:w-auto"
+                      >
+                        <span>Review & Add to Streak</span>
+                        <ChevronRight className="h-4 w-4 stroke-[3]" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="mb-6">
                 <AiCoachBriefingCard
                   athleteName={currentProfile === "women" ? "Shreya" : "Sughosh"}
@@ -913,6 +1134,55 @@ function AppShell() {
                   weeklyDistanceKm={milestones.longestRunKm || 64.8}
                   recentPace={milestones.fastest1kRunSeconds ? `${Math.floor(milestones.fastest1kRunSeconds / 60)}:${String(milestones.fastest1kRunSeconds % 60).padStart(2, '0')} /km` : "4:45 /km"}
                 />
+              </div>
+
+              {/* DAILY ACTIVITY CONSOLIDATION & QUICK MANUAL ENTRY CARD */}
+              <div className="mb-6 rounded-2xl border border-white/10 bg-gradient-to-r from-[#121824] via-[#172130] to-[#0f1622] p-4 sm:p-5 text-white shadow-xl flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 to-[#CCFF00] text-black shadow-lg shadow-amber-500/20">
+                    <Share2 size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#CCFF00]">
+                        Daily Ledger & Social Media Post
+                      </span>
+                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold text-zinc-300">
+                        {workoutLogs.length + gpsActivities.length} Activities Today
+                      </span>
+                    </div>
+                    <h4 className="text-sm sm:text-base font-black text-white mt-0.5">
+                      Consolidate Today's Badminton, Calisthenics & Cardio
+                    </h4>
+                    <p className="text-xs text-zinc-300 mt-0.5">
+                      Bundle all your sets, reps, and match scores into a shareable 4K athlete card.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    onClick={() => {
+                      setManualLogCategory("calisthenics")
+                      setManualLogOpen(true)
+                    }}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-xs font-bold text-white hover:bg-white/10 transition"
+                  >
+                    <Plus size={14} />
+                    <span>+ Quick Log Reps</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsDailyRecapMode(true)
+                      setEditingPost(null)
+                    }}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl bg-[#CCFF00] px-4 py-2.5 text-xs font-black uppercase tracking-wider text-black hover:bg-[#b8e600] transition shadow-md shadow-[#CCFF00]/20"
+                  >
+                    <Share2 size={14} />
+                    <span>Consolidate & Share</span>
+                  </button>
+                </div>
               </div>
               <div className="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
                 {[
@@ -994,7 +1264,7 @@ function AppShell() {
                   </div>
                 ))}
               </div>
-              <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_282px]">
+              <div className={`grid items-start gap-6 ${activitiesViewMode === 'simple' ? 'grid-cols-1' : 'xl:grid-cols-[minmax(0,1fr)_282px]'}`}>
                 <section className="min-w-0">
                   <div className="relative mb-7 hidden overflow-hidden rounded-2xl border border-[#fc4c02]/20 bg-[#101319] sm:block">
                     <div className="absolute inset-y-0 right-0 w-[55%] opacity-70 sm:w-[48%]">
@@ -1209,6 +1479,17 @@ function AppShell() {
                                 }
                               />
                             </div>
+                            <div className="mt-2.5 flex items-center gap-1.5 pt-2 border-t border-white/5">
+                              <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[8px] font-bold text-primary">
+                                🗺️ Map
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded bg-white/10 px-1.5 py-0.5 text-[8px] font-bold text-zinc-300">
+                                📥 Poster
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded bg-[#fc4c02]/15 px-1.5 py-0.5 text-[8px] font-bold text-[#ff8952]">
+                                🎬 Video
+                              </span>
+                            </div>
                           </div>
                           {list && (
                             <ArrowUpRight
@@ -1225,6 +1506,7 @@ function AppShell() {
                     <span className="h-px w-8 bg-border" />
                   </div>
                 </section>
+                {activitiesViewMode === 'pro' && (
                 <aside className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">
                   <div className={`${panel} p-5`}>
                     <div className="flex items-center justify-between">
@@ -1335,6 +1617,7 @@ function AppShell() {
                     </button>
                   </div>
                 </aside>
+                )}
               </div>
             </>
           ) : (
@@ -1377,163 +1660,326 @@ function AppShell() {
         ))}
       </nav>
 
-      {/* ACTIVITY DETAIL MODAL */}
-      {selected && (
-        <Modal title="Activity deep-dive" close={() => setSelected(null)}>
-          <div className="flex items-center gap-2 text-[10px] text-[#fc4c02]">
-            <SportIcon sport={selected.sport} />
-            {selected.sport}{" "}
-            <span className="ml-auto text-muted-foreground">
-              {selected.date}
-            </span>
-          </div>
-          <h2 className="mt-4 font-display text-2xl font-bold">
-            {selected.title}
-          </h2>
-          <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin size={12} />
-            {selected.location}
-          </div>
-          <div className="my-5 grid grid-cols-3 rounded-xl border border-border bg-background p-4">
-            <Metric
-              value={selected.distance}
-              unit={selected.sport === "Calisthenics" ? "reps" : "km"}
-            />
-            <Metric value={selected.time} unit="moving time" />
-            <Metric
-              value={selected.pace}
-              unit={selected.sport === "Running" ? "pace /km" : "peak km/h"}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <RouteArt
-              workout={selected}
-              className="w-full rounded-xl bg-background"
-            />
-            <div className="flex flex-col justify-center">
-              <span className="text-[9px] tracking-widest text-muted-foreground">
-                OVERALL SUFFER SCORE
-              </span>
-              <div className="mt-2 font-display text-4xl font-bold">
-                88<span className="text-base text-muted-foreground"> /100</span>
-              </div>
-              <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                A hard effort. Give your body time to recover and come back stronger.
-              </p>
-            </div>
-          </div>
-          <div className="mt-6 flex justify-between text-xs font-medium">
-            <span>Elevation profile</span>
-            <span className="text-[#ff9667]">+185 m</span>
-          </div>
-          <Ridgelines className="mt-2 w-full" />
-          <Splits />
-          <button
-            onClick={() => {
-              const distKm = parseFloat(selected.distance) || 5.0;
-              const result = RouteIntelligenceFirestoreService.normalizeFromHistoricalGpsLog({
-                id: `act_${selected.id}`,
-                title: selected.title,
-                activityType: selected.sport === "Running" ? "run" : selected.sport === "Cycling" ? "cycle" : "walk",
-                date: selected.date,
-                startTime: Date.now() - 3600000,
-                endTime: Date.now(),
-                durationSeconds: 1800,
-                distanceKm: distKm,
-                avgSpeedKmh: 12.5,
-                topSpeedKmh: 18.2,
-                avgPaceMinKm: selected.pace,
-                elevationGainMeters: 85,
-                caloriesBurned: 450,
-                heartPointsEarned: 35,
-                stepsCount: 5400,
-                splits: [],
-                routePoints: [
-                  { latitude: 12.9716, longitude: 77.5946, timestamp: Date.now() - 1800000, speed: 3.2, accuracy: 4.5 },
-                  { latitude: 12.9725, longitude: 77.5960, timestamp: Date.now() - 1500000, speed: 3.5, accuracy: 4.2 },
-                  { latitude: 12.9740, longitude: 77.5985, timestamp: Date.now() - 1200000, speed: 3.4, accuracy: 4.8 },
-                  { latitude: 12.9765, longitude: 77.6010, timestamp: Date.now() - 900000, speed: 3.1, accuracy: 5.1 },
-                  { latitude: 12.9785, longitude: 77.6040, timestamp: Date.now() - 600000, speed: 3.6, accuracy: 4.0 },
-                  { latitude: 12.9805, longitude: 77.6075, timestamp: Date.now() - 300000, speed: 3.3, accuracy: 4.3 },
-                  { latitude: 12.9820, longitude: 77.6095, timestamp: Date.now(), speed: 3.0, accuracy: 3.9 }
-                ],
-                milestonesReached: [],
-                userId: currentProfile === "women" ? "women" : "men"
-              });
+      {/* ACTIVITY DETAIL & WORLD-CLASS EXPORT MODAL */}
+      {selected && (() => {
+        const routePoints = getRoutePointsForWorkout(selected);
+        const athleteName = currentProfile === "women" ? "Shreya Dixit" : "Sughosh Dixit";
 
-              setSelected(null);
-              setRouteDetailActivity(result.activity);
-            }}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[#FC5200]/40 bg-[#FC5200]/10 py-3 text-xs font-semibold text-[#FC5200] hover:bg-[#FC5200]/20 transition cursor-pointer"
-          >
-            <Compass size={14} />
-            Route Intelligence &amp; Trail Video
-          </button>
-          <button
-            onClick={() => {
-              setSelected(null)
-              navigate("/studio")
-            }}
-            className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-xs font-semibold text-primary-foreground"
-          >
-            <Sparkles size={14} />
-            Make an activity poster
-          </button>
-        </Modal>
-      )}
+        return (
+          <Modal title="Activity deep-dive" close={() => setSelected(null)}>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 font-medium">
+                <SportIcon sport={selected.sport} />
+                <span>{selected.sport}</span>
+              </div>
+              <span className="font-mono text-[11px]">{selected.date}</span>
+            </div>
+
+            <h2 className="mt-3 font-display text-2xl font-black text-white">
+              {selected.title}
+            </h2>
+
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin size={13} className="text-[#fc4c02]" />
+              <span>{selected.location}</span>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="my-4 grid grid-cols-3 rounded-2xl border border-white/10 bg-[#121824] p-3 text-center shadow-lg">
+              <Metric
+                value={selected.distance}
+                unit={selected.sport === "Calisthenics" ? "reps" : "km"}
+              />
+              <Metric value={selected.time} unit="moving time" />
+              <Metric
+                value={selected.pace}
+                unit={selected.sport === "Running" ? "pace /km" : selected.sport === "Calisthenics" ? "avg bpm" : "km/h"}
+              />
+            </div>
+
+            {/* Map Preview vs Route Art Toggle Bar */}
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-1 p-0.5 rounded-xl border border-white/10 bg-white/5">
+                <button
+                  type="button"
+                  onClick={() => setActivityPreviewMode('map')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    activityPreviewMode === 'map'
+                      ? 'bg-[#fc4c02] text-white shadow-md font-black'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  🗺️ Live Map Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivityPreviewMode('art')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    activityPreviewMode === 'art'
+                      ? 'bg-primary text-black shadow-md font-black'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  ⚡ Route Art
+                </button>
+              </div>
+
+              <span className="text-[10px] font-mono font-semibold text-zinc-400">
+                {routePoints.length} GPS Points
+              </span>
+            </div>
+
+            {/* Visualizer Frame */}
+            {activityPreviewMode === 'map' ? (
+              <ActivityMapPreview
+                workout={selected}
+                routePoints={routePoints}
+                height="240px"
+                className="mb-4"
+              />
+            ) : (
+              <div className="mb-4 rounded-2xl border border-white/10 bg-background overflow-hidden p-2">
+                <RouteArt
+                  workout={selected}
+                  className="w-full h-[200px]"
+                />
+              </div>
+            )}
+
+            {/* DOWNLOAD POSTER & VIDEO BUTTONS */}
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
+              <button
+                type="button"
+                disabled={exportingPoster}
+                onClick={async () => {
+                  try {
+                    setExportingPoster(true);
+                    setToast("Rendering 4K athletic poster...");
+                    const res = await ActivityExportService.downloadPoster(selected, routePoints, athleteName);
+                    setToast(res);
+                  } catch (e: any) {
+                    setToast("Poster export failed: " + (e?.message || e));
+                  } finally {
+                    setExportingPoster(false);
+                  }
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 py-3 text-xs font-bold text-white transition cursor-pointer disabled:opacity-50"
+              >
+                <Download size={14} className="text-[#CCFF00]" />
+                <span>{exportingPoster ? "Saving..." : "📥 Download Poster"}</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={exportingVideo}
+                onClick={async () => {
+                  try {
+                    setExportingVideo(true);
+                    setToast("Generating 9:16 vertical trail video...");
+                    const res = await ActivityExportService.downloadVideo(
+                      selected,
+                      routePoints,
+                      athleteName,
+                      (pct) => setVideoExportProgress(pct)
+                    );
+                    setToast(res);
+                  } catch (e: any) {
+                    setToast("Video export failed: " + (e?.message || e));
+                  } finally {
+                    setExportingVideo(false);
+                    setVideoExportProgress(0);
+                  }
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#FC5200] hover:bg-[#e04800] py-3 text-xs font-bold text-white shadow-lg shadow-[#FC5200]/25 transition cursor-pointer disabled:opacity-50"
+              >
+                <Video size={14} />
+                <span>{exportingVideo ? `Rendering (${videoExportProgress}%)...` : "🎬 Download Video"}</span>
+              </button>
+            </div>
+
+            {/* ROUTE INTELLIGENCE & TRAIL VIDEO FULL LAUNCH */}
+            <button
+              type="button"
+              onClick={() => {
+                const distKm = parseFloat(selected.distance) || 5.0;
+                const result = RouteIntelligenceFirestoreService.normalizeFromHistoricalGpsLog({
+                  id: `act_${selected.id}`,
+                  title: selected.title,
+                  activityType: selected.sport === "Running" ? "run" : selected.sport === "Cycling" ? "cycle" : "walk",
+                  date: selected.date,
+                  startTime: Date.now() - 3600000,
+                  endTime: Date.now(),
+                  durationSeconds: 1800,
+                  distanceKm: distKm,
+                  avgSpeedKmh: 12.5,
+                  topSpeedKmh: 18.2,
+                  avgPaceMinKm: selected.pace,
+                  elevationGainMeters: 85,
+                  caloriesBurned: 450,
+                  heartPointsEarned: 35,
+                  stepsCount: 5400,
+                  splits: [],
+                  routePoints: routePoints,
+                  milestonesReached: [],
+                  userId: currentProfile === "women" ? "women" : "men"
+                });
+
+                setSelected(null);
+                setRouteDetailData({
+                  activity: result.activity,
+                  geometries: result.geometries
+                });
+              }}
+              className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-[#FC5200]/40 bg-[#FC5200]/10 py-3 text-xs font-bold text-[#FC5200] hover:bg-[#FC5200]/20 transition cursor-pointer"
+            >
+              <Compass size={15} />
+              <span>Route Intelligence &amp; Trail Video</span>
+            </button>
+
+            {/* OPEN FULL 4K SHARE STUDIO */}
+            <button
+              type="button"
+              onClick={() => {
+                const cardData: SocialShareCardData = {
+                  title: selected.title,
+                  workoutType: selected.sport,
+                  stats: [
+                    { label: "Distance", value: selected.distance, unit: selected.sport === "Calisthenics" ? "reps" : "km" },
+                    { label: "Pace / Speed", value: selected.pace },
+                    { label: "Moving Time", value: selected.time },
+                    { label: "Location", value: selected.location }
+                  ],
+                  motivationalQuote: "Discipline equals freedom! - Jocko Willink",
+                  quoteAuthor: "Commander Iron",
+                  streakDays: 14,
+                  date: selected.date,
+                  persona: currentProfile,
+                  routePoints: routePoints,
+                  showRouteOverlay: routePoints.length > 1,
+                  templateStyle: "strava_classic"
+                };
+                setSelected(null);
+                setActiveShareCardData(cardData);
+              }}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-xs font-black text-primary-foreground hover:bg-[#dcff4d] transition shadow-md shadow-primary/20 cursor-pointer"
+            >
+              <Sparkles size={15} />
+              <span>Customize in 4K Share Studio</span>
+            </button>
+          </Modal>
+        );
+      })()}
 
       {/* QUICK ACTIVITY LAUNCHER MODAL */}
       {activityLauncherOpen && (
         <Modal title="Log an Athletic Session" close={() => setActivityLauncherOpen(false)}>
-          <p className="text-xs text-muted-foreground mb-6">
-            Choose how you would like to track or record your training:
+          <p className="text-xs text-muted-foreground mb-4">
+            Select a manual sport match, quick reps entry, live GPS tracking, or daily recap:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            {/* 1. Quick Push-ups / Calisthenics */}
+            <button
+              onClick={() => {
+                setActivityLauncherOpen(false)
+                setManualLogCategory("calisthenics")
+                setManualLogOpen(true)
+              }}
+              className="flex flex-col items-center text-center p-4 rounded-2xl border border-primary/40 bg-primary/5 hover:bg-primary/10 transition group cursor-pointer"
+            >
+              <div className="p-3 rounded-full bg-primary/20 text-primary mb-2 group-hover:scale-110 transition">
+                <Dumbbell size={22} />
+              </div>
+              <div className="text-xs font-bold text-white mb-0.5">💪 Quick Push-ups / Reps</div>
+              <div className="text-[10px] text-muted-foreground leading-snug">
+                Log 15 push-ups, pull-ups, squats, or multi-set ladders in 5 seconds
+              </div>
+            </button>
+
+            {/* 2. Badminton Match */}
+            <button
+              onClick={() => {
+                setActivityLauncherOpen(false)
+                setManualLogCategory("badminton")
+                setManualLogOpen(true)
+              }}
+              className="flex flex-col items-center text-center p-4 rounded-2xl border border-[#CCFF00]/40 bg-[#CCFF00]/5 hover:bg-[#CCFF00]/10 transition group cursor-pointer"
+            >
+              <div className="p-3 rounded-full bg-[#CCFF00]/20 text-[#CCFF00] mb-2 group-hover:scale-110 transition">
+                <Trophy size={22} />
+              </div>
+              <div className="text-xs font-bold text-white mb-0.5">🏸 Badminton Match</div>
+              <div className="text-[10px] text-muted-foreground leading-snug">
+                Singles / doubles scores, smash drills, minutes, and caloric burn
+              </div>
+            </button>
+
+            {/* 3. Football Match */}
+            <button
+              onClick={() => {
+                setActivityLauncherOpen(false)
+                setManualLogCategory("football")
+                setManualLogOpen(true)
+              }}
+              className="flex flex-col items-center text-center p-4 rounded-2xl border border-[#FC5200]/40 bg-[#FC5200]/5 hover:bg-[#FC5200]/10 transition group cursor-pointer"
+            >
+              <div className="p-3 rounded-full bg-[#FC5200]/20 text-[#FC5200] mb-2 group-hover:scale-110 transition">
+                <Flame size={22} />
+              </div>
+              <div className="text-xs font-bold text-white mb-0.5">⚽ Football Match</div>
+              <div className="text-[10px] text-muted-foreground leading-snug">
+                Turf 5v5/7v7, winger minutes, goals scored, and pitch intensity
+              </div>
+            </button>
+
+            {/* 4. Live GPS Run / Cycle */}
             <button
               onClick={() => {
                 setActivityLauncherOpen(false)
                 setGpsModalActivityType("run")
               }}
-              className="flex flex-col items-center text-center p-5 rounded-2xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition group"
+              className="flex flex-col items-center text-center p-4 rounded-2xl border border-sky-400/40 bg-sky-400/5 hover:bg-sky-400/10 transition group cursor-pointer"
             >
-              <div className="p-3 rounded-full bg-primary/20 text-primary mb-3 group-hover:scale-110 transition">
-                <Footprints size={24} />
+              <div className="p-3 rounded-full bg-sky-400/20 text-sky-400 mb-2 group-hover:scale-110 transition">
+                <Footprints size={22} />
               </div>
-              <div className="text-xs font-bold text-white mb-1">Live GPS Tracking</div>
-              <div className="text-[9px] text-muted-foreground leading-4">
-                High-accuracy satellite route with auto-splits and background screen lock
+              <div className="text-xs font-bold text-white mb-0.5">🏃 Live GPS Run / Ride</div>
+              <div className="text-[10px] text-muted-foreground leading-snug">
+                Satellite pacing, auto-splits, elevation gain, and 3D flyby
               </div>
             </button>
 
+            {/* 5. Consolidate Daily Recap Post */}
+            <button
+              onClick={() => {
+                setActivityLauncherOpen(false)
+                setIsDailyRecapMode(true)
+                setEditingPost(null)
+              }}
+              className="flex flex-col items-center text-center p-4 rounded-2xl border border-amber-400/40 bg-amber-400/5 hover:bg-amber-400/10 transition group cursor-pointer"
+            >
+              <div className="p-3 rounded-full bg-amber-400/20 text-amber-400 mb-2 group-hover:scale-110 transition">
+                <Share2 size={22} />
+              </div>
+              <div className="text-xs font-bold text-white mb-0.5">🔥 Daily Recap Social Card</div>
+              <div className="text-[10px] text-muted-foreground leading-snug">
+                Consolidate today's matches, push-ups and runs into a 4K shareable card
+              </div>
+            </button>
+
+            {/* 6. Guided Combos */}
             <button
               onClick={() => {
                 setActivityLauncherOpen(false)
                 navigate("/workout")
               }}
-              className="flex flex-col items-center text-center p-5 rounded-2xl border border-dude/30 bg-dude/5 hover:bg-dude/10 transition group"
+              className="flex flex-col items-center text-center p-4 rounded-2xl border border-white/20 bg-white/5 hover:bg-white/10 transition group cursor-pointer"
             >
-              <div className="p-3 rounded-full bg-dude/20 text-dude mb-3 group-hover:scale-110 transition">
-                <Dumbbell size={24} />
+              <div className="p-3 rounded-full bg-white/10 text-zinc-300 mb-2 group-hover:scale-110 transition">
+                <Play size={22} />
               </div>
-              <div className="text-xs font-bold text-white mb-1">Yellow Dude Workout</div>
-              <div className="text-[9px] text-muted-foreground leading-4">
-                Interactive workout player with voice coaching, rep counters & rest timers
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setActivityLauncherOpen(false)
-                setEditingPost(null)
-              }}
-              className="flex flex-col items-center text-center p-5 rounded-2xl border border-sky-400/30 bg-sky-400/5 hover:bg-sky-400/10 transition group"
-            >
-              <div className="p-3 rounded-full bg-sky-400/20 text-sky-400 mb-3 group-hover:scale-110 transition">
-                <Sparkles size={24} />
-              </div>
-              <div className="text-xs font-bold text-white mb-1">Post to Community</div>
-              <div className="text-[9px] text-muted-foreground leading-4">
-                Compile multi-sport session with restored photos, 4K video clips & badges
+              <div className="text-xs font-bold text-white mb-0.5">⚡ Guided Combos</div>
+              <div className="text-[10px] text-muted-foreground leading-snug">
+                Yellow Dude playbook player with audio voice coaching and rest timers
               </div>
             </button>
           </div>
@@ -1682,14 +2128,47 @@ function AppShell() {
       )}
 
       {/* ROUTE INTELLIGENCE MODAL */}
-      {routeDetailActivity && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4">
-          <div className="w-full max-w-2xl h-[90vh] bg-[#0E131B] border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-scale-up">
+      {routeDetailData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-fade-in">
+          <div className="w-full max-w-2xl h-[92vh] bg-[#0E131B] border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-scale-up">
             <ActivityRouteDetailView
-              activity={routeDetailActivity}
-              onClose={() => setRouteDetailActivity(null)}
-              onOpenSocialShare={() => {
-                setRouteDetailActivity(null)
+              activity={routeDetailData.activity}
+              geometries={routeDetailData.geometries}
+              onClose={() => setRouteDetailData(null)}
+              onOpenSocialShare={(actDoc) => {
+                const routePoints = getRoutePointsForWorkout({
+                  id: 999,
+                  title: actDoc.title,
+                  sport: actDoc.sportType === 'RIDE' ? 'Cycling' : actDoc.sportType === 'WALK' ? 'Running' : actDoc.sportType === 'FOOTBALL' ? 'Football' : 'Running',
+                  date: new Date(actDoc.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                  distance: `${(actDoc.distanceMeters / 1000).toFixed(2)}`,
+                  time: `${Math.floor(actDoc.movingTimeSeconds / 60)}m ${actDoc.movingTimeSeconds % 60}s`,
+                  pace: actDoc.averagePaceString,
+                  color: '#fc4c02',
+                  route: '',
+                  location: 'Bengaluru'
+                });
+
+                const cardData: SocialShareCardData = {
+                  title: actDoc.title,
+                  workoutType: actDoc.sportType === 'RIDE' ? 'Cycling' : actDoc.sportType === 'WALK' ? 'Walking' : actDoc.sportType === 'FOOTBALL' ? 'Football Match' : actDoc.sportType === 'CALISTHENICS' ? 'Calisthenics' : 'Running',
+                  stats: [
+                    { label: 'Distance', value: `${(actDoc.distanceMeters / 1000).toFixed(2)}`, unit: 'km' },
+                    { label: 'Avg Pace', value: actDoc.averagePaceString },
+                    { label: 'Moving Time', value: `${Math.floor(actDoc.movingTimeSeconds / 60)}m ${actDoc.movingTimeSeconds % 60}s` },
+                    { label: 'Ascent', value: `+${actDoc.elevationGainMeters || 0}`, unit: 'm' }
+                  ],
+                  motivationalQuote: 'Discipline equals freedom! - Jocko Willink',
+                  quoteAuthor: 'Commander Iron',
+                  streakDays: 14,
+                  date: new Date(actDoc.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                  persona: currentProfile,
+                  routePoints: routePoints,
+                  showRouteOverlay: routePoints.length > 1,
+                  templateStyle: 'strava_classic'
+                };
+                setRouteDetailData(null);
+                setActiveShareCardData(cardData);
               }}
             />
           </div>
@@ -1744,12 +2223,31 @@ function AppShell() {
           todayFootballDrills={footballDrills}
           currentProfile={currentProfile}
           quotesList={quotes}
+          isDailyRecapMode={isDailyRecapMode}
           onSavePost={handleSaveStravaPost}
           onOpenShareStudio={(cardData) => {
             setEditingPost(undefined)
+            setIsDailyRecapMode(false)
             setActiveShareCardData(cardData)
           }}
-          onClose={() => setEditingPost(undefined)}
+          onClose={() => {
+            setEditingPost(undefined)
+            setIsDailyRecapMode(false)
+          }}
+        />
+      )}
+
+      {manualLogOpen && (
+        <ManualActivityLogModal
+          initialCategory={manualLogCategory}
+          currentProfile={currentProfile}
+          onSaveWorkoutLog={handleLogWorkout}
+          onSaveActivityLog={(act) => handleSaveGpsActivity(act, milestones)}
+          onOpenShareCard={(cardData) => {
+            setManualLogOpen(false)
+            setActiveShareCardData(cardData)
+          }}
+          onClose={() => setManualLogOpen(false)}
         />
       )}
 
@@ -1770,6 +2268,7 @@ function AppShell() {
             else if (tab === "activities") navigate("/activities")
             else navigate(`/${tab}`)
           }}
+          onExecuteAction={handleExecuteNotificationAction}
         />
       )}
 
@@ -1780,6 +2279,18 @@ function AppShell() {
           streakCount={14}
           totalDistanceKm={milestones.longestRunKm || 142.8}
           athleteName={currentProfile === "women" ? "Shreya" : "Sughosh"}
+        />
+      )}
+
+      {autoActivitiesModalOpen && (
+        <AutoDetectedActivityModal
+          initialActivities={pendingAutoActivities}
+          userPersona={currentProfile === "women" ? "women" : "men"}
+          onConfirmActivity={(log) => {
+            handleSaveGpsActivity(log, milestones)
+            setToast(`Workout Recovered: ${log.distanceKm} km logged to discipline streak!`)
+          }}
+          onClose={() => setAutoActivitiesModalOpen(false)}
         />
       )}
       </Suspense>
@@ -2406,10 +2917,22 @@ function Studio({ toast }: { toast: (message: string) => void }) {
       const context = canvas.getContext("2d")
       if (!context) throw new Error("Canvas unavailable")
       const download = (blob: Blob, extension: string) => {
+        const fileName = `everything-morning-miles-${resolution}.${extension}`
+        const mimeType = extension === "png" ? "image/png" : extension === "mp4" ? "video/mp4" : "video/webm"
+        const bridge = typeof window !== "undefined" ? window.AndroidBridge : undefined
+        if (bridge && typeof bridge.downloadBase64File === "function") {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            const base64 = reader.result as string
+            bridge.downloadBase64File(base64, fileName, mimeType)
+          }
+          reader.readAsDataURL(blob)
+          return
+        }
         const url = URL.createObjectURL(blob)
         const link = document.createElement("a")
         link.href = url
-        link.download = `everything-morning-miles-${resolution}.${extension}`
+        link.download = fileName
         link.click()
         setTimeout(() => URL.revokeObjectURL(url), 1000)
       }

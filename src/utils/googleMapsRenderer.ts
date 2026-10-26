@@ -269,9 +269,138 @@ export function projectLatLngToScreen(
   };
 }
 
+export interface AnimatedAthleteMarkerOptions {
+  x: number;
+  y: number;
+  headingRad: number;
+  scale?: number;
+  accentColor?: string;
+  activityType?: string;
+  elapsedMs?: number;
+  showRadar?: boolean;
+  showHeadingBeam?: boolean;
+}
+
+/**
+ * Draws animated athlete runner / cyclist / vehicle beacon marker
+ * with realistic stride bobbing, street-facing illumination beam,
+ * pulsing radar wave, and high-visibility activity icon.
+ */
+export function drawAnimatedAthleteMarker(
+  ctx: CanvasRenderingContext2D,
+  options: AnimatedAthleteMarkerOptions
+): void {
+  const {
+    x,
+    y,
+    headingRad,
+    scale = 1.0,
+    accentColor = '#00f5d4',
+    activityType = 'run',
+    elapsedMs = Date.now(),
+    showRadar = true,
+    showHeadingBeam = true,
+  } = options;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  // 1. Radar Pulse Ring (continuous animated expansion)
+  if (showRadar) {
+    const pulsePhase = (elapsedMs % 1200) / 1200;
+    const pulseRadius = (16 + pulsePhase * 26) * scale;
+    const pulseAlpha = Math.max(0, 1 - pulsePhase) * 0.55;
+
+    ctx.save();
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 2.5 * scale;
+    ctx.globalAlpha = pulseAlpha;
+    ctx.beginPath();
+    ctx.arc(0, 0, pulseRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 2. Street Heading Beam (illuminates street ahead in movement vector)
+  if (showHeadingBeam) {
+    ctx.save();
+    ctx.rotate(headingRad);
+    const beamGrad = ctx.createRadialGradient(0, 0, 4 * scale, 0, -50 * scale, 45 * scale);
+    beamGrad.addColorStop(0, 'rgba(255, 255, 255, 0.45)');
+    beamGrad.addColorStop(0.35, accentColor + '66');
+    beamGrad.addColorStop(1, 'transparent');
+
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(-5 * scale, 0);
+    ctx.lineTo(-26 * scale, -50 * scale);
+    ctx.lineTo(26 * scale, -50 * scale);
+    ctx.lineTo(5 * scale, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 3. Stride Motion (Cadence Vertical Bounce & Body Tilt)
+  const act = activityType.toLowerCase();
+  const isVehicle = act.includes('drive') || act.includes('car');
+  const isRide = act.includes('cycle') || act.includes('bike') || act.includes('ride');
+  
+  // Running cadence bounce: rhythmic vertical stride motion
+  const strideBounce = isVehicle ? 0 : Math.abs(Math.sin(elapsedMs * 0.014)) * 3.5 * scale;
+  const strideTilt = isVehicle ? 0 : Math.sin(elapsedMs * 0.014) * 0.14;
+
+  // 4. Outer Glowing Disc with Drop Shadow
+  ctx.save();
+  ctx.shadowColor = accentColor;
+  ctx.shadowBlur = 14 * scale;
+  ctx.shadowOffsetY = 2 * scale;
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath();
+  ctx.arc(0, -strideBounce, 16 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 3.5 * scale;
+  ctx.stroke();
+  ctx.restore();
+
+  // 5. White Inner Ring
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(0, -strideBounce, 12 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 6. Athlete Emoji Icon with animated running stride tilt
+  ctx.save();
+  ctx.translate(0, -strideBounce);
+  ctx.rotate(strideTilt);
+  ctx.font = `${Math.round(16 * scale)}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const iconEmoji = isVehicle
+    ? '🚗'
+    : isRide
+    ? '🚴'
+    : act.includes('walk')
+    ? '🚶'
+    : act.includes('football')
+    ? '⚽'
+    : act.includes('badminton')
+    ? '🏸'
+    : '🏃';
+
+  ctx.fillText(iconEmoji, 0, 1 * scale);
+  ctx.restore();
+
+  ctx.restore();
+}
+
 /**
  * Draws the authentic Google Maps Navigation Puck:
  * Pulsing concentric radar rings + Directional Navigation Chevron Arrow
+ * or Animated Athlete Marker.
  */
 export function drawGoogleNavigationPuck(
   ctx: CanvasRenderingContext2D,
@@ -279,54 +408,19 @@ export function drawGoogleNavigationPuck(
   y: number,
   headingRad: number,
   scale: number = 1.0,
-  accentColor: string = '#00f5d4'
+  accentColor: string = '#00f5d4',
+  activityType: string = 'run',
+  elapsedMs: number = Date.now()
 ): void {
-  ctx.save();
-  ctx.translate(x, y);
-
-  // 1. Radar pulse ring
-  const pulsePhase = (Date.now() % 1400) / 1400;
-  const pulseRadius = (16 + pulsePhase * 18) * scale;
-  const pulseAlpha = Math.max(0, 1 - pulsePhase) * 0.45;
-
-  ctx.strokeStyle = accentColor;
-  ctx.lineWidth = 2.5 * scale;
-  ctx.globalAlpha = pulseAlpha;
-  ctx.beginPath();
-  ctx.arc(0, 0, pulseRadius, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // 2. Translucent outer beacon halo
-  ctx.globalAlpha = 0.25;
-  ctx.fillStyle = accentColor;
-  ctx.beginPath();
-  ctx.arc(0, 0, 18 * scale, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 3. Crisp white beacon puck with drop shadow
-  ctx.globalAlpha = 1.0;
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-  ctx.shadowBlur = 8 * scale;
-  ctx.shadowOffsetY = 2 * scale;
-
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(0, 0, 11 * scale, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  // 4. Directional Chevron / Arrow pointing in travel heading
-  ctx.rotate(headingRad);
-  ctx.fillStyle = accentColor;
-  ctx.beginPath();
-  ctx.moveTo(0, -9 * scale);      // Tip
-  ctx.lineTo(6 * scale, 6 * scale);   // Bottom right
-  ctx.lineTo(0, 3 * scale);       // Inner notch
-  ctx.lineTo(-6 * scale, 6 * scale);  // Bottom left
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.restore();
+  drawAnimatedAthleteMarker(ctx, {
+    x,
+    y,
+    headingRad,
+    scale,
+    accentColor,
+    activityType,
+    elapsedMs,
+  });
 }
 
 /**

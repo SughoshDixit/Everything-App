@@ -16,7 +16,8 @@ class AlarmScheduler(private val context: Context) {
         hour: Int,
         minute: Int,
         title: String,
-        message: String
+        message: String,
+        targetAction: String = ""
     ) {
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, hour)
@@ -33,6 +34,7 @@ class AlarmScheduler(private val context: Context) {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("EXTRA_TITLE", title)
             putExtra("EXTRA_MESSAGE", message)
+            putExtra("EXTRA_TARGET_ACTION", targetAction)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -79,10 +81,11 @@ class AlarmScheduler(private val context: Context) {
         }
     }
 
-    fun showInstantNotification(title: String, message: String) {
+    fun showInstantNotification(title: String, message: String, targetAction: String = "") {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("EXTRA_TITLE", title)
             putExtra("EXTRA_MESSAGE", message)
+            putExtra("EXTRA_TARGET_ACTION", targetAction)
         }
         context.sendBroadcast(intent)
     }

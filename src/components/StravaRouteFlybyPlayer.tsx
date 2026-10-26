@@ -23,8 +23,8 @@ import {
   renderGoogleMapToCanvas,
   projectLatLngToScreen,
   computeOptimalZoom,
-  drawGoogleNavigationPuck,
   drawGoogleMapsBrandBadge,
+  drawAnimatedAthleteMarker,
   preloadGoogleMapTiles
 } from '../utils/googleMapsRenderer';
 
@@ -618,7 +618,7 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         ctx.stroke();
         ctx.restore();
 
-        // 4. Google Maps Navigation Puck & Heading Beacon
+        // 4. Animated Athlete Runner / Cyclist / Vehicle Marker
         const activePt = smoothedTrajectory[currentStep];
         const prevPt = smoothedTrajectory[Math.max(0, currentStep - 1)];
         const { x: ax, y: ay } = toScreen(activePt.lat, activePt.lng);
@@ -629,7 +629,17 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
           heading = Math.atan2(dLng, dLat);
         }
 
-        drawGoogleNavigationPuck(ctx, ax, ay, heading, isVertical ? 1.4 : 1.1, primaryColor);
+        drawAnimatedAthleteMarker(ctx, {
+          x: ax,
+          y: ay,
+          headingRad: heading,
+          scale: isVertical ? 1.5 : 1.2,
+          accentColor: primaryColor,
+          activityType: currentActivity.activityType,
+          elapsedMs: performance.now(),
+          showRadar: true,
+          showHeadingBeam: true,
+        });
 
         // Google Maps Attribution Badge
         drawGoogleMapsBrandBadge(

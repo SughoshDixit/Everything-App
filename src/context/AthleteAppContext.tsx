@@ -269,6 +269,8 @@ export const AthleteAppProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const sportLabel = log.activityType === 'run' ? 'Morning Run 🏃'
       : log.activityType === 'cycle' ? 'Outdoor Ride 🚴'
       : log.activityType === 'walk' ? 'Fitness Walk 🚶'
+      : log.activityType === 'badminton' ? 'Badminton Match 🏸'
+      : log.activityType === 'football' ? 'Football Match ⚽'
       : 'Road Trip 🚗';
 
     const newPost: StravaActivityPost = {
@@ -283,9 +285,15 @@ export const AthleteAppProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       activities: [
         {
           id: 'item_' + log.id,
-          category: log.activityType === 'run' ? 'gps_run' : log.activityType === 'cycle' ? 'gps_cycle' : 'gps_walk',
+          category: log.activityType === 'run' ? 'gps_run'
+            : log.activityType === 'cycle' ? 'gps_cycle'
+            : log.activityType === 'badminton' ? 'badminton'
+            : log.activityType === 'football' ? 'football'
+            : 'gps_walk',
           title: log.title || sportLabel,
-          details: `${log.distanceKm} km • ${movingTimeMin} mins • Pace ${log.avgPaceMinKm}`,
+          details: log.distanceKm > 0 
+            ? `${log.distanceKm} km • ${movingTimeMin} mins • Pace ${log.avgPaceMinKm}`
+            : `${movingTimeMin} mins • ${log.caloriesBurned || 0} kcal`,
           gpsActivityId: log.id,
           includedInPost: true
         }

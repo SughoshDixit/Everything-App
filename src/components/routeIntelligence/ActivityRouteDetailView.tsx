@@ -100,7 +100,20 @@ export const ActivityRouteDetailView: React.FC<ActivityRouteDetailViewProps> = (
     const geomKey = activeRenderMode === 'RAW' ? 'raw' : 'cleaned';
     const targetGeom = geometries[geomKey];
 
-    if (!targetGeom) return;
+    if (!targetGeom) {
+      if (activity.encodedPolyline) {
+        try {
+          const pts = ActivityRouteProcessingService.decodePolyline(activity.encodedPolyline, 6);
+          const coords = pts.map((p) => [p.latitude, p.longitude] as [number, number]);
+          if (coords.length > 0) {
+            mapProviderRef.current.renderRoute(coords, undefined, activeRenderMode);
+          }
+        } catch (e) {
+          console.warn('Fallback decode polyline failed', e);
+        }
+      }
+      return;
+    }
 
     try {
       if (targetGeom.segments && targetGeom.segments.length > 0) {
@@ -130,7 +143,7 @@ export const ActivityRouteDetailView: React.FC<ActivityRouteDetailViewProps> = (
     } catch (e) {
       console.warn('Failed to render route coordinates to map provider:', e);
     }
-  }, [activeRenderMode, geometries, isIndoor]);
+  }, [activeRenderMode, geometries, isIndoor, activity.encodedPolyline]);
 
   // Format Helpers
   const formattedDate = new Date(activity.startedAt).toLocaleDateString('en-US', {
@@ -179,6 +192,31 @@ export const ActivityRouteDetailView: React.FC<ActivityRouteDetailViewProps> = (
           elevation: c[2]
         };
       });
+    }
+
+    if (progressPoints.length === 0 && activity.encodedPolyline) {
+      try {
+        const decoded = ActivityRouteProcessingService.decodePolyline(activity.encodedPolyline, 6);
+        let cumDist = 0;
+        progressPoints = decoded.map((c, idx) => {
+          if (idx > 0) {
+            const prev = decoded[idx - 1];
+            cumDist += ActivityRouteQualityService.haversineMeters(prev.latitude, prev.longitude, c.latitude, c.longitude);
+          }
+          const prog = activity.distanceMeters > 0
+            ? Math.min(1.0, cumDist / activity.distanceMeters)
+            : idx / Math.max(1, decoded.length - 1);
+          return {
+            coordinate: [c.longitude, c.latitude],
+            cumulativeDistanceMeters: Math.round(cumDist),
+            normalizedProgress: Math.round(prog * 10000) / 10000,
+            timestamp: activity.startedAt + idx * 1000,
+            elevation: c.altitude ?? 920
+          };
+        });
+      } catch (e) {
+        console.warn('Fallback decode for video points failed', e);
+      }
     }
 
     const bounds = geometries.video?.bounds || geometries.cleaned?.bounds || geometries.raw?.bounds || {

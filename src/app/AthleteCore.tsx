@@ -576,6 +576,16 @@ export function Playbook() {
                 Start Push Combo <ArrowUpRight size={13} />
               </button>
 
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('kuchh_bhii_deep_link', { detail: { action: 'manual_calisthenics' } }))
+                }}
+                className="flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-xs font-bold text-primary hover:bg-primary/20 transition cursor-pointer"
+              >
+                <Plus size={14} />
+                + Quick Log 15 Push-ups
+              </button>
+
               <Link
                 to="/armor"
                 className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-xs font-semibold text-white/80 hover:text-white hover:border-white/20 transition cursor-pointer"

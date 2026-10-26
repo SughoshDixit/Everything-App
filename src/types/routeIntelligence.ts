@@ -120,6 +120,7 @@ export interface ActivityDocument {
   matchedGeometryId?: string;
   simplifiedGeometryId?: string;
   videoGeometryId?: string;
+  encodedPolyline?: string;
   processingStatus: ProcessingJobStatus;
   qualityReport?: GpsQualityReport;
   splits: ActivitySplitMetric[];

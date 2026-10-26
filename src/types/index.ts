@@ -1,3 +1,21 @@
+export * from './tactical';
+
+export type Sport = 'All activities' | 'Football' | 'Running' | 'Cycling' | 'Calisthenics';
+
+export interface Workout {
+  id: number;
+  title: string;
+  sport: Exclude<Sport, 'All activities'>;
+  date: string;
+  distance: string;
+  time: string;
+  pace: string;
+  color: string;
+  route: string;
+  location: string;
+  record?: string;
+}
+
 export type UserProfile = 'men' | 'women' | 'couple';
 
 export type GenderType = 'male' | 'female';
@@ -196,7 +214,7 @@ export interface UserStats {
 // -----------------------------------------------------------------------------
 // GPS Activity Tracking & Milestones Types
 // -----------------------------------------------------------------------------
-export type ActivityType = 'run' | 'cycle' | 'walk' | 'calisthenics' | 'football' | 'workout';
+export type ActivityType = 'run' | 'cycle' | 'walk' | 'calisthenics' | 'football' | 'badminton' | 'workout';
 
 export interface GpsLocationPoint {
   latitude: number;
@@ -220,7 +238,7 @@ export interface ActivitySplit {
 export interface GpsActivityLog {
   id: string;
   title?: string;
-  activityType: 'run' | 'cycle' | 'walk' | 'drive';
+  activityType: 'run' | 'cycle' | 'walk' | 'drive' | 'football' | 'badminton' | 'workout';
   date: string;
   startTime: number;
   endTime: number;
@@ -434,7 +452,7 @@ export type PostBackgroundTheme =
 
 export interface CompiledActivityItem {
   id: string;
-  category: 'calisthenics' | 'gps_run' | 'gps_cycle' | 'gps_walk' | 'football';
+  category: 'calisthenics' | 'gps_run' | 'gps_cycle' | 'gps_walk' | 'football' | 'badminton' | 'sports';
   title: string; // e.g. "Diamond Push-Ups", "5.2 km Morning Run", "1v1 Winger Cut-Inside"
   details: string; // e.g. "3 Sets (15, 12, 10 reps)", "26:14 • Pace 5:02/km • +42m", "15 mins • High Intensity"
   metrics?: { label: string; value: string }[];
@@ -490,7 +508,7 @@ export interface StravaActivityPost {
   userId: 'men' | 'women' | 'couple';
   title: string;
   description?: string;
-  sportType: 'run' | 'cycle' | 'calisthenics' | 'football' | 'walk' | 'drive' | 'workout';
+  sportType: 'run' | 'cycle' | 'calisthenics' | 'football' | 'badminton' | 'walk' | 'drive' | 'workout';
   rpe?: number; // 1-10 Perceived Exertion
   activities: CompiledActivityItem[];
   gpsActivity?: GpsActivityLog;
@@ -542,7 +560,7 @@ export interface SocialShareCardData {
   multiStageRoutes?: {
     stageIndex: number;
     title: string;
-    activityType: 'run' | 'cycle' | 'walk' | 'drive';
+    activityType: 'run' | 'cycle' | 'walk' | 'drive' | 'football' | 'badminton' | 'workout';
     distanceKm: number;
     points: GpsLocationPoint[];
   }[];
@@ -557,6 +575,26 @@ export interface SocialShareCardData {
   splits?: ActivitySplit[];
   recordBadges?: ActivityRecordBadge[];
   is4k?: boolean;
+}
+
+// -----------------------------------------------------------------------------
+// Auto-Detected Passive / Missed Activity
+// -----------------------------------------------------------------------------
+export interface AutoDetectedActivity {
+  id: string;
+  activityType: 'run' | 'walk' | 'cycle' | 'football' | 'workout' | 'badminton';
+  startTime: number;
+  endTime: number;
+  durationSeconds: number;
+  distanceKm: number;
+  estimatedCalories: number;
+  avgCadenceSpm: number;
+  confidenceScore: number; // 0 - 100
+  detectionSource: 'cadence_accelerometer' | 'passive_gps' | 'fused_sensors';
+  status: 'pending_review' | 'confirmed' | 'discarded';
+  suggestedTitle: string;
+  notes?: string;
+  rawPointsSummary?: { lat: number; lng: number }[];
 }
 
 declare global {
@@ -576,6 +614,14 @@ declare global {
       showNotification?: (title: string, message: string) => boolean;
       checkNotificationPermission?: () => boolean;
       requestNotificationPermission?: () => boolean;
+      getPendingNotificationAction?: () => string;
+      scheduleAlarmWithAction?: (requestCode: number, hour: number, minute: number, title: string, message: string, action: string) => boolean;
+      getAutoDetectedActivitiesJson?: () => string;
+      confirmAutoDetectedActivity?: (id: string) => boolean;
+      discardAutoDetectedActivity?: (id: string) => boolean;
+      simulateBackgroundActivityDetection?: (type: string, durationMinutes: number, distanceKm: number) => string;
+      isAutoDetectionServiceActive?: () => boolean;
+      toggleAutoDetectionService?: (enabled: boolean) => boolean;
     };
     onNativeGpsUpdate?: (pos: any) => void;
   }

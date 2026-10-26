@@ -25,14 +25,17 @@ import {
   Pause,
   RotateCcw,
   Music,
-  Layers
+  Layers,
+  Flame,
+  Shield
 } from 'lucide-react';
+import { LIVERPOOL_FC_QUOTES, INDIAN_ARMY_QUOTES } from '../services/tacticalAiEngine';
 import {
   renderGoogleMapToCanvas,
   projectLatLngToScreen,
   computeOptimalZoom,
-  drawGoogleNavigationPuck,
-  drawGoogleMapsBrandBadge
+  drawGoogleMapsBrandBadge,
+  drawAnimatedAthleteMarker
 } from '../utils/googleMapsRenderer';
 
 interface SocialWorkoutShareModalProps {
@@ -171,6 +174,9 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   const [customQuoteText, setCustomQuoteText] = useState<string>(initialData.motivationalQuote || '');
   const [customQuoteAuthor, setCustomQuoteAuthor] = useState<string>(initialData.quoteAuthor || (initialData.persona === 'women' ? 'Shreya' : 'Sughosh'));
   const [useCustomQuote, setUseCustomQuote] = useState<boolean>(!!initialData.motivationalQuote);
+  const [anfieldQuoteIdx, setAnfieldQuoteIdx] = useState<number>(0);
+  const [indianArmyQuoteIdx, setIndianArmyQuoteIdx] = useState<number>(0);
+  const [quoteSelectionMode, setQuoteSelectionMode] = useState<'custom' | 'presets' | 'anfield' | 'indian_army'>('presets');
 
   const defaultQuotes = [
     { text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.', author: 'Aristotle' },
@@ -180,9 +186,15 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
     { text: 'Talent without working hard is nothing.', author: 'Cristiano Ronaldo' }
   ];
 
+  const anfieldQuote = LIVERPOOL_FC_QUOTES[anfieldQuoteIdx % LIVERPOOL_FC_QUOTES.length];
+  const indianArmyQuote = INDIAN_ARMY_QUOTES[indianArmyQuoteIdx % INDIAN_ARMY_QUOTES.length];
   const activeQuotes = quotesList && quotesList.length > 0 ? quotesList : defaultQuotes;
   const defaultQuote = activeQuotes[currentQuoteIndex % activeQuotes.length];
-  const currentQuote = useCustomQuote && customQuoteText.trim()
+  const currentQuote = quoteSelectionMode === 'anfield'
+    ? { text: anfieldQuote.text, author: anfieldQuote.speaker }
+    : quoteSelectionMode === 'indian_army'
+    ? { text: indianArmyQuote.text, author: indianArmyQuote.speaker }
+    : useCustomQuote && customQuoteText.trim()
     ? { text: customQuoteText.trim(), author: customQuoteAuthor.trim() || (initialData.persona === 'women' ? 'Shreya' : 'Sughosh') }
     : defaultQuote;
 
@@ -624,8 +636,18 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       ctx.fill();
       ctx.restore();
     } else {
-      // Photorealistic Google Maps Navigation Puck (Radar Pulse + Directional Chevron)
-      drawGoogleNavigationPuck(ctx, ax, ay, heading, scale, primaryColor);
+      // Animated Athlete Runner / Cyclist / Walker Marker (with Stride Motion + Heading Beam)
+      drawAnimatedAthleteMarker(ctx, {
+        x: ax,
+        y: ay,
+        headingRad: heading,
+        scale: scale * 1.35,
+        accentColor: primaryColor,
+        activityType: activeStageName,
+        elapsedMs: performance.now(),
+        showRadar: true,
+        showHeadingBeam: true,
+      });
     }
 
     // 6. HUD & Overlays: Telemetry, Quotes, Brand & "Made with intention doing Kuchh Bhii"
@@ -1042,7 +1064,13 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   };
 
   const handleNextQuote = () => {
-    setCurrentQuoteIndex((prev) => prev + 1);
+    if (quoteSelectionMode === 'anfield') {
+      setAnfieldQuoteIdx((prev) => prev + 1);
+    } else if (quoteSelectionMode === 'indian_army') {
+      setIndianArmyQuoteIdx((prev) => prev + 1);
+    } else {
+      setCurrentQuoteIndex((prev) => prev + 1);
+    }
   };
 
   return (
@@ -1218,26 +1246,96 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
                 <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-full border border-white/10">
                   <button
                     type="button"
-                    onClick={() => setUseCustomQuote(true)}
+                    onClick={() => {
+                      setQuoteSelectionMode('custom');
+                      setUseCustomQuote(true);
+                    }}
                     className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all cursor-pointer ${
-                      useCustomQuote ? 'bg-[#ffd700] text-black font-black shadow-sm' : 'text-white/60 hover:text-white'
+                      quoteSelectionMode === 'custom' && useCustomQuote ? 'bg-[#ffd700] text-black font-black shadow-sm' : 'text-white/60 hover:text-white'
                     }`}
                   >
-                    Custom Quote
+                    Custom
                   </button>
                   <button
                     type="button"
-                    onClick={() => setUseCustomQuote(false)}
+                    onClick={() => {
+                      setQuoteSelectionMode('presets');
+                      setUseCustomQuote(false);
+                    }}
                     className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all cursor-pointer ${
-                      !useCustomQuote ? 'bg-[#ccff00] text-black font-black shadow-sm' : 'text-white/60 hover:text-white'
+                      quoteSelectionMode === 'presets' && !useCustomQuote ? 'bg-[#ccff00] text-black font-black shadow-sm' : 'text-white/60 hover:text-white'
                     }`}
                   >
-                    Preset Quotes
+                    Presets
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuoteSelectionMode('anfield');
+                      setUseCustomQuote(false);
+                    }}
+                    className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all cursor-pointer flex items-center gap-1 ${
+                      quoteSelectionMode === 'anfield' ? 'bg-red-500 text-white font-black shadow-sm' : 'text-red-400 hover:text-white'
+                    }`}
+                  >
+                    <Flame size={10} className={quoteSelectionMode === 'anfield' ? 'text-white' : 'text-red-400'} />
+                    <span>Anfield</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuoteSelectionMode('indian_army');
+                      setUseCustomQuote(false);
+                    }}
+                    className={`text-[10px] font-bold py-1 px-2.5 rounded-full transition-all cursor-pointer flex items-center gap-1 ${
+                      quoteSelectionMode === 'indian_army' ? 'bg-amber-600 text-white font-black shadow-sm' : 'text-amber-400 hover:text-white'
+                    }`}
+                  >
+                    <Shield size={10} className={quoteSelectionMode === 'indian_army' ? 'text-white' : 'text-amber-400'} />
+                    <span>🇮🇳 Army</span>
                   </button>
                 </div>
               </div>
 
-              {useCustomQuote ? (
+              {quoteSelectionMode === 'anfield' ? (
+                <div className="flex items-center justify-between p-2 rounded-xl bg-red-950/40 border border-red-500/40 animate-fade-in">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <span className="text-[9px] font-black uppercase text-red-400 font-mono block">
+                      🔴 {anfieldQuote.speaker} • {anfieldQuote.context}
+                    </span>
+                    <p className="text-xs font-medium text-white italic truncate mt-0.5">
+                      "{anfieldQuote.text}"
+                    </p>
+                  </div>
+                  <button
+                    className="bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs py-1 px-2.5 flex items-center gap-1 rounded-full shrink-0 transition"
+                    onClick={handleNextQuote}
+                    title="Next Anfield Quote"
+                  >
+                    <RefreshCw size={11} />
+                    <span>Next</span>
+                  </button>
+                </div>
+              ) : quoteSelectionMode === 'indian_army' ? (
+                <div className="flex items-center justify-between p-2 rounded-xl bg-amber-950/40 border border-amber-500/40 animate-fade-in">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <span className="text-[9px] font-black uppercase text-amber-400 font-mono block">
+                      🇮🇳 {indianArmyQuote.speaker} ({indianArmyQuote.regimentOrRank}) • {indianArmyQuote.battleCry}
+                    </span>
+                    <p className="text-xs font-medium text-white italic truncate mt-0.5">
+                      "{indianArmyQuote.text}"
+                    </p>
+                  </div>
+                  <button
+                    className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs py-1 px-2.5 flex items-center gap-1 rounded-full shrink-0 transition"
+                    onClick={handleNextQuote}
+                    title="Next Indian Army Quote"
+                  >
+                    <RefreshCw size={11} />
+                    <span>Next</span>
+                  </button>
+                </div>
+              ) : quoteSelectionMode === 'custom' || useCustomQuote ? (
                 <div className="flex flex-col gap-1.5 animate-fade-in">
                   <textarea
                     value={customQuoteText}

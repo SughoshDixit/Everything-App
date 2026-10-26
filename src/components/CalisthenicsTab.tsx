@@ -9,6 +9,12 @@ import type { ComboWorkoutRoutine, PlaybookExercise } from '../utils/yellowDudeP
 import { ComboWorkoutPlayer } from './ComboWorkoutPlayer';
 import { OnboardingModal } from './OnboardingModal';
 import { ZoomableImageModal } from './ZoomableImageModal';
+import { ActiveRecoveryPlayerModal } from './ActiveRecoveryPlayerModal';
+import {
+  setCommanderOverride,
+  DEFAULT_ACTIVE_RECOVERY_PROTOCOL
+} from '../services/tacticalRoutineService';
+import { speakEnforcedRestOrder } from '../services/militaryCadenceService';
 import { speakExerciseIntro } from '../utils/audioCoach';
 import {
   Play,
@@ -22,7 +28,10 @@ import {
   BookOpen,
   Award,
   CheckCircle2,
-  ZoomIn
+  ZoomIn,
+  ShieldCheck,
+  AlertTriangle,
+  HeartPulse
 } from 'lucide-react';
 
 interface CalisthenicsTabProps {
@@ -44,6 +53,11 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
 
   // Active Combo Workout Session State
   const [activeComboRoutine, setActiveComboRoutine] = useState<ComboWorkoutRoutine | null>(null);
+
+  // Tactical Routine & Active Recovery States
+  const [showRecoveryModal, setShowRecoveryModal] = useState<boolean>(false);
+  const [showOverrideConfirm, setShowOverrideConfirm] = useState<boolean>(false);
+  const [pendingDayPlan, setPendingDayPlan] = useState<typeof month1Calendar[0] | null>(null);
 
   // Info Modal States (For User to Peruse upon clicking 'i' icon)
   const [infoRoutine, setInfoRoutine] = useState<ComboWorkoutRoutine | null>(null);
@@ -79,8 +93,12 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
 
   const selectedDayPlan = month1Calendar.find((d) => d.dayNumber === selectedDayNum) || month1Calendar[0];
 
-  // 1-Click Launch Combo from Calendar Day
+  // Launch Combo from Calendar Day with Rest Day Handling
   const handleLaunchCalendarDayCombo = (dayPlan: typeof selectedDayPlan) => {
+    if (dayPlan.isRestDay) {
+      setShowRecoveryModal(true);
+      return;
+    }
     let matchedRoutine = yellowDudeComboRoutines[0];
     if (dayPlan.focusCategory.includes('Pull')) {
       matchedRoutine = yellowDudeComboRoutines[1];
@@ -90,6 +108,28 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
       matchedRoutine = yellowDudeComboRoutines[3];
     }
     setActiveComboRoutine(matchedRoutine);
+  };
+
+  const handleForceComboOnRestDay = (dayPlan: typeof selectedDayPlan) => {
+    speakEnforcedRestOrder();
+    setPendingDayPlan(dayPlan);
+    setShowOverrideConfirm(true);
+  };
+
+  const handleConfirmOverride = () => {
+    setCommanderOverride();
+    setShowOverrideConfirm(false);
+    if (pendingDayPlan) {
+      let matchedRoutine = yellowDudeComboRoutines[0];
+      if (pendingDayPlan.focusCategory.includes('Pull')) {
+        matchedRoutine = yellowDudeComboRoutines[1];
+      } else if (pendingDayPlan.focusCategory.includes('Football') || pendingDayPlan.focusCategory.includes('Core')) {
+        matchedRoutine = yellowDudeComboRoutines[2];
+      } else if (pendingDayPlan.focusCategory.includes('Match')) {
+        matchedRoutine = yellowDudeComboRoutines[3];
+      }
+      setActiveComboRoutine(matchedRoutine);
+    }
   };
 
   return (
@@ -150,6 +190,34 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
       {/* ------------------------------------------------------------------- */}
       {activeSubTab === 'combos' && (
         <div className="subtab-content grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Tactical Routine & Periodization Banner */}
+          <div className="md:col-span-2 rounded-2xl border border-white/10 bg-gradient-to-r from-[#111827] via-[#0d1520] to-[#0b131a] p-3.5 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                <ShieldCheck size={18} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                    Tactical Periodization
+                  </span>
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold text-zinc-300">
+                    Workout + Rest Protocol
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-300 mt-0.5">
+                  Balancing high-density push/pull sets with CNS decompression and joint mobility.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowRecoveryModal(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/20 px-3.5 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-500/30 transition shadow-sm"
+            >
+              <HeartPulse size={14} />
+              <span>Launch Active Recovery</span>
+            </button>
+          </div>
           {yellowDudeComboRoutines.map((routine, idx) => (
             <div
               key={routine.id}
@@ -219,7 +287,9 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
           <div className="glass-card card-stagger p-4">
             <div className="flex justify-between items-center flex-wrap gap-2 mb-3">
               <div>
-                <span className="badge-pill bg-cyan text-[10px]">{selectedDayPlan.focusCategory}</span>
+                <span className={`badge-pill ${selectedDayPlan.isRestDay ? 'bg-emerald text-emerald-300' : 'bg-cyan'} text-[10px]`}>
+                  {selectedDayPlan.isRestDay ? '🛡️ DEFCON 1: ACTIVE RECOVERY' : selectedDayPlan.focusCategory}
+                </span>
                 <h3 className="text-lg font-bold text-white mt-1">{selectedDayPlan.dayTitle}</h3>
                 <div className="text-xs text-sub mt-0.5">
                   <Calendar className="icon-xs inline mr-1" />
@@ -227,13 +297,32 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
                 </div>
               </div>
 
-              <button
-                className="btn-primary btn-large bg-lime-400 text-black hover:bg-lime-300 font-black uppercase tracking-wider text-xs flex items-center gap-1 py-2.5 px-4"
-                onClick={() => handleLaunchCalendarDayCombo(selectedDayPlan)}
-              >
-                <Play size={16} fill="#000" />
-                <span>Start Day {selectedDayNum} Combo</span>
-              </button>
+              {selectedDayPlan.isRestDay ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    className="btn-primary btn-large bg-emerald-400 text-black hover:bg-emerald-300 font-black uppercase tracking-wider text-xs flex items-center gap-1.5 py-2.5 px-4 shadow-lg shadow-emerald-500/20"
+                    onClick={() => setShowRecoveryModal(true)}
+                  >
+                    <ShieldCheck size={16} />
+                    <span>Launch Recovery Protocol</span>
+                  </button>
+                  <button
+                    className="text-[10px] text-zinc-500 hover:text-amber-400 underline p-1 font-mono uppercase"
+                    onClick={() => handleForceComboOnRestDay(selectedDayPlan)}
+                    title="Exercise Commander Override to train on rest day"
+                  >
+                    Force Workout
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="btn-primary btn-large bg-lime-400 text-black hover:bg-lime-300 font-black uppercase tracking-wider text-xs flex items-center gap-1 py-2.5 px-4"
+                  onClick={() => handleLaunchCalendarDayCombo(selectedDayPlan)}
+                >
+                  <Play size={16} fill="#000" />
+                  <span>Start Day {selectedDayNum} Combo</span>
+                </button>
+              )}
             </div>
 
             {/* Exercise List */}
@@ -537,6 +626,73 @@ export const CalisthenicsTab: React.FC<CalisthenicsTabProps> = ({
           }}
           onClose={() => setActiveComboRoutine(null)}
         />
+      )}
+
+      {/* ACTIVE RECOVERY PROTOCOL PLAYER (REST DAY REGENERATION) */}
+      {showRecoveryModal && (
+        <ActiveRecoveryPlayerModal
+          protocol={DEFAULT_ACTIVE_RECOVERY_PROTOCOL}
+          onFinish={() => {
+            onLogWorkout({
+              userId: currentProfile === 'women' ? 'women' : 'men',
+              exerciseId: 'recovery-protocol-cns',
+              exerciseName: 'Active Recovery & CNS Decompression',
+              setsCompleted: 5,
+              repsCompleted: [120, 180, 300, 180, 180],
+              perceivedExertion: 3,
+              notes: 'Completed Tactical Recovery Mission: Spine dead hangs, foam rolling & Vedic box breathing.'
+            });
+            setShowRecoveryModal(false);
+          }}
+          onClose={() => setShowRecoveryModal(false)}
+        />
+      )}
+
+      {/* COMMANDER OVERRIDE WARNING DIALOG */}
+      {showOverrideConfirm && pendingDayPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-amber-500/40 bg-[#121824] p-5 text-white shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                  Tactical Warning: DEFCON 1
+                </span>
+                <h4 className="text-sm font-bold text-white">Commander Rest Lockout</h4>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Soldier, Day {pendingDayPlan.dayNumber} is scheduled for biological recovery. Forcing high-density push/pull sets today violates the recovery ratio and increases tendon strain.
+            </p>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setShowOverrideConfirm(false);
+                  setShowRecoveryModal(true);
+                }}
+                className="w-full rounded-xl bg-emerald-400 py-2.5 text-xs font-black uppercase text-black hover:bg-emerald-300 transition"
+              >
+                Execute Recovery Protocol (Recommended)
+              </button>
+              <button
+                onClick={handleConfirmOverride}
+                className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 py-2 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition"
+              >
+                Exercise Commander Override & Train Anyway
+              </button>
+              <button
+                onClick={() => setShowOverrideConfirm(false)}
+                className="w-full py-1 text-xs text-zinc-500 hover:text-white transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

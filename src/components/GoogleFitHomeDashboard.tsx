@@ -51,6 +51,9 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
   onOpenCreatePost,
   onOpenFeed
 }) => {
+  const [dashboardMode, setDashboardMode] = React.useState<'simple' | 'pro'>('simple');
+  const [showAdvancedAnalytics, setShowAdvancedAnalytics] = React.useState<boolean>(false);
+
   // Calculate Daily Google Fit Ring Stats
   const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const todayGps = gpsActivities.filter((a) => a.date === todayStr);
@@ -130,15 +133,42 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
         {/* Subtle background glow */}
         <div className="absolute top-0 right-1/4 w-72 h-72 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
 
-        <div className="w-full flex items-center justify-between mb-4">
+        <div className="w-full flex items-center justify-between flex-wrap gap-2 mb-4">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary flex items-center gap-1.5">
               <Sparkles size={12} /> GOOGLE FIT TELEMETRY
             </span>
           </div>
-          <span className="text-[10px] font-mono font-semibold text-muted-foreground">
-            {todayStr}
-          </span>
+          
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-xl border border-white/10 bg-white/5 p-0.5">
+              <button
+                type="button"
+                onClick={() => setDashboardMode('simple')}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                  dashboardMode === 'simple'
+                    ? 'bg-primary text-black shadow-sm font-black'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                ✨ Simple
+              </button>
+              <button
+                type="button"
+                onClick={() => setDashboardMode('pro')}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                  dashboardMode === 'pro'
+                    ? 'bg-[#38bdf8] text-black shadow-sm font-black'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                📊 Pro
+              </button>
+            </div>
+            <span className="text-[10px] font-mono font-semibold text-muted-foreground hidden sm:inline">
+              {todayStr}
+            </span>
+          </div>
         </div>
 
         {/* Dual Concentric SVG Ring Visual */}
@@ -455,7 +485,35 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
       {/* ------------------------------------------------------------------- */}
       {/* 4b. MULTI-YEAR HISTORICAL TRENDS & ANALYTICS (2019 - 2026) */}
       {/* ------------------------------------------------------------------- */}
-      <HistoricalTrendsDashboard gpsActivities={gpsActivities} milestones={milestones} />
+      {dashboardMode === 'pro' || showAdvancedAnalytics ? (
+        <div className="space-y-4">
+          <HistoricalTrendsDashboard gpsActivities={gpsActivities} milestones={milestones} />
+          {dashboardMode === 'simple' && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedAnalytics(false)}
+                className="text-xs text-muted-foreground hover:text-white underline cursor-pointer"
+              >
+                Hide Advanced Analytics
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-white/10 bg-[#0e131b] p-4 text-center">
+          <p className="text-xs text-zinc-400 mb-2.5">
+            Looking for multi-year pace distributions, rolling averages, and heart rate zones?
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowAdvancedAnalytics(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 transition cursor-pointer"
+          >
+            <span>📊 View Deep Analytics &amp; Trends</span>
+          </button>
+        </div>
+      )}
 
       {/* ------------------------------------------------------------------- */}
       {/* 5. RECENT ACTIVITIES WITH QUICK POST & FLYBY */}

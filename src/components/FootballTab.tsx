@@ -35,15 +35,27 @@ export const FootballTab: React.FC<FootballTabProps> = ({ drills, onOpenCreatePo
           </div>
         </div>
 
-        {onOpenCreatePost && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={onOpenCreatePost}
-            className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground hover:brightness-110 transition shadow-sm"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('kuchh_bhii_deep_link', { detail: { action: 'manual_football' } }))
+            }}
+            className="flex items-center gap-1.5 rounded-xl border border-sky-400/30 bg-sky-400/10 px-3.5 py-2.5 text-xs font-bold text-sky-400 hover:bg-sky-400/20 transition shadow-sm cursor-pointer"
           >
             <Plus size={14} />
-            <span>Compile Football Post</span>
+            <span>+ Log Match</span>
           </button>
-        )}
+
+          {onOpenCreatePost && (
+            <button
+              onClick={onOpenCreatePost}
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground hover:brightness-110 transition shadow-sm"
+            >
+              <Plus size={14} />
+              <span>Compile Post</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Pitch vs Calisthenics Schedule Balance Guidance */}

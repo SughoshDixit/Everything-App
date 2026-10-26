@@ -23,12 +23,14 @@ interface NotificationCenterDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateTab?: (tabKey: string) => void;
+  onExecuteAction?: (payload: NonNullable<InAppNotification['actionPayload']>) => void;
 }
 
 export const NotificationCenterDrawer: React.FC<NotificationCenterDrawerProps> = ({
   isOpen,
   onClose,
   onNavigateTab,
+  onExecuteAction,
 }) => {
   const [activeTab, setActiveTab] = useState<'feed' | 'alarms'>('feed');
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
@@ -77,6 +79,14 @@ export const NotificationCenterDrawer: React.FC<NotificationCenterDrawerProps> =
       '⏰ Your native alarm & split notifications are calibrated for peak performance!'
     );
     speakText('Native notification and audio coach test successful!');
+    setTestSent(true);
+    setNotifications(notificationService.getInAppNotifications());
+    setTimeout(() => setTestSent(false), 3000);
+  };
+
+  const handleTriggerSurpriseMotivation = () => {
+    const alert = notificationService.triggerInstantMotivationPulse();
+    speakText(`${alert.speaker} says: ${alert.quote}`);
     setTestSent(true);
     setNotifications(notificationService.getInAppNotifications());
     setTimeout(() => setTestSent(false), 3000);
@@ -217,7 +227,10 @@ export const NotificationCenterDrawer: React.FC<NotificationCenterDrawerProps> =
                       onClick={() => {
                         notificationService.markAsRead(item.id);
                         setNotifications(notificationService.getInAppNotifications());
-                        if (item.actionPayload?.tab && onNavigateTab) {
+                        if (onExecuteAction && item.actionPayload) {
+                          onExecuteAction(item.actionPayload);
+                          onClose();
+                        } else if (item.actionPayload?.tab && onNavigateTab) {
                           onNavigateTab(item.actionPayload.tab);
                           onClose();
                         }
@@ -356,8 +369,17 @@ export const NotificationCenterDrawer: React.FC<NotificationCenterDrawerProps> =
                 ))}
               </div>
 
-              {/* Test Alert Button */}
-              <div className="pt-2">
+              {/* Test Alert Buttons */}
+              <div className="pt-2 space-y-2">
+                <button
+                  onClick={handleTriggerSurpriseMotivation}
+                  disabled={testSent}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 py-3 text-xs font-bold text-red-400 transition hover:bg-red-500/20 active:scale-[0.98]"
+                >
+                  <Flame size={16} className="text-red-500 animate-pulse" />
+                  {testSent ? '✓ Anfield Motivation Alert Sent!' : '🔴 Send Random Anfield Motivation Alert'}
+                </button>
+
                 <button
                   onClick={handleSendTestNotification}
                   disabled={testSent}
@@ -366,8 +388,8 @@ export const NotificationCenterDrawer: React.FC<NotificationCenterDrawerProps> =
                   <Volume2 size={16} />
                   {testSent ? '✓ Notification & Audio Sent!' : 'Test Native System Notification'}
                 </button>
-                <p className="mt-1.5 text-center text-[10px] text-zinc-500">
-                  Tests Android NotificationManager & Audio Beep bridge instantly.
+                <p className="mt-1 text-center text-[10px] text-zinc-500">
+                  Tests Android NotificationManager, random AI motivators & Audio Beep bridge instantly.
                 </p>
               </div>
             </div>

@@ -41,13 +41,15 @@ class AlarmReceiver : BroadcastReceiver() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        // Tap notification to open main app
+        // Tap notification to open main app and trigger action
+        val targetAction = intent.getStringExtra("EXTRA_TARGET_ACTION") ?: ""
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("NOTIFICATION_ACTION", targetAction)
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
-            0,
+            System.currentTimeMillis().toInt(),
             openAppIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
