@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, useState, lazy, Suspense } from "react"
+import { useEffect, useId, useRef, useState, useMemo, lazy, Suspense } from "react"
+import { AUTHENTIC_STRAVA_POSTS } from "../data/authenticStravaData"
+import { generateRouteSvgPath } from "../utils/milestonesTracker"
 import {
   Armor,
   Community,
@@ -96,89 +98,45 @@ import {
   Zap,
 } from "lucide-react"
 
-const workouts: Workout[] = [
-  {
-    id: 1,
-    title: "Morning miles, clear mind.",
-    sport: "Running",
-    date: "TODAY, 06:32",
-    distance: "5.24",
-    time: "24:12",
-    pace: "4:37",
-    color: "#fc4c02",
-    route:
-      "M87 146 L73 132 L70 104 L86 78 L104 74 L115 49 L143 41 L173 50 L181 79 L203 88 L215 110 L210 139 L189 155 L165 161 L143 180 L114 172 L105 151 L87 146 Z M115 49 L112 74 L132 87 L152 85 L173 50 M143 180 L148 147 L163 135 L189 155",
-    record: "FASTEST 1K",
-    location: "Cubbon Park, Bengaluru",
-  },
-  {
-    id: 2,
-    title: "Own the left wing.",
-    sport: "Football",
-    date: "YESTERDAY, 17:45",
-    distance: "7.82",
-    time: "68:24",
-    pace: "29.4",
-    color: "#ccff00",
-    route:
-      "M78 61 L187 64 L193 165 L80 169 L78 61 L180 153 L91 84 L171 81 L98 146 L174 139 L116 70 L123 160 L149 81 L154 154 L88 107 L180 116 L89 133 L173 97 L104 64 L106 166",
-    location: "South United Football Club",
-  },
-  {
-    id: 3,
-    title: "The long way home.",
-    sport: "Cycling",
-    date: "SEP 29, 07:10",
-    distance: "42.6",
-    time: "1:42:08",
-    pace: "25.0",
-    color: "#38bdf8",
-    route:
-      "M48 123 L59 114 L66 82 L83 77 L105 92 L124 79 L130 53 L157 48 L171 63 L169 92 L187 104 L208 93 L231 106 L246 136 L226 159 L202 151 L183 162 L162 155 L146 178 L125 169 L115 147 L93 153 L72 139 L48 123",
-    record: "LONGEST RIDE",
-    location: "Nandi Hills, Bengaluru",
-  },
-  {
-    id: 4,
-    title: "Chasing the elevation.",
-    sport: "Running",
-    date: "SEP 28, 06:15",
-    distance: "8.12",
-    time: "42:36",
-    pace: "5:15",
-    color: "#fc4c02",
-    route:
-      "M76 167 L87 157 L88 140 L105 128 L93 116 L115 108 L111 89 L127 81 L117 68 L143 53 L158 64 L171 51 L191 63 L184 84 L201 102 L183 116 L197 127 L178 144 L156 133 L141 153 L120 148 L110 169 L90 179 L76 167",
-    location: "Turahalli Forest, Bengaluru",
-  },
-  {
-    id: 5,
-    title: "Built, not born.",
-    sport: "Calisthenics",
-    date: "SEP 27, 18:00",
-    distance: "320",
-    time: "45:00",
-    pace: "128",
-    color: "#c084fc",
-    route:
-      "M44 142 L44 113 L60 113 L60 75 L77 75 L77 142 L94 142 L94 98 L111 98 L111 48 L128 48 L128 142 L145 142 L145 88 L162 88 L162 62 L179 62 L179 142 L196 142 L196 102 L213 102 L213 79 L230 79 L230 142 L248 142",
-    location: "The Movement Studio",
-  },
-  {
-    id: 6,
-    title: "One more. Then another.",
-    sport: "Football",
-    date: "SEP 26, 17:30",
-    distance: "6.45",
-    time: "55:18",
-    pace: "28.1",
-    color: "#ccff00",
-    route:
-      "M77 160 L77 66 L195 66 L195 160 L77 160 L189 72 L84 101 L187 132 L85 153 L183 87 L85 125 L179 153 L128 73 L139 155 L162 72 L103 158",
-    record: "HARDEST EFFORT",
-    location: "South United Football Club",
-  },
-]
+function buildWorkoutFromStravaPost(p: any, idx: number): Workout {
+  let routeSvg = "M87 146 L73 132 L70 104 L86 78 L104 74 L115 49 L143 41 L173 50 L181 79 L203 88 L215 110 L210 139 L189 155 L165 161 L143 180 L114 172 L105 151 L87 146 Z";
+  if (p.gpsActivity?.routePoints && p.gpsActivity.routePoints.length > 2) {
+    routeSvg = generateRouteSvgPath(p.gpsActivity.routePoints, 280, 140);
+  }
+
+  const durationSec = p.gpsActivity?.durationSeconds || (p.totalMoveMinutes ? p.totalMoveMinutes * 60 : 1500);
+  const timeStr = `${Math.floor(durationSec / 60)}:${String(durationSec % 60).padStart(2, '0')}`;
+
+  return {
+    id: 1000 + idx,
+    title: p.title,
+    sport: (p.sportType === "cycle"
+      ? "Cycling"
+      : p.sportType === "calisthenics"
+        ? "Calisthenics"
+        : p.sportType === "football"
+          ? "Football"
+          : "Running") as Exclude<Sport, "All activities">,
+    date: p.date.toUpperCase(),
+    distance: p.totalDistanceKm ? p.totalDistanceKm.toFixed(2) : "0.00",
+    time: timeStr,
+    pace: p.avgPaceMinKm || "4:45",
+    color:
+      p.sportType === "cycle"
+        ? "#38bdf8"
+        : p.sportType === "calisthenics"
+          ? "#c084fc"
+          : p.sportType === "football"
+            ? "#ccff00"
+            : "#fc4c02",
+    route: routeSvg,
+    record: p.recordBadges?.[0]?.title,
+    location: p.activities?.[0]?.details || p.description || "Karnataka, India",
+  };
+}
+
+const workouts: Workout[] = AUTHENTIC_STRAVA_POSTS.map((p, idx) => buildWorkoutFromStravaPost(p, idx));
+
 const sports: Sport[] = [
   "All activities",
   "Football",
@@ -584,35 +542,12 @@ function AppShell() {
 
   const formattedTime = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`
 
-  const allWorkouts: Workout[] = [
-    ...workouts,
-    ...stravaPosts.map((p, idx) => ({
-      id: 2000 + idx,
-      title: p.title,
-      sport: (p.sportType === "cycle"
-        ? "Cycling"
-        : p.sportType === "calisthenics"
-          ? "Calisthenics"
-          : p.sportType === "football"
-            ? "Football"
-            : "Running") as Exclude<Sport, "All activities">,
-      date: p.date.toUpperCase(),
-      distance: p.totalDistanceKm ? p.totalDistanceKm.toFixed(2) : "5.00",
-      time: `${p.totalMoveMinutes || 25}:00`,
-      pace: p.avgPaceMinKm || "4:45",
-      color:
-        p.sportType === "cycle"
-          ? "#38bdf8"
-          : p.sportType === "calisthenics"
-            ? "#c084fc"
-            : p.sportType === "football"
-              ? "#ccff00"
-              : "#fc4c02",
-      route: workouts[idx % workouts.length].route,
-      record: p.recordBadges?.[0]?.title,
-      location: p.activities[0]?.details || "Bengaluru, India",
-    })),
-  ]
+  const allWorkouts: Workout[] = useMemo(() => {
+    if (stravaPosts && stravaPosts.length > 0) {
+      return stravaPosts.map((p, idx) => buildWorkoutFromStravaPost(p, idx));
+    }
+    return workouts;
+  }, [stravaPosts])
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
@@ -1269,7 +1204,7 @@ function AppShell() {
                   <div className="relative mb-7 hidden overflow-hidden rounded-2xl border border-[#fc4c02]/20 bg-[#101319] sm:block">
                     <div className="absolute inset-y-0 right-0 w-[55%] opacity-70 sm:w-[48%]">
                       <RouteArt
-                        workout={workouts[0]}
+                        workout={allWorkouts[0] || workouts[0]}
                         big
                         className="h-full w-full scale-125"
                       />
@@ -1277,24 +1212,22 @@ function AppShell() {
                     <div className="relative z-10 p-6 sm:p-7">
                       <div className="mb-4 flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[0.15em] text-[#ff9667]">
                         <span className="h-1 w-1 rounded-full bg-[#fc4c02]" />
-                        Latest activity{" "}
+                        Latest authentic activity{" "}
                         <span className="ml-2 text-[#788291]">
-                          Today · 06:32 AM
+                          {(allWorkouts[0] || workouts[0]).date}
                         </span>
                       </div>
-                      <h2 className="max-w-[190px] font-display text-[23px] font-bold leading-[1.35] sm:max-w-[260px] sm:text-[26px]">
-                        Morning miles,
-                        <br />
-                        clear mind.
+                      <h2 className="max-w-[190px] font-display text-[20px] font-bold leading-[1.35] sm:max-w-[280px] sm:text-[24px] text-white">
+                        {(allWorkouts[0] || workouts[0]).title}
                       </h2>
                       <div className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground">
                         <MapPin size={11} />
-                        Cubbon Park, Bengaluru
+                        {(allWorkouts[0] || workouts[0]).location}
                       </div>
                       <div className="mt-5 flex gap-6">
                         <div>
                           <div className="font-display text-xl font-bold">
-                            5.24{" "}
+                            {(allWorkouts[0] || workouts[0]).distance}{" "}
                             <span className="text-[10px] font-normal text-muted-foreground">
                               km
                             </span>
@@ -1305,7 +1238,7 @@ function AppShell() {
                         </div>
                         <div>
                           <div className="font-display text-xl font-bold">
-                            4:37{" "}
+                            {(allWorkouts[0] || workouts[0]).pace}{" "}
                             <span className="text-[10px] font-normal text-muted-foreground">
                               /km
                             </span>
@@ -1316,7 +1249,7 @@ function AppShell() {
                         </div>
                       </div>
                       <button
-                        onClick={() => setSelected(workouts[0])}
+                        onClick={() => setSelected(allWorkouts[0] || workouts[0])}
                         className="mt-6 flex items-center gap-2 text-[10px] font-semibold text-[#ff9667]"
                       >
                         Explore activity <ArrowRight size={13} />

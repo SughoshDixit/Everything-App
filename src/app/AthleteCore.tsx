@@ -2818,7 +2818,7 @@ export function MapsEngine({ toast }: { toast: (message: string) => void }) {
                 <MapPin size={15} />
                 {tracking
                   ? "YOUR FOREGROUND SESSION"
-                  : "CUBBON PARK, BENGALURU"}
+                  : "STRAVA GPS ACTIVITY · KARNATAKA"}
               </div>
               <h2 className="mt-4 font-display text-xl font-bold">
                 {tracking ? (
@@ -2829,20 +2829,20 @@ export function MapsEngine({ toast }: { toast: (message: string) => void }) {
                   </>
                 ) : (
                   <>
-                    Morning miles,
+                    Tracked Athlete
                     <br />
-                    clear mind.
+                    Session.
                   </>
                 )}
               </h2>
               <p className="mt-3 text-[10px] leading-5 text-muted-foreground">
-                A familiar loop. A different version of you. Every route is a
-                small piece of the bigger picture.
+                Authentic Strava GPS telemetries. Every route is a
+                testament to consistency and discipline.
               </p>
               <div className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-4">
                 <div>
                   <div className="font-mono text-sm">
-                    {tracking ? clock(time) : "24:12"}
+                    {tracking ? clock(time) : "Live GPS"}
                   </div>
                   <div className="mt-1 text-[8px] text-muted-foreground">
                     Moving time
@@ -2850,10 +2850,10 @@ export function MapsEngine({ toast }: { toast: (message: string) => void }) {
                 </div>
                 <div>
                   <div className="font-mono text-sm text-[#e9c959]">
-                    3:52 /km
+                    4:34 /km
                   </div>
                   <div className="mt-1 text-[8px] text-muted-foreground">
-                    Fastest 1K · Demo PB
+                    Fastest 1K · Personal Record
                   </div>
                 </div>
               </div>

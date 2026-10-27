@@ -1,4 +1,5 @@
 import type { GpsLocationPoint, Workout } from '../types';
+import { AUTHENTIC_GPS_ACTIVITIES } from '../data/authenticStravaData';
 
 // Pre-calculated realistic high-fidelity route coordinate paths for key Bangalore athletic landmarks
 export const CUBBON_PARK_POINTS: GpsLocationPoint[] = [
@@ -60,17 +61,14 @@ export const INDOOR_STUDIO_POINTS: GpsLocationPoint[] = [
  * Resolves the best available GPS route points for any workout in the collection.
  */
 export function getRoutePointsForWorkout(workout: Workout): GpsLocationPoint[] {
-  if (workout.location.toLowerCase().includes('nandi')) {
-    return NANDI_HILLS_POINTS;
+  const match = AUTHENTIC_GPS_ACTIVITIES.find(
+    (a) => a.title && workout.title && a.title.toLowerCase() === workout.title.toLowerCase()
+  );
+  if (match && match.routePoints && match.routePoints.length > 0) {
+    return match.routePoints;
   }
-  if (workout.location.toLowerCase().includes('turahalli')) {
-    return TURAHALLI_FOREST_POINTS;
-  }
-  if (workout.location.toLowerCase().includes('south united') || workout.sport === 'Football') {
-    return SOUTH_UNITED_PITCH_POINTS;
-  }
-  if (workout.sport === 'Calisthenics' || workout.location.toLowerCase().includes('movement studio')) {
-    return INDOOR_STUDIO_POINTS;
+  if (AUTHENTIC_GPS_ACTIVITIES.length > 0 && AUTHENTIC_GPS_ACTIVITIES[0].routePoints?.length > 0) {
+    return AUTHENTIC_GPS_ACTIVITIES[0].routePoints;
   }
   return CUBBON_PARK_POINTS;
 }

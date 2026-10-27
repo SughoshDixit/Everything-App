@@ -551,7 +551,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
         ) : (
           <div className="flex flex-col gap-3">
             {/* GPS Activities */}
-            {gpsActivities.slice().reverse().slice(0, 3).map((act) => (
+            {gpsActivities.slice().sort((a, b) => b.startTime - a.startTime).slice(0, 5).map((act) => (
               <div
                 key={act.id}
                 className="bg-[#121824] p-3.5 rounded-xl border border-white/5 flex items-center justify-between flex-wrap gap-3 hover:border-white/15 transition"
@@ -562,7 +562,7 @@ export const GoogleFitHomeDashboard: React.FC<GoogleFitHomeDashboardProps> = ({
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-white">
-                      {act.distanceKm} km {act.activityType === 'run' ? 'Run' : 'Ride'}
+                      {act.title || `${act.distanceKm} km ${act.activityType === 'run' ? 'Run' : 'Ride'}`}
                     </h4>
                     <div className="text-[11px] text-muted-foreground font-medium">
                       {act.date} &bull; {formatDuration(act.durationSeconds)} &bull; {act.avgPaceMinKm} &bull; +{act.elevationGainMeters || 0}m

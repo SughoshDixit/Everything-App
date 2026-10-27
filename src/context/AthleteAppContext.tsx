@@ -32,9 +32,10 @@ import {
   initialGpsActivities,
   initialStats
 } from '../utils/storage';
+import { AUTHENTIC_MILESTONES } from '../data/authenticStravaData';
 
 import { initialCycleLogs, initialCycleSettings } from '../utils/cycleTracker';
-import { defaultMilestones, evaluateActivityRecords } from '../utils/milestonesTracker';
+import { evaluateActivityRecords } from '../utils/milestonesTracker';
 
 import {
   fetchMilestonesFromFirestore,
@@ -117,17 +118,25 @@ export const AthleteAppProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutSessionLog[]>(() =>
     loadFromStorage(KEYS.WORKOUT_LOGS, [])
   );
+  const isDummyActivity = (id: string) =>
+    id.startsWith('gps_act_') || id.startsWith('dummy_');
+  const isDummyPost = (id: string) =>
+    id.startsWith('sp_') || id.startsWith('dummy_');
+
   const [gpsActivities, setGpsActivities] = useState<GpsActivityLog[]>(() => {
-    const loaded = loadFromStorage(KEYS.GPS_ACTIVITIES, initialGpsActivities);
-    return loaded && loaded.length > 0 ? loaded : initialGpsActivities;
+    const loaded = loadFromStorage<GpsActivityLog[]>(KEYS.GPS_ACTIVITIES, initialGpsActivities);
+    const valid = loaded?.filter((a) => !isDummyActivity(a.id));
+    return valid && valid.length > 0 ? valid : initialGpsActivities;
   });
   const [stravaPosts, setStravaPosts] = useState<StravaActivityPost[]>(() => {
-    const loaded = loadFromStorage(KEYS.STRAVA_POSTS, initialStravaPosts);
-    return loaded && loaded.length > 0 ? loaded : initialStravaPosts;
+    const loaded = loadFromStorage<StravaActivityPost[]>(KEYS.STRAVA_POSTS, initialStravaPosts);
+    const valid = loaded?.filter((p) => !isDummyPost(p.id));
+    return valid && valid.length > 0 ? valid : initialStravaPosts;
   });
-  const [milestones, setMilestones] = useState<PersonalMilestones>(() =>
-    loadFromStorage(KEYS.PERSONAL_MILESTONES, defaultMilestones)
-  );
+  const [milestones, setMilestones] = useState<PersonalMilestones>(() => {
+    const loaded = loadFromStorage<PersonalMilestones>(KEYS.PERSONAL_MILESTONES, AUTHENTIC_MILESTONES);
+    return loaded ? { ...AUTHENTIC_MILESTONES, ...loaded } : AUTHENTIC_MILESTONES;
+  });
   const [footballDrills] = useState<FootballDrill[]>(() =>
     loadFromStorage(KEYS.FOOTBALL_DRILLS, initialFootballDrills)
   );
@@ -200,13 +209,19 @@ export const AthleteAppProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     const unsubFeed = subscribeFeedPosts((remotePosts) => {
       if (remotePosts && remotePosts.length > 0) {
-        setStravaPosts(remotePosts);
+        const valid = remotePosts.filter((p) => !isDummyPost(p.id));
+        if (valid.length > 0) {
+          setStravaPosts(valid);
+        }
       }
     });
 
     const unsubGps = subscribeGpsActivities('sughosh', (remoteActs) => {
       if (remoteActs && remoteActs.length > 0) {
-        setGpsActivities(remoteActs);
+        const valid = remoteActs.filter((a) => !isDummyActivity(a.id));
+        if (valid.length > 0) {
+          setGpsActivities(valid);
+        }
       }
     });
 

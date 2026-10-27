@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { GpsActivityLog, PersonalMilestones } from '../types';
 import { fetchDailyMetricsFromFirestore, type DailyMetricDoc } from '../services/firestoreService';
+import { AUTHENTIC_GOOGLE_FIT_METRICS, GOOGLE_FIT_LIFETIME_SUMMARY } from '../data/authenticGoogleFitData';
 import {
   Flame,
   Calendar,
@@ -20,24 +21,22 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
   gpsActivities,
   milestones
 }) => {
-  const [dailyMetrics, setDailyMetrics] = useState<DailyMetricDoc[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [dailyMetrics, setDailyMetrics] = useState<DailyMetricDoc[]>(AUTHENTIC_GOOGLE_FIT_METRICS);
+  const [isLoading] = useState<boolean>(false);
   const [selectedMetricView, setSelectedMetricView] = useState<'distance' | 'calories' | 'activeDays'>('distance');
   const [selectedYear, setSelectedYear] = useState<string>('all');
 
-  // Load 1,456 days of Google Fit metrics from Cloud Firestore
+  // Load Google Fit metrics (from Firestore if available, otherwise authentic Takeout)
   useEffect(() => {
     let isMounted = true;
     fetchDailyMetricsFromFirestore('sughosh', 2000)
       .then((records) => {
-        if (isMounted) {
+        if (isMounted && records && records.length > 0) {
           setDailyMetrics(records);
-          setIsLoading(false);
         }
       })
       .catch((err) => {
-        console.warn('Could not load daily metrics from Firestore:', err);
-        if (isMounted) setIsLoading(false);
+        console.warn('Using authentic Google Fit Takeout dataset:', err);
       });
 
     return () => {
@@ -87,10 +86,10 @@ export const HistoricalTrendsDashboard: React.FC<HistoricalTrendsDashboardProps>
   }, [yearlyStats, selectedMetricView]);
 
   // Total Lifetime Aggregates
-  const totalLifetimeCalories = milestones.totalCaloriesBurned || 2424095;
+  const totalLifetimeCalories = milestones.totalCaloriesBurned || GOOGLE_FIT_LIFETIME_SUMMARY.totalCaloriesBurned;
   const totalLifetimeRunKm = milestones.totalDistanceRunKm || 121.8;
   const totalLifetimeCycleKm = milestones.totalDistanceCycleKm || 10.7;
-  const totalRecordedDays = dailyMetrics.length || 1456;
+  const totalRecordedDays = dailyMetrics.length || GOOGLE_FIT_LIFETIME_SUMMARY.totalDaysLogged;
 
   // Monthly breakdown for selected year
   const monthlyDataForYear = useMemo(() => {
