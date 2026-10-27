@@ -31,7 +31,8 @@ import {
   Mountain,
   Footprints,
   Volume2,
-  VolumeX
+  VolumeX,
+  Radio
 } from 'lucide-react';
 
 interface GpsActivityTrackerModalProps {
@@ -68,6 +69,8 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   const [accuracyMeters, setAccuracyMeters] = useState<number | null>(null);
   const [audioCoachEnabled, setAudioCoachEnabled] = useState<boolean>(!isAudioMuted());
   const [voiceTesting, setVoiceTesting] = useState<boolean>(false);
+  const [gpsLockState, setGpsLockState] = useState<'idle' | 'acquiring' | 'countdown'>('idle');
+  const [countdownValue, setCountdownValue] = useState<number>(3);
 
   const watchIdRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -77,6 +80,8 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   const lastAnnouncedSplitKmRef = useRef<number>(0);
   const isTrackingRef = useRef<boolean>(false);
   const isPausedRef = useRef<boolean>(false);
+  const gpsLockStateRef = useRef<'idle' | 'acquiring' | 'countdown'>('idle');
+  const countdownTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     isTrackingRef.current = isTracking;
@@ -115,6 +120,16 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   ) => {
     setAccuracyMeters(Math.round(accuracy));
     setSignalQuality(evaluateGpsSignalQuality(accuracy));
+
+    // If currently acquiring GPS lock, check if accuracy is good enough to launch countdown
+    if (gpsLockStateRef.current === 'acquiring') {
+      if (accuracy <= 25) {
+        startCountdownSequence();
+        return;
+      }
+    }
+
+    if (!isTrackingRef.current || isPausedRef.current) return;
 
     const result = processRawGpsPoint(
       filterStateRef.current,
@@ -206,17 +221,69 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
   }, [activityType]);
 
   // ---------------------------------------------------------------------------
-  // 2. REAL-TIME GPS WATCH POSITION WITH BACKGROUND SERVICE & FILTERING
+  // 2. REAL-TIME GPS WATCH POSITION, ACQUISITION & COUNTDOWN
   // ---------------------------------------------------------------------------
-  const startGpsTracking = () => {
+  const startCountdownSequence = () => {
+    if (gpsLockStateRef.current === 'countdown' || isTrackingRef.current) return;
+    gpsLockStateRef.current = 'countdown';
+    setGpsLockState('countdown');
+
+    const sportName =
+      activityType === 'run' ? 'run' : activityType === 'cycle' ? 'ride' : activityType === 'walk' ? 'walk' : 'drive';
+
+    // Clear any pending timeouts
+    countdownTimeoutsRef.current.forEach(clearTimeout);
+    countdownTimeoutsRef.current = [];
+
+    // 3
+    setCountdownValue(3);
+    playBeepTone(440, 150);
+    speakText('Three');
+
+    // 2
+    const t2 = setTimeout(() => {
+      setCountdownValue(2);
+      playBeepTone(550, 150);
+      speakText('Two');
+    }, 1000);
+    countdownTimeoutsRef.current.push(t2);
+
+    // 1
+    const t1 = setTimeout(() => {
+      setCountdownValue(1);
+      playBeepTone(660, 150);
+      speakText('One');
+    }, 2000);
+    countdownTimeoutsRef.current.push(t1);
+
+    // GO!!
+    const tGo = setTimeout(() => {
+      setCountdownValue(0);
+      playBeepTone(880, 450);
+      speakText(`Your ${sportName} starts in 3, 2, 1, Go!!`);
+
+      setIsTracking(true);
+      setIsPaused(false);
+      isTrackingRef.current = true;
+      isPausedRef.current = false;
+      startTimeRef.current = Date.now();
+      setDurationSeconds(0);
+      lastAnnouncedSplitKmRef.current = 0;
+      filterStateRef.current = createGpsFilterState();
+
+      setTimeout(() => {
+        gpsLockStateRef.current = 'idle';
+        setGpsLockState('idle');
+      }, 800);
+    }, 3000);
+    countdownTimeoutsRef.current.push(tGo);
+  };
+
+  const initiateGpsAcquisition = () => {
     setGpsError(null);
-    setIsTracking(true);
-    setIsPaused(false);
-    isTrackingRef.current = true;
-    isPausedRef.current = false;
-    startTimeRef.current = Date.now();
-    lastAnnouncedSplitKmRef.current = 0;
-    filterStateRef.current = createGpsFilterState();
+    gpsLockStateRef.current = 'acquiring';
+    setGpsLockState('acquiring');
+    speakText('Acquiring GPS signal. Searching for satellites...');
 
     // 1. Android Native Background Location Service (Keeps CPU awake & tracks when locked)
     if (window.AndroidBridge && typeof window.AndroidBridge.startLocationTracking === 'function') {
@@ -224,7 +291,6 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
 
       // Register global callback for native Android service
       window.onNativeGpsUpdate = (pos: any) => {
-        if (!isTrackingRef.current || isPausedRef.current) return;
         handleIngestGpsPoint(
           pos.latitude,
           pos.longitude,
@@ -237,9 +303,11 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
       };
     } else if ('geolocation' in navigator) {
       // 2. Web Geolocation watchPosition (Used when running in browser or PWA mode)
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
-          if (!isTrackingRef.current || isPausedRef.current) return;
           handleIngestGpsPoint(
             pos.coords.latitude,
             pos.coords.longitude,
@@ -252,6 +320,7 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
         },
         (err) => {
           console.warn('Browser geolocation notice:', err.message);
+          setGpsError('GPS signal weak: ' + err.message);
         },
         {
           enableHighAccuracy: true,
@@ -260,11 +329,14 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
         }
       );
     }
+  };
 
-    if (audioCoachEnabled) {
-      const sportName = activityType === 'run' ? 'run' : activityType === 'cycle' ? 'ride' : activityType === 'walk' ? 'walk' : 'drive';
-      speakText(`Activity started. Tracking outdoor ${sportName}.`);
-    }
+  const cancelGpsAcquisition = () => {
+    gpsLockStateRef.current = 'idle';
+    setGpsLockState('idle');
+    countdownTimeoutsRef.current.forEach(clearTimeout);
+    countdownTimeoutsRef.current = [];
+    stopGpsTracking();
   };
 
   const stopGpsTracking = () => {
@@ -381,7 +453,24 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4">
-      <div className="w-full max-w-md max-h-[94vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0e131b] p-5 sm:p-6 shadow-2xl text-foreground font-sans flex flex-col justify-between">
+      <div className="relative w-full max-w-md max-h-[94vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0e131b] p-5 sm:p-6 shadow-2xl text-foreground font-sans flex flex-col justify-between overflow-hidden">
+        {/* SATELLITE LOCKED COUNTDOWN OVERLAY */}
+        {gpsLockState === 'countdown' && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md rounded-3xl animate-in fade-in duration-150">
+            <div className="relative flex flex-col items-center justify-center text-center px-4">
+              <div className="absolute h-56 w-56 rounded-full bg-primary/20 blur-3xl animate-pulse" />
+              <span className="text-[11px] font-black uppercase tracking-[0.25em] text-primary mb-3 font-mono">
+                🛰️ SATELLITES LOCKED · READY
+              </span>
+              <div className="text-8xl md:text-9xl font-black text-white font-mono tracking-tighter drop-shadow-[0_0_40px_rgba(204,255,0,0.6)] animate-scale-up">
+                {countdownValue > 0 ? countdownValue : 'GO!!'}
+              </div>
+              <p className="mt-4 text-xs font-bold text-zinc-300 font-mono">
+                {countdownValue > 0 ? 'Your run starts in...' : `You're Live! Push the pace!`}
+              </p>
+            </div>
+          </div>
+        )}
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-2">
           <button
@@ -616,10 +705,40 @@ export const GpsActivityTrackerModal: React.FC<GpsActivityTrackerModalProps> = (
 
         {/* ACTION CONTROLS */}
         <div className="my-2">
-          {!isTracking && durationSeconds === 0 ? (
+          {gpsLockState === 'acquiring' ? (
+            <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 text-center space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-center gap-2">
+                <Radio className="h-5 w-5 text-primary animate-pulse" />
+                <span className="text-xs font-black uppercase tracking-wider text-primary font-mono">
+                  Acquiring Satellite Lock...
+                </span>
+              </div>
+              <p className="text-xs text-zinc-300">
+                {accuracyMeters !== null
+                  ? `Fix accuracy: ±${accuracyMeters}m (Target: ±25m)`
+                  : 'Searching for satellites... Stand in open sky.'}
+              </p>
+              <div className="flex items-center gap-2 justify-center pt-1">
+                <button
+                  type="button"
+                  onClick={cancelGpsAcquisition}
+                  className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-xs font-semibold text-zinc-400 hover:text-white transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={startCountdownSequence}
+                  className="px-4 py-1.5 rounded-xl bg-primary text-xs font-black text-black hover:brightness-110 shadow-md shadow-primary/20 transition active:scale-95"
+                >
+                  Start Immediately ⚡
+                </button>
+              </div>
+            </div>
+          ) : !isTracking && durationSeconds === 0 ? (
             <button
               className="w-full py-3.5 text-xs font-bold uppercase tracking-wider rounded-xl bg-primary text-primary-foreground hover:brightness-110 active:scale-95 transition shadow-[0_0_20px_rgba(204,255,0,0.25)] flex items-center justify-center gap-2"
-              onClick={startGpsTracking}
+              onClick={initiateGpsAcquisition}
             >
               <Play size={16} fill="currentColor" />
               <span>Start Recording {activityType.toUpperCase()}</span>

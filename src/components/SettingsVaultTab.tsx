@@ -12,6 +12,22 @@ export const SettingsVaultTab: React.FC<SettingsVaultTabProps> = ({ quotes, onAd
   const [newAuthor, setNewAuthor] = useState('Athlete');
   const [newCategory, setNewCategory] = useState<MotivationalQuote['category']>('discipline');
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    return localStorage.getItem('gemini_api_key') || '';
+  });
+  const [savedGeminiSuccess, setSavedGeminiSuccess] = useState(false);
+
+  const handleSaveGeminiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = geminiApiKey.trim();
+    if (trimmed) {
+      localStorage.setItem('gemini_api_key', trimmed);
+    } else {
+      localStorage.removeItem('gemini_api_key');
+    }
+    setSavedGeminiSuccess(true);
+    setTimeout(() => setSavedGeminiSuccess(false), 2500);
+  };
 
   const handleCreateQuote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +66,63 @@ export const SettingsVaultTab: React.FC<SettingsVaultTabProps> = ({ quotes, onAd
             <p>3. Launch from your home screen for full native screen experience with offline caching.</p>
           </div>
         )}
+      </div>
+
+      {/* Google Gemini Gen-AI Configuration Card */}
+      <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-[#121824] via-[#151c28] to-[#0e131b] p-5 sm:p-6 shadow-xl">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/30">
+              <Sparkles size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white font-display">
+                Google Gemini Gen-AI Integration
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                Powers conversational intelligence & real-time creative captions
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+            {geminiApiKey ? 'API Key Active' : 'On-Device Synthesizer'}
+          </span>
+        </div>
+
+        <form onSubmit={handleSaveGeminiKey} className="space-y-3 pt-2">
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1 font-mono">
+              Gemini API Key (Optional)
+            </label>
+            <input
+              type="password"
+              placeholder="AIzaSy..."
+              value={geminiApiKey}
+              onChange={(e) => setGeminiApiKey(e.target.value)}
+              className="w-full bg-[#0a0d14] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-primary/50 transition font-mono placeholder:text-muted-foreground/40"
+            />
+          </div>
+
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+            <span className="text-[11px] text-muted-foreground">
+              Leave blank to use the on-device tactical synthesizer. Get a free key at{' '}
+              <a
+                href="https://aistudio.google.com/"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline font-semibold"
+              >
+                Google AI Studio ↗
+              </a>
+            </span>
+            <button
+              type="submit"
+              className="rounded-xl bg-primary text-black font-extrabold px-4 py-2 text-xs hover:brightness-110 active:scale-95 transition shadow-md shadow-primary/20"
+            >
+              {savedGeminiSuccess ? '✓ Key Saved!' : 'Save Key'}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Add Mantra Form */}

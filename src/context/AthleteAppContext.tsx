@@ -29,6 +29,7 @@ import {
   initialInstrumentSongs,
   initialVedaSuktas,
   initialStravaPosts,
+  initialGpsActivities,
   initialStats
 } from '../utils/storage';
 
@@ -116,12 +117,14 @@ export const AthleteAppProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutSessionLog[]>(() =>
     loadFromStorage(KEYS.WORKOUT_LOGS, [])
   );
-  const [gpsActivities, setGpsActivities] = useState<GpsActivityLog[]>(() =>
-    loadFromStorage(KEYS.GPS_ACTIVITIES, [])
-  );
-  const [stravaPosts, setStravaPosts] = useState<StravaActivityPost[]>(() =>
-    loadFromStorage(KEYS.STRAVA_POSTS, initialStravaPosts)
-  );
+  const [gpsActivities, setGpsActivities] = useState<GpsActivityLog[]>(() => {
+    const loaded = loadFromStorage(KEYS.GPS_ACTIVITIES, initialGpsActivities);
+    return loaded && loaded.length > 0 ? loaded : initialGpsActivities;
+  });
+  const [stravaPosts, setStravaPosts] = useState<StravaActivityPost[]>(() => {
+    const loaded = loadFromStorage(KEYS.STRAVA_POSTS, initialStravaPosts);
+    return loaded && loaded.length > 0 ? loaded : initialStravaPosts;
+  });
   const [milestones, setMilestones] = useState<PersonalMilestones>(() =>
     loadFromStorage(KEYS.PERSONAL_MILESTONES, defaultMilestones)
   );
