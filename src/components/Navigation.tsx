@@ -1,17 +1,17 @@
 import React from 'react';
 import {
-  Activity,
-  CalendarDays,
-  Dumbbell,
-  Trophy,
-  Utensils,
+  Compass,
+  Zap,
   Heart,
-  Music,
-  Sliders,
-  User
+  ShieldCheck,
+  Plus
 } from 'lucide-react';
 
 export type TabType =
+  | 'today'
+  | 'train'
+  | 'progress'
+  | 'vault'
   | 'fithub'
   | 'feed'
   | 'calisthenics'
@@ -26,59 +26,75 @@ export type TabType =
 interface NavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  onQuickAction?: () => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
-  const tabs = [
-    { id: 'fithub', label: '📊 Fit Hub', icon: Activity },
-    { id: 'feed', label: '🏃 Activity Feed', icon: Activity },
-    { id: 'calisthenics', label: '💪 Workout', icon: Dumbbell },
-    { id: 'routine', label: '📅 Routine', icon: CalendarDays },
-    { id: 'football', label: '⚽ Football', icon: Trophy },
-    { id: 'nutrition', label: '🥗 Nutrition', icon: Utensils },
-    { id: 'sughoshdixit', label: '👤 Sughosh Dixit', icon: User },
-    { id: 'period', label: '🌸 Cycle', icon: Heart },
-    { id: 'music_veda', label: '🎵 Music', icon: Music },
-    { id: 'settings', label: '⚙️ Settings', icon: Sliders }
-  ];
+export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, onQuickAction }) => {
+  const isToday = activeTab === 'today' || activeTab === 'routine';
+  const isTrain = activeTab === 'train' || activeTab === 'calisthenics' || activeTab === 'football';
+  const isProgress = activeTab === 'progress' || activeTab === 'fithub' || activeTab === 'feed' || activeTab === 'sughoshdixit';
+  const isVault = activeTab === 'vault' || activeTab === 'nutrition' || activeTab === 'period' || activeTab === 'music_veda' || activeTab === 'settings';
 
   return (
-    <>
-      <style>{`
-        @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes pulsePurpleGlow { 0%, 100% { box-shadow: 0 0 8px rgba(85,25,139,0.3); } 50% { box-shadow: 0 0 22px rgba(123,41,190,0.6); } }
-        .nav-item-animated {
-          font-family: 'Montserrat', sans-serif;
-          font-weight: 700;
-          letter-spacing: 0.3px;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .nav-item-animated:hover {
-          transform: translateY(-2px) scale(1.03);
-        }
-        .nav-active-animated {
-          animation: slideInRight 0.3s ease-out, pulsePurpleGlow 2.5s infinite;
-        }
-      `}</style>
-      <nav className="app-nav">
-        <div className="nav-container">
-          {tabs.map((t, index) => {
-            const Icon = t.icon;
-            const isActive = activeTab === t.id;
-            return (
-              <button
-                key={t.id}
-                className={`nav-item nav-item-animated ${isActive ? 'active nav-active-animated' : ''}`}
-                style={{ animationDelay: `${index * 0.05}s` }}
-                onClick={() => onTabChange(t.id as TabType)}
-              >
-                <Icon size={16} />
-                <span>{t.label}</span>
-              </button>
-            );
-          })}
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between border-t border-white/10 bg-[#0b0e14]/95 px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur-xl">
+      {/* 1. Today */}
+      <button
+        onClick={() => onTabChange('today')}
+        className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+          isToday ? 'text-primary font-bold' : 'text-muted-foreground hover:text-white'
+        }`}
+      >
+        <Compass size={20} strokeWidth={isToday ? 2.5 : 1.7} />
+        <span>Today</span>
+      </button>
+
+      {/* 2. Train */}
+      <button
+        onClick={() => onTabChange('train')}
+        className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+          isTrain ? 'text-primary font-bold' : 'text-muted-foreground hover:text-white'
+        }`}
+      >
+        <Zap size={20} strokeWidth={isTrain ? 2.5 : 1.7} />
+        <span>Train</span>
+      </button>
+
+      {/* ⚡ CENTER ACTION FAB: + Log / Start Activity */}
+      {onQuickAction && (
+        <div className="flex items-center justify-center px-2">
+          <button
+            type="button"
+            onClick={onQuickAction}
+            className="-mt-5 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-[#FC5200] to-[#CCFF00] text-black shadow-lg shadow-[#CCFF00]/25 hover:scale-105 active:scale-95 transition-all border-2 border-[#0b0e14] cursor-pointer shrink-0"
+            title="Log Activity or Launch GPS"
+            aria-label="Quick Action Hub"
+          >
+            <Plus size={24} strokeWidth={3} className="text-black" />
+          </button>
         </div>
-      </nav>
-    </>
+      )}
+
+      {/* 3. Progress */}
+      <button
+        onClick={() => onTabChange('progress')}
+        className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+          isProgress ? 'text-primary font-bold' : 'text-muted-foreground hover:text-white'
+        }`}
+      >
+        <Heart size={20} strokeWidth={isProgress ? 2.5 : 1.7} />
+        <span>Progress</span>
+      </button>
+
+      {/* 4. Vault */}
+      <button
+        onClick={() => onTabChange('vault')}
+        className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+          isVault ? 'text-[#c084fc] font-bold' : 'text-muted-foreground hover:text-white'
+        }`}
+      >
+        <ShieldCheck size={20} strokeWidth={isVault ? 2.5 : 1.7} />
+        <span>Vault</span>
+      </button>
+    </nav>
   );
 };

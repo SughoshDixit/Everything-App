@@ -14,7 +14,10 @@ import {
   Image as ImageIcon,
   Video as VideoIcon,
   ChevronRight,
-  Compass
+  Compass,
+  Sparkles,
+  Copy,
+  Check
 } from 'lucide-react';
 import { ZoomableImageModal } from './ZoomableImageModal';
 import { RouteIntelligenceFirestoreService } from '../services/routeIntelligence/routeFirestoreService';
@@ -46,6 +49,7 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
   const [commentText, setCommentText] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'route' | 'splits' | 'analysis' | 'media'>('overview');
   const [zoomImage, setZoomImage] = useState<{ src: string; title: string } | null>(null);
+  const [copiedCaption, setCopiedCaption] = useState<string | null>(null);
 
   // Defer route normalization until the route tab is opened to keep modal open instant
   const routeResult = useMemo(() => {
@@ -352,6 +356,62 @@ export const StravaActivityDetailModal: React.FC<StravaActivityDetailModalProps>
                   <div className="text-lg font-bold text-rose-400 font-mono mt-0.5">
                     {activity.sufferScore || (activity.rpe ? activity.rpe * 10 : 75)} <span className="text-xs font-normal text-muted-foreground">/100</span>
                   </div>
+                </div>
+              </div>
+
+              {/* AI Ambient Post Caption Synthesizer */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-[#141b29] to-[#101622] border border-[#CCFF00]/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CCFF00]/20 text-[#CCFF00]">
+                      <Sparkles size={14} />
+                    </span>
+                    <span className="text-xs font-black uppercase tracking-wider text-[#CCFF00] font-mono">
+                      AI Post &amp; Video Studio Intel
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-bold text-zinc-400 font-mono">
+                    1-Tap Copied
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    {
+                      label: '🔴 Anfield Banter',
+                      text: `Pressed through ${activity.title} with Arne Slot high-tempo intensity! ${activity.totalDistanceKm.toFixed(1)} km clocked at ${activity.avgPaceMinKm || '4:52'} pace. Clean sheet in the gym. YNWA! 🔴⚽🔥 #LFC #KuchhBhii`
+                    },
+                    {
+                      label: '🇮🇳 Military Ethos',
+                      text: `Standards over feelings. Day 14 locked in. ${activity.totalDistanceKm.toFixed(1)} km under the belt. As Captain Vikram Batra taught: Yeh Dil Mange More! 🇮🇳⚔️ #WarriorMindset #KuchhBhii`
+                    },
+                    {
+                      label: '⚡ Minimalist Stat',
+                      text: `${activity.totalDistanceKm.toFixed(1)} km in ${Math.round(activity.totalMoveMinutes || 25)} mins @ ${activity.avgPaceMinKm || '4:52'} /km. Work done. 🏃💨 #KuchhBhii`
+                    }
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => {
+                        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                          navigator.clipboard.writeText(chip.text);
+                        }
+                        setCopiedCaption(chip.label);
+                        setTimeout(() => setCopiedCaption(null), 2000);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold text-zinc-200 transition cursor-pointer"
+                    >
+                      <span>{chip.label}</span>
+                      {copiedCaption === chip.label ? (
+                        <span className="text-emerald-400 text-[10px] flex items-center gap-1">
+                          <Check size={11} /> Copied
+                        </span>
+                      ) : (
+                        <Copy size={11} className="text-zinc-400" />
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
 

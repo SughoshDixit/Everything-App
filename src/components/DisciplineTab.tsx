@@ -10,6 +10,7 @@ import {
   speakExcuseRejection
 } from '../services/militaryCadenceService';
 import { TacticalAiEngine } from '../services/tacticalAiEngine';
+import { playMechanicalClick, playLevelUpChime } from '../utils/audio';
 import {
   CheckCircle2,
   Plus,
@@ -63,7 +64,7 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
   const [rankProgression, setRankProgression] = useState(getMilitaryRankProgression());
   const [excuseInput, setExcuseInput] = useState('');
   const [excuseResult, setExcuseResult] = useState<{ rebuttal: string; battleCry: string } | null>(null);
-  const [showExcuseBuster, setShowExcuseBuster] = useState(false);
+  const [activeSection, setActiveSection] = useState<'habits' | 'military' | 'excuse'>('habits');
 
   const handleReportMuster = () => {
     speakMorningMusterCall();
@@ -234,127 +235,162 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
         </div>
       </div>
 
+      {/* DISCIPLINE SECTION TABS */}
+      <div className="flex items-center gap-2 p-1 rounded-2xl border border-white/10 bg-[#0e131b] shadow-md">
+        <button
+          onClick={() => setActiveSection('habits')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+            activeSection === 'habits'
+              ? 'bg-primary text-black font-black shadow-md shadow-primary/20'
+              : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          <CheckCircle2 size={15} />
+          <span>Daily Habits ({completedCount}/{totalCount})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection('military')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+            activeSection === 'military'
+              ? 'bg-[#CCFF00] text-black font-black shadow-md shadow-[#CCFF00]/20'
+              : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Shield size={15} />
+          <span>Cadre & Muster</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection('excuse')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+            activeSection === 'excuse'
+              ? 'bg-rose-500 text-white font-black shadow-md shadow-rose-500/20'
+              : 'text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Terminal size={15} />
+          <span>Excuse Buster</span>
+        </button>
+      </div>
+
       {/* ------------------------------------------------------------------- */}
-      {/* TACTICAL MILITARY HUD: 0630 MUSTER & RANK PROGRESSION */}
+      {/* 1. TACTICAL MILITARY HUD: 0630 MUSTER & RANK PROGRESSION */}
       {/* ------------------------------------------------------------------- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 1. 0630 Morning Muster & Roll Call */}
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#121824] to-[#0d141e] p-5 shadow-lg flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#CCFF00] flex items-center gap-1.5 font-mono">
-                <Radio size={14} className="text-[#CCFF00] animate-pulse" />
-                0630 HRS MORNING MUSTER
-              </span>
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                musterStatus.musteredToday ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-              }`}>
-                {musterStatus.musteredToday ? 'ON DECK' : 'ROLL CALL PENDING'}
-              </span>
+      {activeSection === 'military' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
+          {/* 1. 0630 Morning Muster & Roll Call */}
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#121824] to-[#0d141e] p-5 shadow-lg flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#CCFF00] flex items-center gap-1.5 font-mono">
+                  <Radio size={14} className="text-[#CCFF00] animate-pulse" />
+                  0630 HRS MORNING MUSTER
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                  musterStatus.musteredToday ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                }`}>
+                  {musterStatus.musteredToday ? 'ON DECK' : 'ROLL CALL PENDING'}
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-white">Daily Military Accountability Check</h4>
+              <p className="text-xs text-zinc-300 mt-1 leading-relaxed">
+                {musterStatus.statusText}
+              </p>
             </div>
-            <h4 className="text-sm font-bold text-white">Daily Military Accountability Check</h4>
-            <p className="text-xs text-zinc-300 mt-1 leading-relaxed">
-              {musterStatus.statusText}
-            </p>
+
+            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
+              {!musterStatus.musteredToday ? (
+                <button
+                  onClick={handleReportMuster}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#CCFF00] py-2.5 px-4 text-xs font-black uppercase tracking-wider text-black hover:bg-[#b8e600] transition shadow-md cursor-pointer"
+                >
+                  <Radio size={14} />
+                  <span>Report for Duty (+25 XP)</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold">
+                  <CheckCircle2 size={16} />
+                  <span>Duty Confirmed. Demerits Avoided.</span>
+                </div>
+              )}
+
+              <button
+                onClick={() => speakMorningMusterCall()}
+                className="p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 transition shrink-0 cursor-pointer"
+                title="Sound Morning Bugle / Muster Call"
+              >
+                <Volume2 size={16} />
+              </button>
+            </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
-            {!musterStatus.musteredToday ? (
-              <button
-                onClick={handleReportMuster}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#CCFF00] py-2.5 px-4 text-xs font-black uppercase tracking-wider text-black hover:bg-[#b8e600] transition shadow-md"
-              >
-                <Radio size={14} />
-                <span>Report for Duty (+25 XP)</span>
-              </button>
-            ) : (
-              <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold">
-                <CheckCircle2 size={16} />
-                <span>Duty Confirmed. Demerits Avoided.</span>
+          {/* 2. Military Rank & Insignia Card */}
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#121824] to-[#0d141e] p-5 shadow-lg flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5 font-mono">
+                  <Shield size={14} className="text-primary" />
+                  TACTICAL CADRE PROGRESSION
+                </span>
+                <span className="text-xs font-mono font-bold text-zinc-400">
+                  {rankProgression.demerits} Demerits
+                </span>
               </div>
-            )}
 
-            <button
-              onClick={() => speakMorningMusterCall()}
-              className="p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 transition shrink-0"
-              title="Sound Morning Bugle / Muster Call"
-            >
-              <Volume2 size={16} />
-            </button>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-3xl">{rankProgression.currentRank.insignia}</span>
+                <div>
+                  <h4 className="text-sm font-black text-white">
+                    [{rankProgression.currentRank.rankCode}] {rankProgression.currentRank.rankTitle}
+                  </h4>
+                  <p className="text-[11px] text-zinc-400">
+                    {rankProgression.currentRank.perks}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-white/10">
+              <div className="flex justify-between text-[10px] font-mono font-bold text-zinc-400 mb-1">
+                <span>{rankProgression.totalPoints} PTS</span>
+                <span>
+                  {rankProgression.nextRank ? `Next: [${rankProgression.nextRank.rankCode}] ${rankProgression.nextRank.rankTitle} (${rankProgression.nextRank.minPoints} PTS)` : 'MAX RANK ACHIEVED'}
+                </span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-primary to-[#CCFF00] rounded-full transition-all duration-700"
+                  style={{ width: `${rankProgression.progressPct}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* 2. Military Rank & Insignia Card */}
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#121824] to-[#0d141e] p-5 shadow-lg flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5 font-mono">
-                <Shield size={14} className="text-primary" />
-                TACTICAL CADRE PROGRESSION
-              </span>
-              <span className="text-xs font-mono font-bold text-zinc-400">
-                {rankProgression.demerits} Demerits
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-3xl">{rankProgression.currentRank.insignia}</span>
+      {/* ------------------------------------------------------------------- */}
+      {/* 2. TACTICAL EXCUSE BUSTER TERMINAL */}
+      {/* ------------------------------------------------------------------- */}
+      {activeSection === 'excuse' && (
+        <div className="rounded-2xl border border-white/10 bg-[#0e131b] p-5 shadow-lg animate-in fade-in duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/20 text-rose-400">
+                <Terminal size={15} />
+              </div>
               <div>
-                <h4 className="text-sm font-black text-white">
-                  [{rankProgression.currentRank.rankCode}] {rankProgression.currentRank.rankTitle}
-                </h4>
+                <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                  Tactical Excuse Buster Mini-Terminal
+                </h3>
                 <p className="text-[11px] text-zinc-400">
-                  {rankProgression.currentRank.perks}
+                  Type any hesitation, sluggishness or excuse. Commander Iron will dismantle it with zero negotiation.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-white/10">
-            <div className="flex justify-between text-[10px] font-mono font-bold text-zinc-400 mb-1">
-              <span>{rankProgression.totalPoints} PTS</span>
-              <span>
-                {rankProgression.nextRank ? `Next: [${rankProgression.nextRank.rankCode}] ${rankProgression.nextRank.rankTitle} (${rankProgression.nextRank.minPoints} PTS)` : 'MAX RANK ACHIEVED'}
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-[#CCFF00] rounded-full transition-all duration-700"
-                style={{ width: `${rankProgression.progressPct}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ------------------------------------------------------------------- */}
-      {/* 3. TACTICAL EXCUSE BUSTER TERMINAL */}
-      {/* ------------------------------------------------------------------- */}
-      <div className="rounded-2xl border border-white/10 bg-[#0e131b] p-5 shadow-lg">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/20 text-rose-400">
-              <Terminal size={15} />
-            </div>
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-wider text-white">
-                Tactical Excuse Buster Mini-Terminal
-              </h3>
-              <p className="text-[11px] text-zinc-400">
-                Type any hesitation, sluggishness or excuse. Commander Iron will dismantle it with zero negotiation.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowExcuseBuster(!showExcuseBuster)}
-            className="text-xs text-muted-foreground hover:text-white"
-          >
-            {showExcuseBuster ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-        </div>
-
-        {showExcuseBuster && (
-          <div className="mt-3 pt-3 border-t border-white/10 space-y-3 animate-fade-in">
+          <div className="mt-3 pt-3 border-t border-white/10 space-y-3">
             <form onSubmit={handleDismantleExcuse} className="flex gap-2">
               <input
                 type="text"
@@ -365,7 +401,7 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
               />
               <button
                 type="submit"
-                className="rounded-xl bg-rose-500 hover:bg-rose-400 text-white px-4 py-2 text-xs font-black uppercase tracking-wider transition shrink-0"
+                className="rounded-xl bg-rose-500 hover:bg-rose-400 text-white px-4 py-2 text-xs font-black uppercase tracking-wider transition shrink-0 cursor-pointer"
               >
                 Dismantle
               </button>
@@ -379,7 +415,7 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
                   </span>
                   <button
                     onClick={() => speakExcuseRejection(excuseResult.rebuttal)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-white hover:text-rose-300"
+                    className="flex items-center gap-1 text-[11px] font-bold text-white hover:text-rose-300 cursor-pointer"
                   >
                     <Volume2 size={13} />
                     <span>Hear Drill Sergeant</span>
@@ -394,11 +430,14 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
               </div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Routine Checklist Section */}
-      <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg">
+      {/* ------------------------------------------------------------------- */}
+      {/* 3. Routine Checklist Section */}
+      {/* ------------------------------------------------------------------- */}
+      {activeSection === 'habits' && (
+        <div className="rounded-2xl border border-border bg-[#0e131b] p-5 sm:p-6 shadow-lg animate-in fade-in duration-200">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white font-display">
@@ -435,7 +474,11 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
                     aria-label="Toggle completed"
                     onClick={(e) => {
                       e.stopPropagation();
+                      playMechanicalClick();
                       onToggleRoutine(item.id);
+                      if (!item.completed && completedCount + 1 >= totalCount) {
+                        playLevelUpChime();
+                      }
                     }}
                     className={`flex h-6 w-6 items-center justify-center rounded-lg border transition ${
                       item.completed
@@ -477,6 +520,7 @@ export const DisciplineTab: React.FC<DisciplineTabProps> = ({
           ))}
         </div>
       </div>
+      )}
 
       {/* Add Routine Modal */}
       {showAddModal && (

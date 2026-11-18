@@ -45,6 +45,7 @@ const StravaAthleteProfileModal = lazy(() => import("../components/StravaAthlete
 const ActivityRouteDetailView = lazy(() => import("../components/routeIntelligence/ActivityRouteDetailView").then((m) => ({ default: m.ActivityRouteDetailView })))
 const NotificationCenterDrawer = lazy(() => import("../components/NotificationCenterDrawer").then((m) => ({ default: m.NotificationCenterDrawer })))
 const AiCoachBriefingCard = lazy(() => import("../components/AiCoachBriefingCard").then((m) => ({ default: m.AiCoachBriefingCard })))
+const MorningStandupCard = lazy(() => import("../components/MorningStandupCard").then((m) => ({ default: m.MorningStandupCard })))
 const AthleteSkillTreeModal = lazy(() => import("../components/AthleteSkillTreeModal").then((m) => ({ default: m.AthleteSkillTreeModal })))
 const ManualActivityLogModal = lazy(() => import("../components/ManualActivityLogModal").then((m) => ({ default: m.ManualActivityLogModal })))
 const AutoDetectedActivityModal = lazy(() => import("../components/AutoDetectedActivityModal").then((m) => ({ default: m.AutoDetectedActivityModal })))
@@ -62,7 +63,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bell,
-  BookOpen,
   Bike,
   Check,
   ChevronRight,
@@ -144,27 +144,30 @@ const sports: Sport[] = [
   "Cycling",
   "Calisthenics",
 ]
-const coreNavItems = [
-  { path: "/playbook", label: "Playbook", icon: BookOpen },
-  { path: "/activities", label: "Activities", icon: Activity },
-  { path: "/armor", label: "Pitch armor", icon: ShieldCheck },
-  { path: "/community", label: "Community", icon: Users },
-  { path: "/maps", label: "Maps engine", icon: Map },
-  { path: "/studio", label: "Share studio", icon: Sparkles },
+const todayNavItems = [
+  { path: "/playbook", label: "Today Cockpit", icon: Compass },
 ]
-const performanceNavItems = [
-  { path: "/fithub", label: "Google Fit Hub", icon: Heart },
+const trainNavItems = [
+  { path: "/activities", label: "Performance Hub", icon: Activity },
   { path: "/football", label: "Football Cockpit", icon: Target },
-  { path: "/nutrition", label: "Fuel & Nutrition", icon: Utensils },
+  { path: "/armor", label: "Pitch Armor", icon: ShieldCheck },
+  { path: "/maps", label: "Maps Engine", icon: Map },
+  { path: "/studio", label: "Share Studio", icon: Sparkles },
 ]
-const lifestyleNavItems = [
+const progressNavItems = [
+  { path: "/fithub", label: "Google Fit Hub", icon: Heart },
+  { path: "/community", label: "Strava Community", icon: Users },
+  { path: "/portfolio", label: "Athlete Portfolio", icon: Trophy },
+]
+const vaultNavItems = [
   { path: "/discipline", label: "Daily Discipline", icon: ShieldCheck },
+  { path: "/nutrition", label: "Fuel & Nutrition", icon: Utensils },
   { path: "/vedas", label: "Vedas & Carnatic", icon: Music },
   { path: "/cycle", label: "Cycle Sync", icon: Moon },
-  { path: "/portfolio", label: "Portfolio", icon: Trophy },
+  { path: "/settings", label: "Settings Vault", icon: Settings2 },
 ]
-const allAppNavItems = [...coreNavItems, ...performanceNavItems, ...lifestyleNavItems]
-export const navItems = coreNavItems
+const allAppNavItems = [...todayNavItems, ...trainNavItems, ...progressNavItems, ...vaultNavItems]
+export const navItems = allAppNavItems
 const panel = "rounded-2xl border border-white/10 bg-[#0e131b] shadow-xl shadow-black/40"
 interface SportIconProps {
   sport: string
@@ -563,12 +566,12 @@ function AppShell() {
           LIFE MASTERY & PERFORMANCE
         </span>
 
-        {/* 1. CORE WORKSPACE */}
+        {/* 1. TODAY COCKPIT */}
         <div className="mt-8 px-3 text-[9px] font-semibold tracking-[0.16em] text-[#666f7e]">
-          YOUR WORKSPACE
+          TODAY COCKPIT
         </div>
         <nav className="mt-3 flex flex-col gap-1.5">
-          {coreNavItems.map((item) => (
+          {todayNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -576,16 +579,38 @@ function AppShell() {
               className={({ isActive }: { isActive: boolean }) =>
                 `relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium transition-colors ${
                   isActive || (item.path === "/playbook" && page === "/")
-                    ? item.path === "/playbook"
-                      ? "bg-dude/8 text-dude"
-                      : "bg-primary/8 text-primary"
+                    ? "bg-primary/10 text-primary font-bold shadow-sm"
                     : "text-muted-foreground hover:bg-white/5 hover:text-white"
                 }`
               }
             >
               <item.icon size={16} strokeWidth={1.7} />
               {item.label}
-              {item.label === "Share studio" && (
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* 2. TRAIN & LIVE TRACKING */}
+        <div className="mt-6 px-3 text-[9px] font-semibold tracking-[0.16em] text-[#666f7e]">
+          TRAIN & LIVE TRACKING
+        </div>
+        <nav className="mt-3 flex flex-col gap-1.5">
+          {trainNavItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end
+              className={({ isActive }: { isActive: boolean }) =>
+                `relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium transition-colors ${
+                  isActive
+                    ? "bg-primary/8 text-primary font-semibold"
+                    : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                }`
+              }
+            >
+              <item.icon size={16} strokeWidth={1.7} />
+              {item.label}
+              {item.label === "Share Studio" && (
                 <span className="ml-auto rounded border border-primary/25 px-1 py-0.5 text-[7px] text-primary">
                   NEW
                 </span>
@@ -594,12 +619,12 @@ function AppShell() {
           ))}
         </nav>
 
-        {/* 2. ATHLETE PERFORMANCE */}
+        {/* 3. PROGRESS & TELEMETRY */}
         <div className="mt-6 px-3 text-[9px] font-semibold tracking-[0.16em] text-[#666f7e]">
-          ATHLETE PERFORMANCE
+          PROGRESS & TELEMETRY
         </div>
         <nav className="mt-3 flex flex-col gap-1.5">
-          {performanceNavItems.map((item) => (
+          {progressNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -607,7 +632,7 @@ function AppShell() {
               className={({ isActive }: { isActive: boolean }) =>
                 `relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium transition-colors ${
                   isActive
-                    ? "bg-primary/8 text-primary"
+                    ? "bg-sky-400/10 text-sky-400 font-semibold"
                     : "text-muted-foreground hover:bg-white/5 hover:text-white"
                 }`
               }
@@ -618,12 +643,12 @@ function AppShell() {
           ))}
         </nav>
 
-        {/* 3. LIFESTYLE & MIND */}
+        {/* 4. VAULT & HABITS */}
         <div className="mt-6 px-3 text-[9px] font-semibold tracking-[0.16em] text-[#666f7e]">
-          LIFESTYLE & MIND
+          VAULT & HABITS
         </div>
         <nav className="mt-3 flex flex-col gap-1.5">
-          {lifestyleNavItems.map((item) => (
+          {vaultNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -631,7 +656,7 @@ function AppShell() {
               className={({ isActive }: { isActive: boolean }) =>
                 `relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium transition-colors ${
                   isActive
-                    ? "bg-[#c084fc]/10 text-[#c084fc]"
+                    ? "bg-[#c084fc]/10 text-[#c084fc] font-semibold"
                     : "text-muted-foreground hover:bg-white/5 hover:text-white"
                 }`
               }
@@ -716,11 +741,12 @@ function AppShell() {
           <div className="flex items-center gap-3 sm:gap-5">
             <button
               onClick={() => setSkillTreeOpen(true)}
-              className="flex items-center gap-1.5 rounded-full border border-[#fc4c02]/20 bg-[#fc4c02]/10 px-2.5 py-1 text-[9px] font-bold tracking-[0.06em] text-[#ff8952] hover:bg-[#fc4c02]/20 transition"
-              title="Click to view Athlete Skill Tree & Levels"
+              className="flex items-center gap-1.5 rounded-full border border-[#fc4c02]/30 bg-gradient-to-r from-[#fc4c02]/15 to-[#CCFF00]/10 px-2.5 py-1 text-[9px] font-bold tracking-[0.06em] text-[#ff8952] hover:brightness-110 transition cursor-pointer shadow-sm"
+              title="Duo Co-Op Flame: Sughosh & Shreya 14-day joint consistency"
             >
-              <Flame size={13} fill="currentColor" className="text-[#FC5200]" />
-              14 <span className="hidden sm:inline">DAY STREAK • LVL 8</span>
+              <Flame size={13} fill="currentColor" className="text-[#FC5200] animate-pulse" />
+              <span>14D DUO FLAME</span>
+              <span className="hidden md:inline rounded bg-white/10 px-1 py-0.2 text-[8px] text-[#CCFF00] font-mono">LVL 8</span>
             </button>
             <div className="relative">
               <button
@@ -813,6 +839,86 @@ function AppShell() {
             </button>
           </div>
 
+          {/* SUB-PILLAR QUICK SWITCHER PILL BAR */}
+          {(page === "/activities" || page === "/football" || page === "/armor" || page === "/maps" || page === "/studio") && (
+            <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {[
+                { path: "/activities", label: "Performance Hub", icon: Activity },
+                { path: "/football", label: "Football Cockpit", icon: Target },
+                { path: "/armor", label: "Pitch Armor", icon: ShieldCheck },
+                { path: "/maps", label: "Maps Engine", icon: Map },
+                { path: "/studio", label: "4K Studio", icon: Sparkles },
+              ].map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                      isActive
+                        ? "bg-primary text-black shadow-md shadow-primary/20"
+                        : "bg-white/5 border border-white/10 text-zinc-400 hover:text-white"
+                    }`
+                  }
+                >
+                  <sub.icon size={13} />
+                  <span>{sub.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          )}
+
+          {(page === "/fithub" || page === "/community" || page === "/portfolio") && (
+            <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {[
+                { path: "/fithub", label: "Google Fit Hub (1,456d)", icon: Heart },
+                { path: "/community", label: "Strava Community", icon: Users },
+                { path: "/portfolio", label: "Athlete Portfolio", icon: Trophy },
+              ].map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                      isActive
+                        ? "bg-primary text-black shadow-md shadow-primary/20"
+                        : "bg-white/5 border border-white/10 text-zinc-400 hover:text-white"
+                    }`
+                  }
+                >
+                  <sub.icon size={13} />
+                  <span>{sub.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          )}
+
+          {(page === "/discipline" || page === "/routine" || page === "/nutrition" || page === "/vedas" || page === "/cycle" || page === "/period" || page === "/settings") && (
+            <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {[
+                { path: "/discipline", label: "Daily Discipline", icon: ShieldCheck },
+                { path: "/nutrition", label: "Fuel & Nutrition", icon: Utensils },
+                { path: "/vedas", label: "Vedas & Carnatic", icon: Music },
+                { path: "/cycle", label: "Cycle Sync", icon: Moon },
+                { path: "/settings", label: "Settings Vault", icon: Settings2 },
+              ].map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                      isActive
+                        ? "bg-[#c084fc] text-black shadow-md shadow-[#c084fc]/20"
+                        : "bg-white/5 border border-white/10 text-zinc-400 hover:text-white"
+                    }`
+                  }
+                >
+                  <sub.icon size={13} />
+                  <span>{sub.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          )}
+
           <Suspense fallback={<div className="p-8 text-center text-xs text-white/40 font-mono animate-pulse">Loading view...</div>}>
           {playbook ? (
             <div className="space-y-6">
@@ -858,6 +964,16 @@ function AppShell() {
                 streakCount={14}
                 weeklyDistanceKm={milestones.longestRunKm || 18.5}
                 recentPace={milestones.fastest1kRunSeconds ? `${Math.floor(milestones.fastest1kRunSeconds / 60)}:${String(milestones.fastest1kRunSeconds % 60).padStart(2, '0')} /km` : "4:52 /km"}
+                onQuickAction={(action) => {
+                  if (action === "run") setGpsModalActivityType("run")
+                  else if (action === "football") navigate("/football")
+                }}
+              />
+              <MorningStandupCard
+                currentProfile={currentProfile}
+                streakCount={14}
+                completedHabitsCount={routines.filter(r => r.completed).length}
+                totalHabitsCount={routines.length}
                 onQuickAction={(action) => {
                   if (action === "run") setGpsModalActivityType("run")
                   else if (action === "football") navigate("/football")
@@ -1567,30 +1683,72 @@ function AppShell() {
         </main>
       </div>
 
-      {/* MOBILE BOTTOM NAVIGATION */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-white/10 bg-[#0b0e14]/95 px-2 pt-2.5 pb-[max(0.85rem,env(safe-area-inset-bottom,0px))] backdrop-blur-xl lg:hidden">
-        {[
-          { path: "/playbook", label: "Playbook", icon: BookOpen },
-          { path: "/activities", label: "Activities", icon: Activity },
-          { path: "/maps", label: "Maps", icon: Map },
-          { path: "/community", label: "Community", icon: Users },
-          { path: "/fithub", label: "Fit Hub", icon: Heart },
-        ].map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={`flex flex-1 min-w-0 flex-col items-center justify-center gap-1 rounded-xl py-1 text-[10px] font-medium transition-all ${
-              page === item.path || (item.path === "/playbook" && page === "/") || (item.path === "/fithub" && page === "/armor")
-                ? item.path === "/playbook"
-                  ? "text-dude font-bold"
-                  : "text-primary font-bold"
-                : "text-muted-foreground hover:text-white"
-            }`}
+      {/* MOBILE BOTTOM NAVIGATION - 4 PILLARS + CENTER ACTION FAB */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between border-t border-white/10 bg-[#0b0e14]/95 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur-xl lg:hidden">
+        {/* 1. Today */}
+        <NavLink
+          to="/playbook"
+          className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+            page === "/" || page === "/playbook"
+              ? "text-primary font-bold"
+              : "text-muted-foreground hover:text-white"
+          }`}
+        >
+          <Compass size={20} strokeWidth={page === "/" || page === "/playbook" ? 2.5 : 1.7} />
+          <span>Today</span>
+        </NavLink>
+
+        {/* 2. Train */}
+        <NavLink
+          to="/activities"
+          className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+            page === "/activities" || page === "/football" || page === "/armor" || page === "/maps" || page === "/studio" || page === "/workout"
+              ? "text-primary font-bold"
+              : "text-muted-foreground hover:text-white"
+          }`}
+        >
+          <Zap size={20} strokeWidth={page === "/activities" || page === "/football" || page === "/armor" || page === "/maps" || page === "/studio" || page === "/workout" ? 2.5 : 1.7} />
+          <span>Train</span>
+        </NavLink>
+
+        {/* ⚡ CENTER ACTION FAB: + Log / Start Activity */}
+        <div className="flex items-center justify-center px-2">
+          <button
+            type="button"
+            onClick={() => setActivityLauncherOpen(true)}
+            className="-mt-5 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-[#FC5200] to-[#CCFF00] text-black shadow-lg shadow-[#CCFF00]/25 hover:scale-105 active:scale-95 transition-all border-2 border-[#0b0e14] cursor-pointer shrink-0"
+            title="Log Activity or Launch GPS"
+            aria-label="Quick Action Hub"
           >
-            <item.icon size={20} strokeWidth={page === item.path || (item.path === "/playbook" && page === "/") || (item.path === "/fithub" && page === "/armor") ? 2.3 : 1.7} />
-            <span className="truncate max-w-[62px] text-[10px]">{item.label}</span>
-          </NavLink>
-        ))}
+            <Plus size={24} strokeWidth={3} className="text-black" />
+          </button>
+        </div>
+
+        {/* 3. Progress */}
+        <NavLink
+          to="/fithub"
+          className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+            page === "/fithub" || page === "/community" || page === "/portfolio"
+              ? "text-primary font-bold"
+              : "text-muted-foreground hover:text-white"
+          }`}
+        >
+          <Heart size={20} strokeWidth={page === "/fithub" || page === "/community" || page === "/portfolio" ? 2.5 : 1.7} />
+          <span>Progress</span>
+        </NavLink>
+
+        {/* 4. Vault */}
+        <NavLink
+          to="/discipline"
+          className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+            page === "/discipline" || page === "/routine" || page === "/nutrition" || page === "/vedas" || page === "/cycle" || page === "/period" || page === "/settings"
+              ? "text-[#c084fc] font-bold"
+              : "text-muted-foreground hover:text-white"
+          }`}
+        >
+          <ShieldCheck size={20} strokeWidth={page === "/discipline" || page === "/routine" || page === "/nutrition" || page === "/vedas" || page === "/cycle" || page === "/period" || page === "/settings" ? 2.5 : 1.7} />
+          <span>Vault</span>
+        </NavLink>
       </nav>
 
       {/* ACTIVITY DETAIL & WORLD-CLASS EXPORT MODAL */}
