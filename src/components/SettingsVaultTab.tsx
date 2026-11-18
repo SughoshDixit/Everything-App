@@ -5,9 +5,10 @@ import { Smartphone, Plus, ChevronDown, ChevronUp, Sparkles, Quote } from 'lucid
 interface SettingsVaultTabProps {
   quotes: MotivationalQuote[];
   onAddQuote: (quote: Omit<MotivationalQuote, 'id'>) => void;
+  onOpenAiHarness?: () => void;
 }
 
-export const SettingsVaultTab: React.FC<SettingsVaultTabProps> = ({ quotes, onAddQuote }) => {
+export const SettingsVaultTab: React.FC<SettingsVaultTabProps> = ({ quotes, onAddQuote, onOpenAiHarness }) => {
   const [newQuoteText, setNewQuoteText] = useState('');
   const [newAuthor, setNewAuthor] = useState('Athlete');
   const [newCategory, setNewCategory] = useState<MotivationalQuote['category']>('discipline');
@@ -115,12 +116,23 @@ export const SettingsVaultTab: React.FC<SettingsVaultTabProps> = ({ quotes, onAd
                 Google AI Studio ↗
               </a>
             </span>
-            <button
-              type="submit"
-              className="rounded-xl bg-primary text-black font-extrabold px-4 py-2 text-xs hover:brightness-110 active:scale-95 transition shadow-md shadow-primary/20"
-            >
-              {savedGeminiSuccess ? '✓ Key Saved!' : 'Save Key'}
-            </button>
+            <div className="flex items-center gap-2">
+              {onOpenAiHarness && (
+                <button
+                  type="button"
+                  onClick={onOpenAiHarness}
+                  className="rounded-xl border border-[#CCFF00]/40 bg-[#CCFF00]/10 text-[#CCFF00] font-extrabold px-3.5 py-2 text-xs hover:bg-[#CCFF00]/20 active:scale-95 transition shadow-sm font-mono flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>⚡ Open AI Harness Lab</span>
+                </button>
+              )}
+              <button
+                type="submit"
+                className="rounded-xl bg-primary text-black font-extrabold px-4 py-2 text-xs hover:brightness-110 active:scale-95 transition shadow-md shadow-primary/20 cursor-pointer"
+              >
+                {savedGeminiSuccess ? '✓ Key Saved!' : 'Save Key'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

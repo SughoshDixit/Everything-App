@@ -529,8 +529,6 @@ export const StravaRouteFlybyPlayer: React.FC<StravaRouteFlybyPlayerProps> = ({
         setRecordProgress(100);
       };
 
-      mediaRecorder.start(100);
-
       // Compute bounding box for projection
       let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
       points.forEach((p) => {

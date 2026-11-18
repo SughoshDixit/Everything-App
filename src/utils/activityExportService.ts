@@ -1,5 +1,6 @@
 import type { Workout, GpsLocationPoint } from '../types';
 import { drawAnimatedAthleteMarker } from './googleMapsRenderer';
+import { createAspectRatioProjector } from './routeGeometryGenerator';
 
 export class ActivityExportService {
   /**
@@ -70,28 +71,18 @@ export class ActivityExportService {
     ctx.font = '600 24px "Montserrat", sans-serif';
     ctx.fillText(`Logged by ${athleteName} • Verified Athlete Telemetry`, 110, 345);
 
-    // 5. Draw Route Path on Canvas
+    // 5. Draw Route Path on Canvas (Aspect-Ratio Preserved)
     if (routePoints.length >= 2) {
-      const lats = routePoints.map((p) => p.latitude);
-      const lngs = routePoints.map((p) => p.longitude);
-      const minLat = Math.min(...lats);
-      const maxLat = Math.max(...lats);
-      const minLng = Math.min(...lngs);
-      const maxLng = Math.max(...lngs);
-
       const mapAreaX = 100;
       const mapAreaY = 460;
       const mapAreaW = width - 200;
       const mapAreaH = 680;
 
-      const deltaLat = maxLat - minLat || 0.001;
-      const deltaLng = maxLng - minLng || 0.001;
-
-      const project = (lat: number, lng: number) => {
-        const px = mapAreaX + ((lng - minLng) / deltaLng) * mapAreaW;
-        const py = mapAreaY + mapAreaH - ((lat - minLat) / deltaLat) * mapAreaH;
-        return [px, py] as [number, number];
-      };
+      const { project } = createAspectRatioProjector(
+        routePoints,
+        { x: mapAreaX, y: mapAreaY, width: mapAreaW, height: mapAreaH },
+        40
+      );
 
       // Subtle Map Grid Box
       ctx.fillStyle = 'rgba(18, 24, 38, 0.6)';
@@ -335,23 +326,13 @@ export class ActivityExportService {
         ctx.font = '700 16px monospace';
         ctx.fillText(`${workout.sport.toUpperCase()} • ${workout.location}`, 40, 110);
 
-        // Draw animated progressive route
+        // Draw animated progressive route (Aspect-Ratio Preserved)
         if (routePoints.length >= 2) {
-          const lats = routePoints.map((p) => p.latitude);
-          const lngs = routePoints.map((p) => p.longitude);
-          const minLat = Math.min(...lats);
-          const maxLat = Math.max(...lats);
-          const minLng = Math.min(...lngs);
-          const maxLng = Math.max(...lngs);
-
-          const deltaLat = maxLat - minLat || 0.001;
-          const deltaLng = maxLng - minLng || 0.001;
-
-          const project = (lat: number, lng: number) => {
-            const px = 60 + ((lng - minLng) / deltaLng) * (width - 120);
-            const py = 180 + (height - 480) - ((lat - minLat) / deltaLat) * (height - 480);
-            return [px, py] as [number, number];
-          };
+          const { project } = createAspectRatioProjector(
+            routePoints,
+            { x: 50, y: 160, width: width - 100, height: height - 420 },
+            30
+          );
 
           const pointsCount = Math.max(2, Math.floor(routePoints.length * progress));
           const currentSlice = routePoints.slice(0, pointsCount);

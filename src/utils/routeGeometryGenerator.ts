@@ -59,16 +59,133 @@ export const INDOOR_STUDIO_POINTS: GpsLocationPoint[] = [
 
 /**
  * Resolves the best available GPS route points for any workout in the collection.
+ * 1. Checks authentic Strava activities by title / ID
+ * 2. Checks landmark locations (Nandi, Turahalli, South United, Cubbon)
+ * 3. Falls back to the closest authentic activity by sport & distance
  */
 export function getRoutePointsForWorkout(workout: Workout): GpsLocationPoint[] {
-  const match = AUTHENTIC_GPS_ACTIVITIES.find(
-    (a) => a.title && workout.title && a.title.toLowerCase() === workout.title.toLowerCase()
+  if (!workout) return CUBBON_PARK_POINTS;
+
+  // 1. Exact or partial title match in authentic Strava GPS activities
+  if (workout.title) {
+    const wTitle = workout.title.toLowerCase().trim();
+    const match = AUTHENTIC_GPS_ACTIVITIES.find((a) => {
+      if (!a.title) return false;
+      const aTitle = a.title.toLowerCase().trim();
+      return aTitle === wTitle || aTitle.includes(wTitle) || wTitle.includes(aTitle);
+    });
+    if (match && match.routePoints && match.routePoints.length >= 2) {
+      return match.routePoints;
+    }
+  }
+
+  // 2. Specific athletic landmark matches
+  if (workout.location) {
+    const loc = workout.location.toLowerCase();
+    if (loc.includes('nandi')) return NANDI_HILLS_POINTS;
+    if (loc.includes('turahalli')) return TURAHALLI_FOREST_POINTS;
+    if (loc.includes('south united') || workout.sport === 'Football') return SOUTH_UNITED_PITCH_POINTS;
+    if (loc.includes('cubbon')) return CUBBON_PARK_POINTS;
+  }
+
+  if (workout.sport === 'Calisthenics') {
+    return INDOOR_STUDIO_POINTS;
+  }
+
+  // 3. Find closest authentic activity by sport & distance
+  const targetDist = parseFloat(workout.distance) || 5.0;
+  const targetType = workout.sport === 'Cycling' ? 'cycle' : 'run';
+  const sportMatches = AUTHENTIC_GPS_ACTIVITIES.filter(
+    (a) => a.activityType === targetType && a.routePoints && a.routePoints.length >= 10
   );
-  if (match && match.routePoints && match.routePoints.length > 0) {
-    return match.routePoints;
+
+  if (sportMatches.length > 0) {
+    let best = sportMatches[0];
+    let minDiff = Math.abs((best.distanceKm || 0) - targetDist);
+    for (const act of sportMatches) {
+      const diff = Math.abs((act.distanceKm || 0) - targetDist);
+      if (diff < minDiff) {
+        minDiff = diff;
+        best = act;
+      }
+    }
+    return best.routePoints;
   }
-  if (AUTHENTIC_GPS_ACTIVITIES.length > 0 && AUTHENTIC_GPS_ACTIVITIES[0].routePoints?.length > 0) {
-    return AUTHENTIC_GPS_ACTIVITIES[0].routePoints;
-  }
+
   return CUBBON_PARK_POINTS;
+}
+
+export interface ProjectorResult {
+  project: (lat: number, lng: number) => [number, number];
+  bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number };
+  center: { lat: number; lng: number };
+  drawWidth: number;
+  drawHeight: number;
+}
+
+/**
+ * Creates an aspect-ratio-preserving projector that prevents route squishing/stretching.
+ * Applies latitude cosine projection math so angles, curves, and turns are 100% geographically authentic.
+ */
+export function createAspectRatioProjector(
+  points: { latitude: number; longitude: number }[] | [number, number][],
+  viewBox: { x: number; y: number; width: number; height: number },
+  padding: number = 20
+): ProjectorResult {
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+
+  for (const pt of points) {
+    const lat = Array.isArray(pt) ? pt[1] : pt.latitude;
+    const lng = Array.isArray(pt) ? pt[0] : pt.longitude;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+    }
+  }
+
+  // Graceful fallback for single point or invalid coords
+  if (!Number.isFinite(minLat) || minLat === maxLat) {
+    minLat = 12.9716; maxLat = 12.9750;
+  }
+  if (!Number.isFinite(minLng) || minLng === maxLng) {
+    minLng = 77.5946; maxLng = 77.5980;
+  }
+
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLng = (minLng + maxLng) / 2;
+
+  // Real-world metric correction factor: longitude shrinks by cos(centerLat)
+  const cosLat = Math.cos((centerLat * Math.PI) / 180);
+  const geoWidth = Math.max(0.00001, (maxLng - minLng) * cosLat);
+  const geoHeight = Math.max(0.00001, maxLat - minLat);
+
+  const usableW = Math.max(10, viewBox.width - padding * 2);
+  const usableH = Math.max(10, viewBox.height - padding * 2);
+
+  // Uniform scale that fits BOTH dimensions without stretching or squishing
+  const scale = Math.min(usableW / geoWidth, usableH / geoHeight);
+
+  const drawW = geoWidth * scale;
+  const drawH = geoHeight * scale;
+
+  // Center route within viewBox
+  const offsetX = viewBox.x + (viewBox.width - drawW) / 2;
+  const offsetY = viewBox.y + (viewBox.height - drawH) / 2;
+
+  const project = (lat: number, lng: number): [number, number] => {
+    const px = offsetX + ((lng - minLng) * cosLat) * scale;
+    // In screen coordinates, top is 0, so higher latitude (north) is lower y
+    const py = offsetY + drawH - (lat - minLat) * scale;
+    return [px, py];
+  };
+
+  return {
+    project,
+    bounds: { minLat, maxLat, minLng, maxLng },
+    center: { lat: centerLat, lng: centerLng },
+    drawWidth: drawW,
+    drawHeight: drawH
+  };
 }

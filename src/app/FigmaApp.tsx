@@ -49,6 +49,7 @@ const MorningStandupCard = lazy(() => import("../components/MorningStandupCard")
 const AthleteSkillTreeModal = lazy(() => import("../components/AthleteSkillTreeModal").then((m) => ({ default: m.AthleteSkillTreeModal })))
 const ManualActivityLogModal = lazy(() => import("../components/ManualActivityLogModal").then((m) => ({ default: m.ManualActivityLogModal })))
 const AutoDetectedActivityModal = lazy(() => import("../components/AutoDetectedActivityModal").then((m) => ({ default: m.AutoDetectedActivityModal })))
+const GeminiAiHarnessModal = lazy(() => import("../components/GeminiAiHarnessModal").then((m) => ({ default: m.GeminiAiHarnessModal })))
 import type { ManualCategory } from "../components/ManualActivityLogModal"
 import { notificationService } from "../services/notificationService"
 import { autoActivityDetectionService } from "../services/autoActivityDetectionService"
@@ -68,6 +69,7 @@ import {
   ChevronRight,
   Clock3,
   Compass,
+  Cpu,
   Download,
   Dumbbell,
   Flame,
@@ -399,6 +401,7 @@ function AppShell() {
   const [activitiesViewMode, setActivitiesViewMode] = useState<'simple' | 'pro'>('simple')
   const [notification, setNotification] = useState(false)
   const [skillTreeOpen, setSkillTreeOpen] = useState(false)
+  const [showGeminiHarness, setShowGeminiHarness] = useState(false)
   const [session, setSession] = useState(false)
   const [activityLauncherOpen, setActivityLauncherOpen] = useState(false)
   const [manualLogOpen, setManualLogOpen] = useState(false)
@@ -748,6 +751,15 @@ function AppShell() {
               <span>14D DUO FLAME</span>
               <span className="hidden md:inline rounded bg-white/10 px-1 py-0.2 text-[8px] text-[#CCFF00] font-mono">LVL 8</span>
             </button>
+            <button
+              onClick={() => setShowGeminiHarness(true)}
+              className="flex items-center gap-1.5 rounded-full border border-[#CCFF00]/30 bg-[#CCFF00]/10 px-2.5 py-1 text-[9px] font-black tracking-wider text-[#CCFF00] hover:bg-[#CCFF00]/20 transition cursor-pointer shadow-sm font-mono"
+              title="Open Gemini AI Interactive Test Harness"
+            >
+              <Cpu size={13} className="text-[#CCFF00]" />
+              <span className="hidden sm:inline">AI HARNESS</span>
+              <span className="sm:hidden">AI</span>
+            </button>
             <div className="relative">
               <button
                 onClick={() => setNotification(true)}
@@ -1070,7 +1082,7 @@ function AppShell() {
               onOpenCreatePost={() => setEditingPost(null)}
             />
           ) : page === "/settings" ? (
-            <SettingsVaultTab quotes={quotes} onAddQuote={handleAddQuote} />
+            <SettingsVaultTab quotes={quotes} onAddQuote={handleAddQuote} onOpenAiHarness={() => setShowGeminiHarness(true)} />
           ) : activities ? (
             <>
               {/* TOP PERFORMANCE DASHBOARD HEADER & SIMPLIFIED TOGGLE */}
@@ -2384,6 +2396,10 @@ function AppShell() {
           onClose={() => setAutoActivitiesModalOpen(false)}
         />
       )}
+
+      {showGeminiHarness && (
+        <GeminiAiHarnessModal onClose={() => setShowGeminiHarness(false)} />
+      )}
       </Suspense>
 
       {activeSession && !session && (
@@ -2950,6 +2966,7 @@ function smoothRoute(route: string) {
 }
 const studioRoute = smoothRoute(workouts[0].route)
 function Studio({ toast }: { toast: (message: string) => void }) {
+  const { currentProfile } = useAthleteApp()
   const layered = new URLSearchParams(useLocation().search).has("layered")
   const [background, setBackground] = useState(
     layered && studioTransfer.photo ? "Workout photo" : "Dark canvas",
@@ -2990,6 +3007,18 @@ function Studio({ toast }: { toast: (message: string) => void }) {
     }
     setExporting(true)
     try {
+      if (video) {
+        toast("Rendering 9:16 vertical trail video replay...")
+        const activeWorkout = workouts[0]
+        const pts = getRoutePointsForWorkout(activeWorkout)
+        const res = await ActivityExportService.downloadVideo(
+          activeWorkout,
+          pts,
+          currentProfile === "women" ? "Shreya Dixit" : "Sughosh Dixit"
+        )
+        toast(res)
+        return
+      }
       const svg = new XMLSerializer().serializeToString(poster.current)
       const image = new Image()
       const svgUrl = URL.createObjectURL(

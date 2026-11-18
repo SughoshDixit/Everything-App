@@ -219,7 +219,24 @@ export const ActivityRouteDetailView: React.FC<ActivityRouteDetailViewProps> = (
       }
     }
 
-    const bounds = geometries.video?.bounds || geometries.cleaned?.bounds || geometries.raw?.bounds || {
+    let computedBounds = geometries.video?.bounds || geometries.cleaned?.bounds || geometries.raw?.bounds;
+    if (!computedBounds && progressPoints.length > 0) {
+      let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+      for (const pt of progressPoints) {
+        const [lng, lat] = pt.coordinate;
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+        }
+      }
+      if (Number.isFinite(minLat) && Number.isFinite(minLng) && minLat < maxLat && minLng < maxLng) {
+        computedBounds = { minLat, maxLat, minLng, maxLng };
+      }
+    }
+
+    const bounds = computedBounds || {
       minLat: 12.9716,
       maxLat: 12.9750,
       minLng: 77.5946,

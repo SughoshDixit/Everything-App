@@ -102,7 +102,7 @@ export function computeOptimalZoom(
   const usableWidth = Math.max(100, canvasWidth - padding * 2);
   const usableHeight = Math.max(100, canvasHeight - padding * 2);
 
-  for (let z = 19; z >= 10; z--) {
+  for (let z = 19; z >= 2; z--) {
     const sw = latLngToWorld(bounds.minLat, bounds.minLng, z);
     const ne = latLngToWorld(bounds.maxLat, bounds.maxLng, z);
     const pixelWidth = Math.abs(ne.x - sw.x);
@@ -112,7 +112,7 @@ export function computeOptimalZoom(
       return z;
     }
   }
-  return 13;
+  return 2;
 }
 
 /**

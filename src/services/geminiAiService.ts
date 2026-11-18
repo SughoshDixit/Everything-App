@@ -29,6 +29,26 @@ export interface DaySpecialityContext {
   seasonContext: string;
 }
 
+export interface GeminiHarnessOptions {
+  model?: string; // 'gemini-1.5-flash' | 'gemini-1.5-pro' | 'gemini-2.0-flash' | 'on-device'
+  temperature?: number;
+  topP?: number;
+  maxOutputTokens?: number;
+  systemInstruction?: string;
+  forceLocal?: boolean;
+}
+
+export interface GeminiHarnessResult {
+  text: string;
+  modelUsed: string;
+  latencyMs: number;
+  estimatedPromptTokens: number;
+  estimatedOutputTokens: number;
+  rawRequest: any;
+  rawResponse: any;
+  error?: string;
+}
+
 const THREAD_STORAGE_KEY = 'kuchh_bhii_ai_chat_thread';
 const THREAD_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour memory window
 
@@ -310,6 +330,121 @@ Give punchy, highly creative, dynamic answers. Never give boilerplate, robotic, 
   }
 
   /**
+   * Gemini AI Test Harness Query Runner
+   * Executes arbitrary prompts with model selection, parameter tuning,
+   * latency measurement, and full request/response introspection.
+   */
+  public static async runHarnessQuery(
+    userPrompt: string,
+    apiKey: string,
+    options: GeminiHarnessOptions = {},
+    athleteContext: any = { athleteName: 'Sughosh Dixit', streakCount: 14, recentPace: '4:52 /km' }
+  ): Promise<GeminiHarnessResult> {
+    const t0 = performance.now();
+    const todayEvents = this.getTodaySpecialityAndEvents();
+    const model = options.model || 'gemini-1.5-flash';
+    const temperature = options.temperature ?? 0.8;
+    const topP = options.topP ?? 0.95;
+    const maxOutputTokens = options.maxOutputTokens ?? 600;
+
+    const defaultSystem = `You are "Commander Iron & The Anfield Tactical Coach", the elite AI mentor embedded in "Kuchh Bhii".
+Athlete: ${athleteContext.athleteName || 'Sughosh'} (Streak: ${athleteContext.streakCount || 14}d, Pace: ${athleteContext.recentPace || '4:52 /km'}).
+Today: ${todayEvents.dateStr} - ${todayEvents.dayOfYearTitle}.
+Historical/Military: ${todayEvents.militarySpeciality}
+Football/Anfield: ${todayEvents.footballSpeciality} (${todayEvents.anfieldTrivia}).
+Provide sharp, disciplined, inspiring, and tactically sound feedback with Liverpool FC and Indian Armed Forces energy.`;
+
+    const systemPrompt = options.systemInstruction || defaultSystem;
+
+    const rawRequest = {
+      model,
+      systemInstruction: systemPrompt,
+      generationConfig: {
+        temperature,
+        maxOutputTokens,
+        topP
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: `${systemPrompt}\n\nTask:\n${userPrompt}` }]
+        }
+      ]
+    };
+
+    // If forced local or model is on-device, or no key provided
+    if (options.forceLocal || model === 'on-device' || !apiKey) {
+      const localText = this.synthesizeLocalResponse(userPrompt, [], athleteContext, todayEvents);
+      const latencyMs = Math.round(performance.now() - t0);
+      return {
+        text: localText,
+        modelUsed: 'On-Device Tactical Synthesizer',
+        latencyMs,
+        estimatedPromptTokens: Math.round(userPrompt.length / 4) + 120,
+        estimatedOutputTokens: Math.round(localText.length / 4),
+        rawRequest,
+        rawResponse: { source: 'local_neural_rules_engine', output: localText }
+      };
+    }
+
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: rawRequest.contents,
+          generationConfig: rawRequest.generationConfig
+        })
+      });
+
+      const latencyMs = Math.round(performance.now() - t0);
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        return {
+          text: `Error calling ${model} (${resp.status}): ${errText}`,
+          modelUsed: model,
+          latencyMs,
+          estimatedPromptTokens: Math.round(userPrompt.length / 4) + 120,
+          estimatedOutputTokens: 0,
+          rawRequest,
+          rawResponse: { status: resp.status, error: errText },
+          error: `HTTP ${resp.status}: ${errText}`
+        };
+      }
+
+      const data = await resp.json();
+      const outputText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No text candidate returned.';
+      const promptTokens = data.usageMetadata?.promptTokenCount || Math.round(userPrompt.length / 4) + 120;
+      const outputTokens = data.usageMetadata?.candidatesTokenCount || Math.round(outputText.length / 4);
+
+      return {
+        text: outputText.trim(),
+        modelUsed: model,
+        latencyMs,
+        estimatedPromptTokens: promptTokens,
+        estimatedOutputTokens: outputTokens,
+        rawRequest,
+        rawResponse: data
+      };
+    } catch (err: any) {
+      const latencyMs = Math.round(performance.now() - t0);
+      return {
+        text: `Execution failed: ${err?.message || err}. Falling back to on-device synthesizer:\n\n` +
+          this.synthesizeLocalResponse(userPrompt, [], athleteContext, todayEvents),
+        modelUsed: `${model} (fallback to local)`,
+        latencyMs,
+        estimatedPromptTokens: Math.round(userPrompt.length / 4) + 120,
+        estimatedOutputTokens: 150,
+        rawRequest,
+        rawResponse: { error: err?.message || String(err) },
+        error: err?.message || String(err)
+      };
+    }
+  }
+
+  /**
    * Rich Local Gen-AI Synthesizer:
    * Generates completely dynamic, non-repeating answers referencing today's date,
    * Liverpool FC current standings, and Indian military valour without requiring cloud keys.
@@ -330,12 +465,15 @@ Give punchy, highly creative, dynamic answers. Never give boilerplate, robotic, 
       return this.generateDynamicSocialCaptionsBlock(name, streak, pace, events);
     }
 
-    // 2. Today's Date / Speciality / Historical Events
-    if (q.includes('today') || q.includes('history') || q.includes('special') || q.includes('date') || q.includes('infantry')) {
-      return `📅 **${events.dayOfYearTitle} — Mission Briefing**\n\n` +
-        `🎖️ **Armed Forces Honour:** ${events.militarySpeciality}\n\n` +
-        `🔴 **Anfield & Football Context:** ${events.footballSpeciality} ${events.anfieldTrivia}\n\n` +
-        `⚔️ **Commander's Directive for ${name}:** Today is not an ordinary day on the calendar. Whether you're running kilometers, crushing calisthenics push-ups, or drilling wing cut-backs, lace up with intention. Your ${streak}-day discipline streak is proof that consistency beats fleeting motivation. Get to work!`;
+    // 2. Fatigue, Soreness & Excuse Dismantling (DEFCON Excuse Buster)
+    if (q.includes('tired') || q.includes('sore') || q.includes('lazy') || q.includes('fatigue') || q.includes('rest') || q.includes('skip')) {
+      return `⚠️ **SITREP: Excuse Intercepted & Neutralized!**\n\n` +
+        `Field Marshal Sam Manekshaw famously said: *"If a man says he is not afraid or wants to quit, he is either lying or needs a reminder of what he is fighting for."*\n\n` +
+        `You've built a **${streak}-day active discipline streak**. That wasn't an accident. Lactic acid is temporary; the regret of breaking your standard lasts forever.\n\n` +
+        `🛡️ **Tactical Compromise Protocol:**\n` +
+        `1. If your muscles are genuinely in red-zone DEFCON 1: Do an active aerobic flush walk (2.5 km) and 15 minutes of lower-body mobility.\n` +
+        `2. If your mind is just playing tricks: Give me 20 strict push-ups right now and watch your mental fog evaporate.\n\n` +
+        `Step forward, ${name}. Standards are non-negotiable! ⚔️`;
     }
 
     // 3. Liverpool FC / Anfield / Football Banter
@@ -352,15 +490,12 @@ Give punchy, highly creative, dynamic answers. Never give boilerplate, robotic, 
         `🔴 **The Klopp-Slot Doctrine:** Control the tempo with precision. If you're on the left wing, explosive bursts. If you're on a recovery block, disciplined hydration. Walk on through the wind—You'll Never Walk Alone! 🔴⚽🔥`;
     }
 
-    // 4. Fatigue, Soreness & Excuse Dismantling
-    if (q.includes('tired') || q.includes('sore') || q.includes('lazy') || q.includes('fatigue') || q.includes('rest') || q.includes('skip')) {
-      return `⚠️ **SITREP: Excuse Intercepted & Neutralized!**\n\n` +
-        `Field Marshal Sam Manekshaw famously said: *"If a man says he is not afraid or wants to quit, he is either lying or needs a reminder of what he is fighting for."*\n\n` +
-        `You've built a **${streak}-day active discipline streak**. That wasn't an accident. Lactic acid is temporary; the regret of breaking your standard lasts forever.\n\n` +
-        `🛡️ **Tactical Compromise Protocol:**\n` +
-        `1. If your muscles are genuinely in red-zone DEFCON 1: Do an active aerobic flush walk (2.5 km) and 15 minutes of lower-body mobility.\n` +
-        `2. If your mind is just playing tricks: Give me 20 strict push-ups right now and watch your mental fog evaporate.\n\n` +
-        `Step forward, ${name}. Standards are non-negotiable! ⚔️`;
+    // 4. Today's Date / Speciality / Historical Events
+    if (q.includes('today') || q.includes('history') || q.includes('special') || q.includes('date') || q.includes('infantry')) {
+      return `📅 **${events.dayOfYearTitle} — Mission Briefing**\n\n` +
+        `🎖️ **Armed Forces Honour:** ${events.militarySpeciality}\n\n` +
+        `🔴 **Anfield & Football Context:** ${events.footballSpeciality} ${events.anfieldTrivia}\n\n` +
+        `⚔️ **Commander's Directive for ${name}:** Today is not an ordinary day on the calendar. Whether you're running kilometers, crushing calisthenics push-ups, or drilling wing cut-backs, lace up with intention. Your ${streak}-day discipline streak is proof that consistency beats fleeting motivation. Get to work!`;
     }
 
     // 5. General Tactical Guidance

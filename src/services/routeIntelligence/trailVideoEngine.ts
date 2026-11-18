@@ -145,19 +145,43 @@ export class TrailVideoEngine {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, width, height);
 
-    // 2. Coordinate Projector to Canvas Space
-    const { bounds } = payload;
-    const pad = width * 0.14;
-    const mapW = width - pad * 2;
-    const mapH = height * 0.55;
-    const mapTop = height * 0.18;
+    // 2. Coordinate Projector to Canvas Space with True Aspect-Ratio Preservation
+    let { bounds } = payload;
+    if (payload.progressPoints && payload.progressPoints.length > 1) {
+      let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+      for (const pt of payload.progressPoints) {
+        const [lng, lat] = pt.coordinate;
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+        }
+      }
+      if (Number.isFinite(minLat) && Number.isFinite(minLng) && minLat < maxLat && minLng < maxLng) {
+        bounds = { minLat, maxLat, minLng, maxLng };
+      }
+    }
 
-    const latSpan = Math.max(0.001, bounds.maxLat - bounds.minLat);
-    const lngSpan = Math.max(0.001, bounds.maxLng - bounds.minLng);
+    const pad = width * 0.12;
+    const mapW = width - pad * 2;
+    const mapH = height * 0.52;
+    const mapTop = height * 0.19;
+
+    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+    const cosLat = Math.cos((centerLat * Math.PI) / 180);
+    const geoW = Math.max(0.00001, (bounds.maxLng - bounds.minLng) * cosLat);
+    const geoH = Math.max(0.00001, bounds.maxLat - bounds.minLat);
+
+    const uniformScale = Math.min(mapW / geoW, mapH / geoH);
+    const drawW = geoW * uniformScale;
+    const drawH = geoH * uniformScale;
+    const offsetX = pad + (mapW - drawW) / 2;
+    const offsetY = mapTop + (mapH - drawH) / 2;
 
     const project = (lng: number, lat: number): [number, number] => {
-      const x = pad + ((lng - bounds.minLng) / lngSpan) * mapW;
-      const y = mapTop + mapH - ((lat - bounds.minLat) / latSpan) * mapH;
+      const x = offsetX + ((lng - bounds.minLng) * cosLat) * uniformScale;
+      const y = offsetY + drawH - (lat - bounds.minLat) * uniformScale;
       return [x, y];
     };
 
