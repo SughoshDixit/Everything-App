@@ -160,4 +160,29 @@ describe('Gemini AI Service & Test Harness', () => {
     expect(result.rawRequest.generationConfig.topP).toBe(0.9);
     expect(result.rawRequest.generationConfig.maxOutputTokens).toBe(500);
   });
+
+  it('answers GPS and telemetry inquiries intelligently in on-device mode', async () => {
+    const result = await GeminiAiService.runHarnessQuery(
+      'Explain how GPS tracking and route projection work in the app',
+      '',
+      { model: 'on-device' }
+    );
+
+    expect(result.text).toContain('GPS & Route Telemetry Systems');
+    expect(result.text).toContain('Trilateration');
+    expect(result.text).toContain('Haversine');
+    expect(result.text).toContain('cos');
+  });
+
+  it('answers nutrition and fuel diagnostic inquiries in on-device mode', async () => {
+    const result = await GeminiAiService.runHarnessQuery(
+      'Analyze post-workout recovery fuel requirements after football training',
+      '',
+      { model: 'on-device' }
+    );
+
+    expect(result.text).toContain('Fuel & Glycogen Diagnostic');
+    expect(result.text).toContain('Pre-Session Fueling');
+    expect(result.text).toContain('Carb-to-Protein Ratio');
+  });
 });

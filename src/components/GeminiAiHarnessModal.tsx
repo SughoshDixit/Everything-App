@@ -61,8 +61,16 @@ const PRESETS = [
 
 export const GeminiAiHarnessModal: React.FC<GeminiAiHarnessModalProps> = ({ onClose, initialPrompt }) => {
   const [apiKey, setApiKey] = useState<string>(() => {
-    return (typeof localStorage !== 'undefined' && localStorage.getItem('gemini_api_key')) || '';
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('gemini_api_key')) {
+      return localStorage.getItem('gemini_api_key')!;
+    }
+    try {
+      return (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+    } catch {
+      return '';
+    }
   });
+  const [tempKey, setTempKey] = useState<string>(apiKey);
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
   const [model, setModel] = useState<string>('gemini-1.5-flash');
   const [temperature, setTemperature] = useState<number>(0.8);
@@ -81,6 +89,7 @@ export const GeminiAiHarnessModal: React.FC<GeminiAiHarnessModalProps> = ({ onCl
   useEffect(() => {
     if (apiKey) {
       localStorage.setItem('gemini_api_key', apiKey.trim());
+      setTempKey(apiKey.trim());
     }
   }, [apiKey]);
 
@@ -88,6 +97,11 @@ export const GeminiAiHarnessModal: React.FC<GeminiAiHarnessModalProps> = ({ onCl
     if (!prompt.trim() || isLoading) return;
     playMechanicalClick();
     setIsLoading(true);
+
+    // If cloud model is chosen but no API key is present, open key drawer and notify
+    if (!apiKey.trim() && model !== 'on-device') {
+      setShowKeyInput(true);
+    }
 
     try {
       const res = await GeminiAiService.runHarnessQuery(
@@ -168,13 +182,13 @@ export const GeminiAiHarnessModal: React.FC<GeminiAiHarnessModalProps> = ({ onCl
               onClick={() => setShowKeyInput(!showKeyInput)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
                 apiKey
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                  : 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
               }`}
-              title="Configure Gemini API Key"
+              title="Configure Google Gemini API Key"
             >
               <Key size={13} />
-              <span>{apiKey ? 'API Key Active' : 'Offline Mode (Local Synthesizer)'}</span>
+              <span>{apiKey ? 'API Key Active' : 'Enter API Key (Currently Offline)'}</span>
             </button>
             <button
               onClick={onClose}
@@ -187,26 +201,54 @@ export const GeminiAiHarnessModal: React.FC<GeminiAiHarnessModalProps> = ({ onCl
 
         {/* API Key Drawer (Expandable) */}
         {showKeyInput && (
-          <div className="px-5 py-3 bg-[#151c2a] border-b border-white/10 flex items-center gap-3 animate-in slide-in-from-top-2">
-            <Key size={16} className="text-[#CCFF00] shrink-0" />
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Paste Google Gemini API Key (saved securely in localStorage)"
-              className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#CCFF00]"
-            />
-            {apiKey && (
+          <div className="px-5 py-3.5 bg-[#151c2a] border-b border-white/10 space-y-2 animate-in slide-in-from-top-2">
+            <div className="flex items-center justify-between text-xs text-zinc-300">
+              <div className="flex items-center gap-2 font-bold text-white">
+                <Key size={15} className="text-[#CCFF00]" />
+                <span>Google Gemini API Key Setup</span>
+              </div>
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-[#CCFF00] hover:underline font-mono"
+              >
+                Get free key at Google AI Studio ↗
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="password"
+                value={tempKey}
+                onChange={(e) => setTempKey(e.target.value)}
+                placeholder="Paste your AIzaSy... Google Gemini API Key"
+                className="flex-1 bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#CCFF00] font-mono"
+              />
               <button
                 onClick={() => {
-                  setApiKey('');
-                  localStorage.removeItem('gemini_api_key');
+                  setApiKey(tempKey.trim());
+                  if (tempKey.trim()) {
+                    localStorage.setItem('gemini_api_key', tempKey.trim());
+                    setShowKeyInput(false);
+                  }
                 }}
-                className="text-xs text-rose-400 hover:underline px-2"
+                className="px-4 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#b8e600] text-black font-extrabold text-xs transition cursor-pointer shrink-0"
               >
-                Clear
+                Save Key
               </button>
-            )}
+              {apiKey && (
+                <button
+                  onClick={() => {
+                    setApiKey('');
+                    setTempKey('');
+                    localStorage.removeItem('gemini_api_key');
+                  }}
+                  className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold text-xs border border-rose-500/20 transition cursor-pointer shrink-0"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -288,6 +330,54 @@ export const GeminiAiHarnessModal: React.FC<GeminiAiHarnessModalProps> = ({ onCl
               />
             </div>
           </div>
+
+          {/* API Key Callout when cloud model selected without key */}
+          {!apiKey && model !== 'on-device' && (
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-start gap-2.5">
+                <span className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                  <Key size={16} />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-amber-300">
+                      Gemini API Key Needed for {model}
+                    </span>
+                    <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
+                      Free Tier Available
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-300 mt-0.5">
+                    Cloud models run directly on Google AI Studio servers. Enter your key to run live inference, or switch to On-Device Mode.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                <button
+                  onClick={() => setShowKeyInput(true)}
+                  className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-extrabold transition cursor-pointer shadow"
+                >
+                  Enter API Key
+                </button>
+                <button
+                  onClick={() => setModel('on-device')}
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-200 text-xs font-bold border border-white/10 transition cursor-pointer"
+                >
+                  Use On-Device
+                </button>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-[#CCFF00] hover:underline flex items-center gap-1 font-mono px-1"
+                  title="Get free API key from Google AI Studio"
+                >
+                  Get Key ↗
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Preset Buttons */}
           <div>

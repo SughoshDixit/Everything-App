@@ -367,7 +367,7 @@ Provide sharp, disciplined, inspiring, and tactically sound feedback with Liverp
       contents: [
         {
           role: 'user',
-          parts: [{ text: `${systemPrompt}\n\nTask:\n${userPrompt}` }]
+          parts: [{ text: userPrompt }]
         }
       ]
     };
@@ -378,7 +378,9 @@ Provide sharp, disciplined, inspiring, and tactically sound feedback with Liverp
       const latencyMs = Math.round(performance.now() - t0);
       return {
         text: localText,
-        modelUsed: 'On-Device Tactical Synthesizer',
+        modelUsed: !apiKey && model !== 'on-device' 
+          ? `On-Device Synthesizer (No API Key set for ${model})` 
+          : 'On-Device Tactical Synthesizer',
         latencyMs,
         estimatedPromptTokens: Math.round(userPrompt.length / 4) + 120,
         estimatedOutputTokens: Math.round(localText.length / 4),
@@ -389,28 +391,61 @@ Provide sharp, disciplined, inspiring, and tactically sound feedback with Liverp
 
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const payload: any = {
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: userPrompt }]
+          }
+        ],
+        generationConfig: {
+          temperature,
+          maxOutputTokens,
+          topP
+        }
+      };
+
+      if (systemPrompt) {
+        payload.systemInstruction = {
+          parts: [{ text: systemPrompt }]
+        };
+      }
+
       const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: rawRequest.contents,
-          generationConfig: rawRequest.generationConfig
-        })
+        body: JSON.stringify(payload)
       });
 
       const latencyMs = Math.round(performance.now() - t0);
 
       if (!resp.ok) {
-        const errText = await resp.text();
+        let errDetail = '';
+        try {
+          const errJson = await resp.json();
+          errDetail = errJson.error?.message || JSON.stringify(errJson);
+        } catch {
+          errDetail = await resp.text();
+        }
+
+        let userFriendlyError = `Error calling ${model} (${resp.status}): ${errDetail}`;
+        if (resp.status === 400 && errDetail.toLowerCase().includes('api_key_invalid')) {
+          userFriendlyError = `🔑 Invalid Google Gemini API Key. Please verify your key at https://aistudio.google.com/app/apikey.`;
+        } else if (resp.status === 404) {
+          userFriendlyError = `Model "${model}" not found on Google Gemini API v1beta. Try switching to "gemini-1.5-flash" or "gemini-1.5-pro".`;
+        } else if (resp.status === 429) {
+          userFriendlyError = `⏳ Google Gemini API Rate Limit / Quota exceeded. Please wait a moment or check your API quotas.`;
+        }
+
         return {
-          text: `Error calling ${model} (${resp.status}): ${errText}`,
+          text: userFriendlyError,
           modelUsed: model,
           latencyMs,
           estimatedPromptTokens: Math.round(userPrompt.length / 4) + 120,
           estimatedOutputTokens: 0,
           rawRequest,
-          rawResponse: { status: resp.status, error: errText },
-          error: `HTTP ${resp.status}: ${errText}`
+          rawResponse: { status: resp.status, error: errDetail },
+          error: `HTTP ${resp.status}: ${errDetail}`
         };
       }
 
@@ -460,8 +495,10 @@ Provide sharp, disciplined, inspiring, and tactically sound feedback with Liverp
     const streak = athleteContext.streakCount || 14;
     const pace = athleteContext.recentPace || '4:52 /km';
 
-    // 1. Captions & Social Media Generation Request
-    if (q.includes('caption') || q.includes('quote') || q.includes('post') || q.includes('instagram')) {
+    // 1. Captions & Social Media Generation Request (exclude post-workout / post-run)
+    const isSocialPost = (q.includes('caption') || q.includes('quote') || q.includes('instagram') || q.includes('social')) ||
+      (/\bpost\b/i.test(q) && !q.includes('post-workout') && !q.includes('post workout') && !q.includes('post-run') && !q.includes('post run'));
+    if (isSocialPost) {
       return this.generateDynamicSocialCaptionsBlock(name, streak, pace, events);
     }
 
@@ -476,7 +513,66 @@ Provide sharp, disciplined, inspiring, and tactically sound feedback with Liverp
         `Step forward, ${name}. Standards are non-negotiable! ⚔️`;
     }
 
-    // 3. Liverpool FC / Anfield / Football Banter
+    // 3. Fueling, Glycogen & Nutrition Diagnostics (checked before general banter)
+    if (q.includes('fuel') || q.includes('nutrition') || q.includes('glycogen') || q.includes('food') || q.includes('diet') || q.includes('protein') || q.includes('carb') || q.includes('hydration') || q.includes('water')) {
+      return `🥗 **Tactical Fuel & Glycogen Diagnostic for ${name}**\n\n` +
+        `Operating at an active ${streak}-day discipline streak demands systematic nutritional timing to prevent central nervous system depletion and muscular breakdown:\n\n` +
+        `⚡ **1. Pre-Session Fueling (90–120 mins before):**\n` +
+        `• 40–60g complex carbohydrates (oatmeal with banana, whole grain toast with honey) to maximize muscle glycogen storage.\n` +
+        `• 500 mL water with a pinch of Himalayan pink salt (sodium balance prevents cramping during high-tempo efforts).\n\n` +
+        `🔥 **2. Intra-Session Protocol (>60 mins duration):**\n` +
+        `• 30–45g rapid simple carbs/hour (maltodextrin/glucose gel or dates) + electrolyte solution (sodium, potassium, magnesium).\n\n` +
+        `🛡️ **3. Anabolic & Recovery Window (Within 30–45 mins post-workout):**\n` +
+        `• **3:1 Carb-to-Protein Ratio**: 25–35g clean protein (whey/plant isolate, eggs, or paneer) paired with 60–80g fast-absorbing carbs to spike insulin and force amino acids directly into damaged myofibrils.\n` +
+        `• **Rehydration**: 1.5L fluid for every kilogram of sweat lost.\n\n` +
+        `Eat like a champion, recover like an elite soldier! ⚔️`;
+    }
+
+    // 4. GPS, Maps, Route Projection & Elevation Telemetry
+    if (q.includes('gps') || q.includes('track') || q.includes('route') || q.includes('map') || q.includes('projection') || q.includes('geometry') || q.includes('elevation')) {
+      return `🛰️ **Tactical Engineering Directive: GPS & Route Telemetry Systems**\n\n` +
+        `Here is the architectural breakdown of how satellite tracking and route projection function in high-performance athletic applications like **Kuchh Bhii**:\n\n` +
+        `1. **Trilateration & Satellite Fixes:** Your device GPS receiver calculates exact distance to at least 4 MEO satellites by measuring the precise time-of-flight of radio signals ($c \\approx 300,000\\text{ km/s}$). Atmospheric refraction (ionosphere/troposphere) introduces small drift, which is corrected using differential GPS (WAAS/EGNOS).\n\n` +
+        `2. **Aspect-Ratio & Geographic Projection Fix:** Because lines of longitude converge toward the poles, 1° of longitude is narrower than 1° of latitude by $\\cos(\\text{lat})$. To render video flybys or maps without stretching, we apply our uniform projection formula:\n` +
+        `$$\\text{scale} = \\min\\left(\\frac{\\text{drawW}}{\\Delta\\text{lng} \\cdot \\cos(\\text{centerLat})},\\, \\frac{\\text{drawH}}{\\Delta\\text{lat}}\\right)$$\n` +
+        `This preserves true geometric angles and hairpin turns perfectly on any 9:16 or 1:1 canvas.\n\n` +
+        `3. **Haversine Distance & Smoothing:** Point-to-point split distances are integrated using the Haversine great-circle formula, smoothed with Kalman filtering to eliminate GPS "jitter" during urban or tree-cover running.\n\n` +
+        `Pace benchmark for ${name}: **${pace}**. Every coordinate is precision telemetry! 🏃💨`;
+    }
+
+    // 5. Interval Workouts, Speedwork, VO2 Max & Pacing
+    if (q.includes('interval') || q.includes('speed') || q.includes('vo2') || q.includes('tempo') || q.includes('5k') || q.includes('10k') || q.includes('cadence') || q.includes('pace') || q.includes('faster')) {
+      return `⚡ **High-Tempo Tactical Protocol: Speed & Interval Optimization**\n\n` +
+        `To shift your benchmark pace from **${pace}** into elite territory, we apply high-intensity interval training (HIIT) combined with lactate threshold development:\n\n` +
+        `🔴 **Session Structure: 6 × 800m Repeats**\n` +
+        `• **Warm-up:** 1.5 km easy zone 2 jog + dynamic hip mobility (A-skips, high knees, leg swings).\n` +
+        `• **Work Interval:** 800m at 4:15–4:20 /km target pace (90–92% max HR, Arne Slot high-press rhythm).\n` +
+        `• **Recovery Interval:** 90 seconds active walking rest (do not sit—flush lactic acid continuously).\n` +
+        `• **Cadence Directive:** Maintain 172–178 strides per minute. Short ground-contact time, spring off the midfoot.\n\n` +
+        `*"Success isn't about wishing for it; it's about executing the split when the burning in your lungs asks you to yield."* — Commander Directive 🏃🔥`;
+    }
+
+    // 6. Calisthenics, Pitch Armor & Strength
+    if (q.includes('calisthenic') || q.includes('pushup') || q.includes('push-up') || q.includes('pullup') || q.includes('pull-up') || q.includes('squat') || q.includes('armor') || q.includes('strength') || q.includes('core')) {
+      return `🛡️ **Pitch Armor: Bodyweight Strength & Combat Calisthenics Protocol**\n\n` +
+        `Running builds the cardiovascular engine; calisthenics builds the bulletproof chassis that keeps ${name} injury-free across ${streak} consecutive days:\n\n` +
+        `1. **One-Arm Push-Up Progressions (Anti-Rotation Core)**: 3 sets × 4–6 reps per side. Lock pelvis horizontal, squeeze glutes, control descent over 3 seconds.\n` +
+        `2. **L-Sit Pull-Ups (Lats & Deep Hip Flexors)**: 3 sets × 5–8 strict reps. Legs locked at 90°, chest to bar, zero swinging.\n` +
+        `3. **Pistol Squats (Single-Leg Ground Power)**: 3 sets × 6–8 reps per leg. Eliminates bilateral strength asymmetries and bulletproofs knee patellar tendons for football cutbacks.\n` +
+        `4. **Hollow Body Hold**: 4 sets × 45 seconds strict tension.\n\n` +
+        `Build armor in peacetime so you don't bleed during the match! ⚔️`;
+    }
+
+    // 7. Audio Split Voice Cue Generator
+    if (q.includes('split') || q.includes('audio') || q.includes('voice') || q.includes('cue') || q.includes('headphone')) {
+      return `🎙️ **Tactical Audio Headphone Split Directives**\n\n` +
+        `Engineered for 8-to-12 word high-impact audio delivery through headphones during critical pace inflection points:\n\n` +
+        `• **Cadence Slipping Callout:** *"Pace is slipping to 4:55. Drive your knees! Standards are non-negotiable!"*\n` +
+        `• **Final Kilometer Push:** *"80th minute Anfield pressure. Empty the tank right now! Walk on!"*\n` +
+        `• **Mid-Run Steady Cue:** *"Shoulders down. Rhythmic breathing. 176 cadence locked in. Own this kilometer."*`;
+    }
+
+    // 8. Liverpool FC / Anfield / Football Banter
     if (q.includes('liverpool') || q.includes('anfield') || q.includes('klopp') || q.includes('slot') || q.includes('united') || q.includes('football')) {
       const openings = [
         `Listen to me, ${name}: Arne Slot doesn't accept passive jogging, and neither does this tactical room.`,
@@ -490,7 +586,7 @@ Provide sharp, disciplined, inspiring, and tactically sound feedback with Liverp
         `🔴 **The Klopp-Slot Doctrine:** Control the tempo with precision. If you're on the left wing, explosive bursts. If you're on a recovery block, disciplined hydration. Walk on through the wind—You'll Never Walk Alone! 🔴⚽🔥`;
     }
 
-    // 4. Today's Date / Speciality / Historical Events
+    // 9. Today's Date / Speciality / Historical Events
     if (q.includes('today') || q.includes('history') || q.includes('special') || q.includes('date') || q.includes('infantry')) {
       return `📅 **${events.dayOfYearTitle} — Mission Briefing**\n\n` +
         `🎖️ **Armed Forces Honour:** ${events.militarySpeciality}\n\n` +
@@ -498,14 +594,14 @@ Provide sharp, disciplined, inspiring, and tactically sound feedback with Liverp
         `⚔️ **Commander's Directive for ${name}:** Today is not an ordinary day on the calendar. Whether you're running kilometers, crushing calisthenics push-ups, or drilling wing cut-backs, lace up with intention. Your ${streak}-day discipline streak is proof that consistency beats fleeting motivation. Get to work!`;
     }
 
-    // 5. General Tactical Guidance
-    return `🫡 **Commander's SITREP for ${name} [${events.dayOfYearTitle}]**\n\n` +
-      `Your current discipline rating is operating at high readiness (${streak}-day streak, pace benchmark ${pace}).\n\n` +
-      `📌 **Today's Strategic Focus:**\n` +
-      `• **Morning Directive:** Active hydration (3.0L minimum) & mental alignment with ${events.dayOfYearTitle}.\n` +
-      `• **Physical Armour:** Focus on single-leg stabilization and core shielding to bulletproof against groin and ankle strains.\n` +
-      `• **Evening Protocol:** Review today's volume, compile your activities into a consolidated recap, and recharge.\n\n` +
-      `What specific drill, recovery question, or tactical caption do you need next?`;
+    // 10. General Dynamic Athletic Synthesis
+    return `🫡 **Commander's Tactical Directive for ${name}**\n\n` +
+      `Regarding your inquiry: *"**${query.trim()}**"*\n\n` +
+      `📌 **Tactical Assessment & Recommendations:**\n` +
+      `• **Discipline Continuity:** You have logged an active **${streak}-day streak** with a benchmark pace of **${pace}**. Today's focus is maintaining that momentum with deliberate execution.\n` +
+      `• **Key Actionable Step:** Break down this objective into measurable micro-goals. In the words of Captain Vikram Batra: *"Yeh Dil Mange More!"* Never settle for passive participation when you can dominate your standard.\n` +
+      `• **Physical Protocol:** Pair your mental focus with proper hydration (3.0L) and joint mobility before your next session.\n\n` +
+      `💡 *Tip: To run this query with live Google Cloud LLM reasoning (Gemini 1.5 Flash / Pro / 2.0), enter your free Gemini API key in the top drawer of this harness!* 🚀`;
   }
 
   /**
