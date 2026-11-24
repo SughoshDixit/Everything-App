@@ -58,11 +58,11 @@ describe('Gemini AI Service & Test Harness', () => {
     const result = await GeminiAiService.runHarnessQuery(
       'Execute tactical briefing',
       'mock-gemini-key',
-      { model: 'gemini-1.5-flash', temperature: 0.8 }
+      { model: 'gemini-3.5-flash-lite', temperature: 0.8 }
     );
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(result.modelUsed).toBe('gemini-1.5-flash');
+    expect(result.modelUsed).toBe('gemini-3.5-flash-lite');
     expect(result.text).toBe('Tactical directive: Maintain 4:30/km high press rhythm. YNWA!');
     expect(result.estimatedPromptTokens).toBe(145);
     expect(result.estimatedOutputTokens).toBe(32);
@@ -80,11 +80,11 @@ describe('Gemini AI Service & Test Harness', () => {
     const result = await GeminiAiService.runHarnessQuery(
       'Test query with invalid key',
       'bad-key',
-      { model: 'gemini-1.5-flash' }
+      { model: 'gemini-3.5-flash-lite' }
     );
 
     expect(result.error).toContain('HTTP 403');
-    expect(result.text).toContain('Error calling gemini-1.5-flash (403)');
+    expect(result.text).toContain('Error calling gemini-3.5-flash-lite (403)');
   });
 
   it('falls back to on-device synthesizer when online API network fetch throws error', async () => {

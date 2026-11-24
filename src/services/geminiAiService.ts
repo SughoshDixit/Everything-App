@@ -342,7 +342,13 @@ Give punchy, highly creative, dynamic answers. Never give boilerplate, robotic, 
   ): Promise<GeminiHarnessResult> {
     const t0 = performance.now();
     const todayEvents = this.getTodaySpecialityAndEvents();
-    const model = options.model || 'gemini-1.5-flash';
+    // Map legacy model names to active Gemini 3.5 models
+    let model = options.model || 'gemini-3.5-flash-lite';
+    if (model === 'gemini-1.5-flash' || model === 'gemini-2.5-flash' || model === 'gemini-2.0-flash') {
+      model = 'gemini-3.5-flash-lite';
+    } else if (model === 'gemini-1.5-pro' || model === 'gemini-2.5-pro') {
+      model = 'gemini-3.5-flash';
+    }
     const temperature = options.temperature ?? 0.8;
     const topP = options.topP ?? 0.95;
     const maxOutputTokens = options.maxOutputTokens ?? 600;

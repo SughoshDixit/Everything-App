@@ -72,7 +72,7 @@ export const GeminiAiHarnessModal: React.FC<GeminiAiHarnessModalProps> = ({ onCl
   });
   const [tempKey, setTempKey] = useState<string>(apiKey);
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
-  const [model, setModel] = useState<string>('gemini-1.5-flash');
+  const [model, setModel] = useState<string>('gemini-3.5-flash-lite');
   const [temperature, setTemperature] = useState<number>(0.8);
   const [topP, setTopP] = useState<number>(0.95);
   const [maxTokens, setMaxTokens] = useState<number>(600);
@@ -266,10 +266,10 @@ export const GeminiAiHarnessModal: React.FC<GeminiAiHarnessModalProps> = ({ onCl
                 onChange={(e) => setModel(e.target.value)}
                 className="w-full bg-[#1A2232] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-[#CCFF00]"
               >
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast Coach)</option>
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Analytics)</option>
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Experimental)</option>
-                <option value="on-device">On-Device Synthesizer (Zero-Key)</option>
+                <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Fast Coach &amp; Recommended)</option>
+                <option value="gemini-3.5-flash">Gemini 3.5 Flash (Deep Tactical Analytics)</option>
+                <option value="gemini-3.8-flash">Gemini 3.8 Flash (Next-Gen Reasoning)</option>
+                <option value="on-device">On-Device Synthesizer (Zero-Key Offline)</option>
               </select>
             </div>
 
