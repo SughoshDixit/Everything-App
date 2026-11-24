@@ -321,12 +321,15 @@ Give punchy, highly creative, dynamic answers. Never give boilerplate, robotic, 
     }
 
     const data = await resp.json();
-    const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const candidateParts = data.candidates?.[0]?.content?.parts;
+    const candidateText = candidateParts
+      ? candidateParts.map((p: any) => p.text || '').join('').trim()
+      : '';
     if (!candidateText) {
       throw new Error('Empty response from Gemini API');
     }
 
-    return candidateText.trim();
+    return candidateText;
   }
 
   /**
@@ -456,12 +459,15 @@ Provide sharp, disciplined, inspiring, and tactically sound feedback with Liverp
       }
 
       const data = await resp.json();
-      const outputText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No text candidate returned.';
+      const candidateParts = data.candidates?.[0]?.content?.parts;
+      const outputText = candidateParts
+        ? candidateParts.map((p: any) => p.text || '').join('').trim()
+        : 'No text candidate returned.';
       const promptTokens = data.usageMetadata?.promptTokenCount || Math.round(userPrompt.length / 4) + 120;
       const outputTokens = data.usageMetadata?.candidatesTokenCount || Math.round(outputText.length / 4);
 
       return {
-        text: outputText.trim(),
+        text: outputText,
         modelUsed: model,
         latencyMs,
         estimatedPromptTokens: promptTokens,
