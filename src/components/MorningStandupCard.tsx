@@ -95,38 +95,33 @@ export const MorningStandupCard: React.FC<MorningStandupCardProps> = ({
       <div className="pointer-events-none absolute -left-16 -bottom-16 h-56 w-56 rounded-full bg-[#FC5200]/15 blur-3xl" />
 
       {/* Top Banner Row */}
-      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#FC5200] to-amber-400 text-black shadow-lg shadow-[#FC5200]/25">
-            <Sun size={22} className="text-black" />
+      <div className="relative flex items-center justify-between gap-4 border-b border-white/10 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#FC5200] to-amber-400 text-black shadow-md shadow-[#FC5200]/25">
+            <Sun size={18} className="text-black" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#CCFF00] font-mono">
-                0630 Morning Stand-Up
-              </span>
-              <span className="flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[9px] font-bold text-amber-300">
-                <Flame size={11} className="text-[#FC5200]" />
-                Duo Synergy: {streakCount}d
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-sm sm:text-base font-extrabold tracking-tight text-white font-display">
+                Good Morning, {athleteName}
+              </h3>
+              <span className="flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.2 text-[9px] font-bold text-amber-300">
+                <Flame size={10} className="text-[#FC5200]" />
+                {streakCount}d
               </span>
             </div>
-            <h3 className="text-base font-extrabold tracking-tight text-white font-display">
-              Good Morning, {athleteName}!
-            </h3>
           </div>
         </div>
 
         {/* Athletic Battery Gauge */}
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-3.5 py-2 backdrop-blur-md self-start sm:self-auto">
-          <div className="text-right">
-            <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 block">
-              Athletic Battery
-            </span>
-            <span className="text-sm font-black text-[#CCFF00] font-mono">
-              {batteryScore}% Optimal
-            </span>
-          </div>
-          <div className="relative flex h-8 w-2 rounded-full bg-white/10 overflow-hidden">
+        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/40 px-3 py-1.5 backdrop-blur-md">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 hidden sm:inline">
+            Battery
+          </span>
+          <span className="text-xs font-black text-[#CCFF00] font-mono">
+            {batteryScore}%
+          </span>
+          <div className="relative flex h-5 w-1.5 rounded-full bg-white/10 overflow-hidden">
             <div
               className="absolute bottom-0 w-full bg-gradient-to-t from-primary to-[#CCFF00] rounded-full transition-all duration-700"
               style={{ height: `${batteryScore}%` }}
@@ -135,11 +130,11 @@ export const MorningStandupCard: React.FC<MorningStandupCardProps> = ({
         </div>
       </div>
 
-      {/* Grid: 3 Target Rings & Muster Call */}
-      <div className="relative mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Ring 1: Movement & Miles */}
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 flex items-center gap-3.5">
-          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+      {/* Grid: 3 Target Rings */}
+      <div className="relative mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Ring 1: Movement */}
+        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3 flex items-center gap-3">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
               <circle cx="20" cy="20" r="16" fill="transparent" stroke="rgba(255,255,255,0.08)" strokeWidth="3.5" />
               <circle
@@ -155,20 +150,19 @@ export const MorningStandupCard: React.FC<MorningStandupCardProps> = ({
                 style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
               />
             </svg>
-            <span className="absolute text-[11px] font-mono font-black text-white">{movementTargetPct}%</span>
+            <span className="absolute text-[10px] font-mono font-black text-white">{movementTargetPct}%</span>
           </div>
           <div>
             <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 block">
-              1. Movement Ring
+              Movement
             </span>
-            <p className="text-xs font-bold text-white">4.2 / 5.0 km Target</p>
-            <span className="text-[10px] text-zinc-400">Tempo intervals today</span>
+            <p className="text-xs font-bold text-white">4.2 / 5.0 km</p>
           </div>
         </div>
 
         {/* Ring 2: Discipline Habits */}
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 flex items-center gap-3.5">
-          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3 flex items-center gap-3">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
               <circle cx="20" cy="20" r="16" fill="transparent" stroke="rgba(255,255,255,0.08)" strokeWidth="3.5" />
               <circle
@@ -184,23 +178,22 @@ export const MorningStandupCard: React.FC<MorningStandupCardProps> = ({
                 style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
               />
             </svg>
-            <span className="absolute text-[11px] font-mono font-black text-white">{disciplineTargetPct}%</span>
+            <span className="absolute text-[10px] font-mono font-black text-white">{disciplineTargetPct}%</span>
           </div>
           <div>
             <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 block">
-              2. Discipline Ring
+              Discipline
             </span>
             <p className="text-xs font-bold text-white">
-              {completedHabitsCount} / {totalHabitsCount || 5} Habits Done
+              {completedHabitsCount} / {totalHabitsCount || 5} Habits
             </p>
-            <span className="text-[10px] text-zinc-400">Lock in your standard</span>
           </div>
         </div>
 
-        {/* Ring 3: Hydration & Fuel */}
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+        {/* Ring 3: Hydration */}
+        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
                 <circle cx="20" cy="20" r="16" fill="transparent" stroke="rgba(255,255,255,0.08)" strokeWidth="3.5" />
                 <circle
@@ -216,19 +209,18 @@ export const MorningStandupCard: React.FC<MorningStandupCardProps> = ({
                   style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
                 />
               </svg>
-              <Droplets size={16} className="absolute text-sky-400" />
+              <Droplets size={14} className="absolute text-sky-400" />
             </div>
             <div>
               <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 block">
-                3. Hydration Ring
+                Hydration
               </span>
-              <p className="text-xs font-bold text-white">{waterLiters} / 3.0 Liters</p>
-              <span className="text-[10px] text-zinc-400">Electrolytes active</span>
+              <p className="text-xs font-bold text-white">{waterLiters} / 3.0 L</p>
             </div>
           </div>
           <button
             onClick={handleAddWater}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-400/10 text-sky-400 hover:bg-sky-400/20 active:scale-95 transition cursor-pointer"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-sky-400/30 bg-sky-400/10 text-sky-400 hover:bg-sky-400/20 active:scale-95 transition cursor-pointer text-xs font-bold"
             title="Log +500ml water"
           >
             +

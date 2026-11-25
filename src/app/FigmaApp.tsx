@@ -69,7 +69,6 @@ import {
   ChevronRight,
   Clock3,
   Compass,
-  Cpu,
   Download,
   Dumbbell,
   Flame,
@@ -556,7 +555,7 @@ function AppShell() {
   }, [stravaPosts])
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground">
+    <div className="min-h-screen bg-background font-sans text-foreground overflow-x-hidden">
       {/* DESKTOP SIDEBAR */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[212px] flex-col border-r border-border bg-[#0b0e14] px-5 py-8 lg:flex overflow-y-auto scrollbar-none">
         <NavLink to="/" className="mb-1 flex items-center gap-2.5 px-2">
@@ -723,7 +722,7 @@ function AppShell() {
       </aside>
 
       {/* MAIN LAYOUT */}
-      <div className="lg:ml-[212px]">
+      <div className="lg:ml-[212px] min-w-0 max-w-full overflow-x-hidden">
         {/* TOP HEADER */}
         <header className="sticky top-0 z-20 flex min-h-[58px] sm:min-h-[64px] items-center justify-between border-b border-white/10 bg-[#080b11]/95 px-4 sm:px-8 xl:px-10 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-2 backdrop-blur-xl">
           <div className="hidden items-center gap-2 text-[11px] text-muted-foreground lg:flex">
@@ -741,26 +740,27 @@ function AppShell() {
               kuchh bhii<span className="text-primary">.</span>
             </span>
           </NavLink>
-          <div className="flex items-center gap-3 sm:gap-5">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => setSkillTreeOpen(true)}
-              className="flex items-center gap-1.5 rounded-full border border-[#fc4c02]/30 bg-gradient-to-r from-[#fc4c02]/15 to-[#CCFF00]/10 px-2.5 py-1 text-[9px] font-bold tracking-[0.06em] text-[#ff8952] hover:brightness-110 transition cursor-pointer shadow-sm"
-              title="Duo Co-Op Flame: Sughosh & Shreya 14-day joint consistency"
+              className="flex items-center gap-1.5 rounded-full border border-[#fc4c02]/30 bg-gradient-to-r from-[#fc4c02]/15 to-[#CCFF00]/10 px-2 sm:px-2.5 py-1 text-[9px] font-bold tracking-[0.06em] text-[#ff8952] hover:brightness-110 transition cursor-pointer shadow-sm shrink-0"
+              title="Duo Co-Op Flame: 14-day joint consistency"
             >
-              <Flame size={13} fill="currentColor" className="text-[#FC5200] animate-pulse" />
-              <span>14D DUO FLAME</span>
-              <span className="hidden md:inline rounded bg-white/10 px-1 py-0.2 text-[8px] text-[#CCFF00] font-mono">LVL 8</span>
+              <Flame size={12} fill="currentColor" className="text-[#FC5200] animate-pulse" />
+              <span>14D</span>
+              <span className="hidden sm:inline">DUO FLAME</span>
             </button>
             <button
               onClick={() => setShowGeminiHarness(true)}
-              className="flex items-center gap-1.5 rounded-full border border-[#CCFF00]/30 bg-[#CCFF00]/10 px-2.5 py-1 text-[9px] font-black tracking-wider text-[#CCFF00] hover:bg-[#CCFF00]/20 transition cursor-pointer shadow-sm font-mono"
+              className="flex items-center gap-1.5 rounded-full bg-[#CCFF00] hover:bg-[#b8e600] px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-black tracking-wider text-black shadow-md shadow-[#CCFF00]/25 active:scale-95 transition cursor-pointer font-mono shrink-0"
               title="Open Gemini AI Interactive Test Harness"
+              aria-label="Open Gemini AI"
             >
-              <Cpu size={13} className="text-[#CCFF00]" />
+              <Sparkles size={12} fill="currentColor" />
               <span className="hidden sm:inline">AI HARNESS</span>
-              <span className="sm:hidden">AI</span>
+              <span className="sm:hidden font-extrabold">AI</span>
             </button>
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setNotification(true)}
                 aria-label="Notifications"
@@ -768,7 +768,7 @@ function AppShell() {
                 className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white transition"
                 title="Open Notification Center & Alarms"
               >
-                <Bell size={17} />
+                <Bell size={16} />
                 {notificationService.getUnreadCount() > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#FC5200] text-[9px] font-black text-white shadow-sm">
                     {notificationService.getUnreadCount()}
@@ -776,11 +776,11 @@ function AppShell() {
                 )}
               </button>
             </div>
-            <div className="h-6 w-px bg-border" />
+            <div className="hidden sm:block h-6 w-px bg-border" />
             <button
               aria-label="Toggle athlete profile"
               onClick={() => setCurrentProfile(currentProfile === "men" ? "women" : "men")}
-              className="flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs text-muted-foreground hover:border-white/30"
+              className="flex items-center gap-1.5 rounded-full border border-border px-1.5 sm:px-2 py-1 text-xs text-muted-foreground hover:border-white/30 shrink-0"
               title="Click to toggle athlete profile"
             >
               <Avatar small profile={currentProfile} />
@@ -790,10 +790,10 @@ function AppShell() {
             </button>
             <button
               onClick={() => setActivityLauncherOpen(true)}
-              className="flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-[11px] font-bold text-primary-foreground shadow-[0_0_24px_#ccff0010] transition hover:bg-[#dcff4d]"
+              className="hidden sm:flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-[11px] font-bold text-primary-foreground shadow-[0_0_24px_#ccff0010] transition hover:bg-[#dcff4d]"
             >
               <Plus size={15} />
-              <span className="hidden sm:inline">Log activity</span>
+              <span>Log activity</span>
             </button>
           </div>
         </header>
@@ -980,6 +980,7 @@ function AppShell() {
                   if (action === "run") setGpsModalActivityType("run")
                   else if (action === "football") navigate("/football")
                 }}
+                onOpenAiHarness={() => setShowGeminiHarness(true)}
               />
               <MorningStandupCard
                 currentProfile={currentProfile}
@@ -1695,70 +1696,70 @@ function AppShell() {
         </main>
       </div>
 
-      {/* MOBILE BOTTOM NAVIGATION - 4 PILLARS + CENTER ACTION FAB */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between border-t border-white/10 bg-[#0b0e14]/95 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur-xl lg:hidden">
+      {/* MOBILE BOTTOM NAVIGATION - 5 PILLARS INCLUDING AI */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between border-t border-white/10 bg-[#0b0e14]/95 px-2 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur-xl lg:hidden">
         {/* 1. Today */}
         <NavLink
           to="/playbook"
-          className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[9px] font-medium transition-all ${
             page === "/" || page === "/playbook"
               ? "text-primary font-bold"
               : "text-muted-foreground hover:text-white"
           }`}
         >
-          <Compass size={20} strokeWidth={page === "/" || page === "/playbook" ? 2.5 : 1.7} />
+          <Compass size={19} strokeWidth={page === "/" || page === "/playbook" ? 2.5 : 1.7} />
           <span>Today</span>
         </NavLink>
 
         {/* 2. Train */}
         <NavLink
           to="/activities"
-          className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[9px] font-medium transition-all ${
             page === "/activities" || page === "/football" || page === "/armor" || page === "/maps" || page === "/studio" || page === "/workout"
               ? "text-primary font-bold"
               : "text-muted-foreground hover:text-white"
           }`}
         >
-          <Zap size={20} strokeWidth={page === "/activities" || page === "/football" || page === "/armor" || page === "/maps" || page === "/studio" || page === "/workout" ? 2.5 : 1.7} />
+          <Zap size={19} strokeWidth={page === "/activities" || page === "/football" || page === "/armor" || page === "/maps" || page === "/studio" || page === "/workout" ? 2.5 : 1.7} />
           <span>Train</span>
         </NavLink>
 
-        {/* ⚡ CENTER ACTION FAB: + Log / Start Activity */}
-        <div className="flex items-center justify-center px-2">
+        {/* ⚡ CENTER 3. GEMINI AI COACH TRIGGER */}
+        <div className="flex items-center justify-center px-1">
           <button
             type="button"
-            onClick={() => setActivityLauncherOpen(true)}
-            className="-mt-5 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-[#FC5200] to-[#CCFF00] text-black shadow-lg shadow-[#CCFF00]/25 hover:scale-105 active:scale-95 transition-all border-2 border-[#0b0e14] cursor-pointer shrink-0"
-            title="Log Activity or Launch GPS"
-            aria-label="Quick Action Hub"
+            onClick={() => setShowGeminiHarness(true)}
+            className="-mt-4 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-tr from-[#FC5200] to-[#CCFF00] text-black shadow-lg shadow-[#CCFF00]/25 hover:scale-105 active:scale-95 transition-all border-2 border-[#0b0e14] cursor-pointer shrink-0"
+            title="Open Gemini AI Coach & Harness"
+            aria-label="Open Gemini AI Coach"
           >
-            <Plus size={24} strokeWidth={3} className="text-black" />
+            <Sparkles size={18} strokeWidth={2.5} fill="currentColor" className="text-black" />
           </button>
         </div>
 
-        {/* 3. Progress */}
+        {/* 4. Progress */}
         <NavLink
           to="/fithub"
-          className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[9px] font-medium transition-all ${
             page === "/fithub" || page === "/community" || page === "/portfolio"
               ? "text-primary font-bold"
               : "text-muted-foreground hover:text-white"
           }`}
         >
-          <Heart size={20} strokeWidth={page === "/fithub" || page === "/community" || page === "/portfolio" ? 2.5 : 1.7} />
+          <Heart size={19} strokeWidth={page === "/fithub" || page === "/community" || page === "/portfolio" ? 2.5 : 1.7} />
           <span>Progress</span>
         </NavLink>
 
-        {/* 4. Vault */}
+        {/* 5. Vault */}
         <NavLink
           to="/discipline"
-          className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all ${
+          className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[9px] font-medium transition-all ${
             page === "/discipline" || page === "/routine" || page === "/nutrition" || page === "/vedas" || page === "/cycle" || page === "/period" || page === "/settings"
               ? "text-[#c084fc] font-bold"
               : "text-muted-foreground hover:text-white"
           }`}
         >
-          <ShieldCheck size={20} strokeWidth={page === "/discipline" || page === "/routine" || page === "/nutrition" || page === "/vedas" || page === "/cycle" || page === "/period" || page === "/settings" ? 2.5 : 1.7} />
+          <ShieldCheck size={19} strokeWidth={page === "/discipline" || page === "/routine" || page === "/nutrition" || page === "/vedas" || page === "/cycle" || page === "/period" || page === "/settings" ? 2.5 : 1.7} />
           <span>Vault</span>
         </NavLink>
       </nav>
@@ -1980,6 +1981,23 @@ function AppShell() {
             Select a manual sport match, quick reps entry, live GPS tracking, or daily recap:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            {/* 0. Gemini AI Coach */}
+            <button
+              onClick={() => {
+                setActivityLauncherOpen(false)
+                setShowGeminiHarness(true)
+              }}
+              className="flex flex-col items-center text-center p-4 rounded-2xl border border-[#CCFF00]/40 bg-[#CCFF00]/10 hover:bg-[#CCFF00]/15 transition group cursor-pointer"
+            >
+              <div className="p-3 rounded-full bg-[#CCFF00]/20 text-[#CCFF00] mb-2 group-hover:scale-110 transition">
+                <Sparkles size={22} />
+              </div>
+              <div className="text-xs font-extrabold text-[#CCFF00] mb-0.5">✨ Ask Gemini AI</div>
+              <div className="text-[10px] text-muted-foreground leading-snug">
+                Pre-run directives, excuse buster, tactical advice &amp; fuel diagnostics
+              </div>
+            </button>
+
             {/* 1. Quick Push-ups / Calisthenics */}
             <button
               onClick={() => {

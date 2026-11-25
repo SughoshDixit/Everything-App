@@ -8,9 +8,7 @@ import {
   Copy,
   Check,
   RefreshCw,
-  X,
-  MessageSquare,
-  ArrowRight
+  X
 } from 'lucide-react';
 import { getTacticalMissionDirective } from '../services/tacticalRoutineService';
 import { GeminiAiService, type AiChatMessage } from '../services/geminiAiService';
@@ -22,6 +20,7 @@ interface AiCoachBriefingCardProps {
   weeklyDistanceKm?: number;
   recentPace?: string;
   onQuickAction?: (actionKey: string) => void;
+  onOpenAiHarness?: () => void;
   compactOnly?: boolean;
 }
 
@@ -31,6 +30,7 @@ export const AiCoachBriefingCard: React.FC<AiCoachBriefingCardProps> = ({
   weeklyDistanceKm = 18.5,
   recentPace = '4:52 /km',
   onQuickAction,
+  onOpenAiHarness,
   compactOnly = false,
 }) => {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -138,80 +138,82 @@ export const AiCoachBriefingCard: React.FC<AiCoachBriefingCardProps> = ({
     setTimeout(() => setIsPlayingAudio(false), 5000);
   };
 
-  // Concise 1-sentence ambient directive for the glanceable pill
+  // Crisp minimal 1-liner directive
   const ambientDirective = useMemo(() => {
-    return `${athleteName}, ${mission.defconLevel === 'DEFCON_1_REGEN' ? 'active recovery & mobility protocol engaged' : 'readiness high for tempo sprints & drills'}. ${todayEvents.dayOfYearTitle}.`;
-  }, [athleteName, mission.defconLevel, todayEvents.dayOfYearTitle]);
+    return mission.defconLevel === 'DEFCON_1_REGEN'
+      ? 'Active recovery & mobility engaged · Prime muscle repair'
+      : 'Readiness optimal at 94% · Prime state for tempo intervals & drills';
+  }, [mission.defconLevel]);
 
   return (
     <>
-      {/* 🌟 AMBIENT GLANCEABLE AI PILL (Non-Intrusive, Mobile First) */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#121824] via-[#161f2e] to-[#0f1521] p-3.5 sm:p-4 text-white shadow-xl">
-        {/* Glow Effects */}
+      {/* 🌟 AMBIENT GLANCEABLE AI PILL (Minimalist, Mobile First) */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#121824] via-[#161f2e] to-[#0f1521] p-3 sm:p-4 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#FC5200]/15 blur-2xl" />
         <div className="pointer-events-none absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-[#CCFF00]/10 blur-2xl" />
 
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Left: Status & Ambient 1-Liner */}
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Left: Minimal Status Pill */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#FC5200] to-[#ff7b39] text-white shadow-md shadow-[#FC5200]/25">
-              <Radio size={18} className="animate-pulse" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#FC5200] to-[#ff7b39] text-white shadow-md shadow-[#FC5200]/25">
+              <Sparkles size={16} className="text-white" />
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black tracking-wider uppercase text-[#CCFF00] font-mono flex items-center gap-1">
-                  <Sparkles size={11} />
-                  Copilot
+                  Gemini AI
                 </span>
-                <span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold text-zinc-300">
-                  <span className={`h-1.5 w-1.5 rounded-full ${mission.defconLevel === 'DEFCON_1_REGEN' ? 'bg-amber-400' : 'bg-[#CCFF00]'} animate-pulse`} />
+                <span className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.2 text-[9px] font-bold text-zinc-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#CCFF00] animate-pulse" />
                   {readinessScore}% Readiness
                 </span>
-                <span className="hidden sm:inline-flex items-center gap-0.5 text-[9px] text-zinc-400 font-mono">
-                  🔥 {streakCount}d Streak
+                <span className="text-[9px] text-zinc-400 font-mono">
+                  🔥 {streakCount}d
                 </span>
               </div>
-              <p className="text-xs font-medium text-zinc-200 truncate max-w-[360px] sm:max-w-xl mt-0.5">
+              <p className="text-xs font-semibold text-zinc-200 truncate mt-0.5">
                 {ambientDirective}
               </p>
             </div>
           </div>
 
-          {/* Right: Instant 1-Tap Actions */}
-          <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
-            {/* Quick 10s Spoken Briefing */}
-            <button
-              type="button"
-              onClick={() => handlePlayVoice(ambientDirective + " " + todayEvents.militarySpeciality)}
-              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition cursor-pointer"
-              title="Listen to 10-second audio brief"
-            >
-              <Volume2 size={13} className={isPlayingAudio ? "text-[#CCFF00] animate-pulse" : "text-zinc-300"} />
-              <span className="hidden xs:inline">Audio Brief</span>
-            </button>
-
-            {/* Direct Activity Action */}
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
             {onQuickAction && (
               <button
                 type="button"
                 onClick={() => onQuickAction(mission.defconLevel === 'DEFCON_1_REGEN' ? 'football' : 'run')}
-                className="flex items-center gap-1.5 rounded-xl bg-[#FC5200] hover:bg-[#ff641a] text-white px-3 py-1.5 text-xs font-bold transition shadow-md shadow-[#FC5200]/20 cursor-pointer"
+                className="hidden xs:flex items-center gap-1 rounded-xl bg-white/5 hover:bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-zinc-300 transition cursor-pointer"
               >
-                <span>{mission.defconLevel === 'DEFCON_1_REGEN' ? '⚽ Drill' : '🏃 Start'}</span>
-                <ArrowRight size={13} />
+                <span>{mission.defconLevel === 'DEFCON_1_REGEN' ? '⚽ Drill' : '🏃 Run'}</span>
               </button>
             )}
 
-            {/* Open Full Copilot Dialogue */}
+            <button
+              type="button"
+              onClick={() => handlePlayVoice(ambientDirective)}
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition cursor-pointer"
+              title="Listen to audio briefing"
+            >
+              <Volume2 size={13} className={isPlayingAudio ? "text-[#CCFF00] animate-pulse" : "text-zinc-300"} />
+              <span className="hidden xs:inline">Listen</span>
+            </button>
+
             {!compactOnly && (
               <button
                 type="button"
-                onClick={() => setModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl bg-[#CCFF00] hover:bg-[#b8e600] text-black px-3 py-1.5 text-xs font-black uppercase tracking-wider transition shadow-md shadow-[#CCFF00]/20 cursor-pointer"
-                title="Open Copilot Dialogue & Captions"
+                onClick={() => {
+                  if (onOpenAiHarness) {
+                    onOpenAiHarness();
+                  } else {
+                    setModalOpen(true);
+                  }
+                }}
+                className="flex items-center gap-1.5 rounded-xl bg-[#CCFF00] hover:bg-[#b8e600] text-black px-3 py-1.5 text-xs font-black uppercase tracking-wider transition shadow-md shadow-[#CCFF00]/20 cursor-pointer active:scale-95"
+                title="Open Gemini AI Coach"
               >
-                <MessageSquare size={13} />
+                <Sparkles size={13} fill="currentColor" />
                 <span>Ask AI</span>
               </button>
             )}
