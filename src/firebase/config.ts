@@ -10,13 +10,13 @@ import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyDh3tjm2gST-upnfViBSD55ZppV3VEFNQQ",
-  authDomain: "kuchh-bhii.firebaseapp.com",
-  projectId: "kuchh-bhii",
-  storageBucket: "kuchh-bhii.firebasestorage.app",
-  messagingSenderId: "318042636199",
-  appId: "1:318042636199:web:5c8628e6110c6e6f85c082",
-  measurementId: "G-X0K69F1495"
+  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || "AIzaSyDh3tjm2gST-upnfViBSD55ZppV3VEFNQQ",
+  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || "kuchh-bhii.firebaseapp.com",
+  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || "kuchh-bhii",
+  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || "kuchh-bhii.firebasestorage.app",
+  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "318042636199",
+  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || "1:318042636199:web:5c8628e6110c6e6f85c082",
+  measurementId: (import.meta as any).env?.VITE_FIREBASE_MEASUREMENT_ID || "G-X0K69F1495"
 };
 
 // Initialize Firebase App

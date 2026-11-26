@@ -1,18 +1,540 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Models & Schema Contracts
+    // ===============================================================
+    //
+    // Collection: users/{userId}/gps_activities/{activityId}
+    // Document ID: activityId (string)
+    // Fields:
+    //   - id: string (required, 1-100 chars, immutable)
+    //   - activityType: string (required, 'run'|'cycle'|'walk'|'drive'|'football'|'badminton'|'workout')
+    //   - date: string (required, 8-30 chars)
+    //   - startTime: number (required, >= 0, immutable)
+    //   - endTime: number (required, >= 0)
+    //   - durationSeconds: number (required, >= 0)
+    //   - distanceKm: number (required, >= 0)
+    //   - avgSpeedKmh: number (required, >= 0)
+    //   - topSpeedKmh: number (required, >= 0)
+    //   - avgPaceMinKm: string (required, 1-30 chars)
+    //   - elevationGainMeters: number (optional)
+    //   - caloriesBurned: number (optional, >= 0)
+    //   - heartPointsEarned: number (optional, >= 0)
+    //   - stepsCount: number (optional, >= 0)
+    //   - splits: list of maps (optional, size <= 200)
+    //   - routePoints: list of maps (optional, size <= 25000)
+    //   - milestonesReached: list (optional, size <= 100)
+    //   - userId: string (optional, 1-100 chars)
+    //   - title: string (optional, 0-150 chars)
+    //   - notes: string (optional, 0-5000 chars)
+    //   - mediaUrls: list of strings (optional, size <= 50)
+    //   - videoUrls: list of strings (optional, size <= 20)
+    //   - recordBadges: list of maps (optional, size <= 50)
+    //   - maxSpeedKmh: number (optional, >= 0)
+    //   - gpxFilename: string (optional, 0-200 chars)
+    //
+    // Collection: users/{userId}/daily_metrics/{metricId}
+    // Document ID: metricId (string, date formatted 'YYYY-MM-DD')
+    // Fields:
+    //   - date: string (required, 8-20 chars, immutable)
+    //   - moveMinutes: number (required, >= 0)
+    //   - caloriesKcal: number (required, >= 0)
+    //   - distanceMeters: number (required, >= 0)
+    //   - heartPoints: number (required, >= 0)
+    //   - heartMinutes: number (required, >= 0)
+    //   - stepCount: number (required, >= 0)
+    //   - avgHeartRate: number (optional, >= 0)
+    //   - maxHeartRate: number (optional, >= 0)
+    //   - walkingDurationMs: number (optional, >= 0)
+    //   - runningDurationMs: number (optional, >= 0)
+    //   - cyclingDurationMs: number (optional, >= 0)
+    //   - footballDurationMs: number (optional, >= 0)
+    //
+    // Collection: users/{userId}/gear/{gearId}
+    // Document ID: gearId (string)
+    // Fields:
+    //   - id: string (required, 1-100 chars, immutable)
+    //   - name: string (required, 1-100 chars)
+    //   - type: string (required, 'shoes'|'bike'|'other')
+    //   - brand: string (required, 1-100 chars)
+    //   - model: string (required, 1-100 chars)
+    //   - totalDistanceKm: number (required, >= 0)
+    //   - maxDistanceKm: number (required, >= 0)
+    //   - isDefault: bool (optional)
+    //
+    // Collection: users/{userId}/workout_logs/{logId}
+    // Document ID: logId (string)
+    // Fields:
+    //   - id: string (required, 1-100 chars, immutable)
+    //   - date: string (required, 8-30 chars, immutable)
+    //   - userId: string (required, 1-100 chars)
+    //   - exerciseId: string (required, 1-100 chars)
+    //   - exerciseName: string (required, 1-150 chars)
+    //   - setsCompleted: number (required, >= 0)
+    //   - repsCompleted: list of numbers (required, size <= 100)
+    //   - perceivedExertion: number (required, 1-10)
+    //   - videoNote: string (optional, 0-500 chars)
+    //   - videoFileUrl: string (optional, 0-2000 chars)
+    //   - notes: string (optional, 0-2000 chars)
+    //   - personalRecordBroken: bool (optional)
+    //
+    // Collection: activity_feed_posts/{postId}
+    // Document ID: postId (string)
+    // Fields:
+    //   - id: string (required, 1-100 chars, immutable)
+    //   - date: string (required, 1-50 chars)
+    //   - timestamp: number (required, >= 0, immutable)
+    //   - userId: string (required, 1-100 chars, immutable)
+    //   - title: string (required, 1-150 chars)
+    //   - sportType: string (required, 1-50 chars)
+    //   - description: string (optional, 0-3000 chars)
+    //   - rpe: number (optional, 0-10)
+    //   - activities: list (optional, size <= 50)
+    //   - gpsActivity: map (optional)
+    //   - backgroundTheme: string (optional, 0-50 chars)
+    //   - customMediaUrl: string (optional, 0-2000 chars)
+    //   - photos: list of strings (optional, size <= 50)
+    //   - motivationalQuote: string (optional, 0-1000 chars)
+    //   - quoteAuthor: string (optional, 0-150 chars)
+    //   - totalHeartPoints: number (optional, >= 0)
+    //   - totalMoveMinutes: number (optional, >= 0)
+    //   - totalCalories: number (optional, >= 0)
+    //   - totalDistanceKm: number (optional, >= 0)
+    //   - totalSets: number (optional, >= 0)
+    //   - totalReps: number (optional, >= 0)
+    //   - elevationGainMeters: number (optional)
+    //   - avgPaceMinKm: string (optional, 0-50 chars)
+    //   - avgSpeedKmh: number (optional, >= 0)
+    //   - maxSpeedKmh: number (optional, >= 0)
+    //   - avgHeartRate: number (optional, >= 0)
+    //   - maxHeartRate: number (optional, >= 0)
+    //   - sufferScore: number (optional, >= 0)
+    //   - likesCount: number (optional, >= 0)
+    //   - isLiked: bool (optional)
+    //   - kudosUsers: list (optional, size <= 1000)
+    //   - comments: list (optional, size <= 1000)
+    //   - achievements: list (optional, size <= 50)
+    //   - recordBadges: list (optional, size <= 50)
+    //   - gearId: string (optional, 0-100 chars)
+    //   - gearName: string (optional, 0-150 chars)
+    //   - splits: list (optional, size <= 100)
+    //   - videoUrls: list of strings (optional, size <= 20)
+    //
+    // Collection: activities/{activityId}
+    // Document ID: activityId (string)
+    // Fields:
+    //   - id: string (required, 1-100 chars, immutable)
+    //   - userId: string (required, 1-100 chars, immutable)
+    //   - source: string (required, 1-50 chars)
+    //   - sportType: string (required, 1-50 chars)
+    //   - title: string (required, 1-150 chars)
+    //   - startedAt: number (required, >= 0)
+    //   - endedAt: number (required, >= 0)
+    //   - elapsedTimeSeconds: number (required, >= 0)
+    //   - movingTimeSeconds: number (required, >= 0)
+    //   - distanceMeters: number (required, >= 0)
+    //   - elevationGainMeters: number (required)
+    //   - calories: number (required, >= 0)
+    //   - averagePaceSecondsPerKm: number (required, >= 0)
+    //   - averagePaceString: string (required, 1-30 chars)
+    //   - averageSpeedMps: number (required, >= 0)
+    //   - averageSpeedKmh: number (required, >= 0)
+    //   - privacyLevel: string (required, 'PRIVATE'|'FOLLOWERS'|'PUBLIC')
+    //   - routeRenderMode: string (required, 'RAW'|'CLEANED'|'MATCHED'|'NO_MAP')
+    //   - processingStatus: string (required, 'QUEUED'|'PROCESSING'|'COMPLETED'|'FAILED'|'SKIPPED')
+    //   - splits: list (required, size <= 500)
+    //   - createdAt: string (required, 1-50 chars, immutable)
+    //   - updatedAt: string (required, 1-50 chars)
+    //
+    // ===============================================================
+
+    // Default deny all access at root
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 10, 20);
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Common Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && (request.auth.uid == userId || request.auth.token.email == 'sughoshpdixit@gmail.com');
+    }
+
+    // Identifies the configured showcase athlete and local demo environments
+    function isDemoUser(userId) {
+      return userId == 'sughosh' || userId == 'demo';
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidGpsActivity(d) {
+      return d.id is string && d.id.size() >= 1 && d.id.size() <= 100 &&
+             d.activityType is string && d.activityType in ['run', 'cycle', 'walk', 'drive', 'football', 'badminton', 'workout'] &&
+             d.date is string && d.date.size() >= 8 && d.date.size() <= 30 &&
+             d.startTime is number && d.startTime >= 0 &&
+             d.endTime is number && d.endTime >= 0 &&
+             d.durationSeconds is number && d.durationSeconds >= 0 &&
+             d.distanceKm is number && d.distanceKm >= 0 &&
+             d.avgSpeedKmh is number && d.avgSpeedKmh >= 0 &&
+             d.topSpeedKmh is number && d.topSpeedKmh >= 0 &&
+             d.avgPaceMinKm is string && d.avgPaceMinKm.size() >= 1 && d.avgPaceMinKm.size() <= 30 &&
+             (!('title' in d) || (d.title is string && d.title.size() <= 150)) &&
+             (!('userId' in d) || (d.userId is string && d.userId.size() <= 100)) &&
+             (!('elevationGainMeters' in d) || (d.elevationGainMeters is number)) &&
+             (!('caloriesBurned' in d) || (d.caloriesBurned is number && d.caloriesBurned >= 0)) &&
+             (!('heartPointsEarned' in d) || (d.heartPointsEarned is number && d.heartPointsEarned >= 0)) &&
+             (!('stepsCount' in d) || (d.stepsCount is number && d.stepsCount >= 0)) &&
+             (!('notes' in d) || (d.notes is string && d.notes.size() <= 5000)) &&
+             (!('splits' in d) || (d.splits is list && d.splits.size() <= 200)) &&
+             (!('routePoints' in d) || (d.routePoints is list && d.routePoints.size() <= 25000)) &&
+             (!('milestonesReached' in d) || (d.milestonesReached is list && d.milestonesReached.size() <= 100)) &&
+             (!('mediaUrls' in d) || (d.mediaUrls is list && d.mediaUrls.size() <= 50)) &&
+             (!('videoUrls' in d) || (d.videoUrls is list && d.videoUrls.size() <= 20)) &&
+             (!('recordBadges' in d) || (d.recordBadges is list && d.recordBadges.size() <= 50)) &&
+             (!('maxSpeedKmh' in d) || (d.maxSpeedKmh is number && d.maxSpeedKmh >= 0)) &&
+             (!('gpxFilename' in d) || (d.gpxFilename is string && d.gpxFilename.size() <= 200));
+    }
+
+    function isValidDailyMetric(d) {
+      return d.date is string && d.date.size() >= 8 && d.date.size() <= 20 &&
+             d.moveMinutes is number && d.moveMinutes >= 0 &&
+             d.caloriesKcal is number && d.caloriesKcal >= 0 &&
+             d.distanceMeters is number && d.distanceMeters >= 0 &&
+             d.heartPoints is number && d.heartPoints >= 0 &&
+             d.heartMinutes is number && d.heartMinutes >= 0 &&
+             d.stepCount is number && d.stepCount >= 0 &&
+             (!('avgHeartRate' in d) || (d.avgHeartRate is number && d.avgHeartRate >= 0)) &&
+             (!('maxHeartRate' in d) || (d.maxHeartRate is number && d.maxHeartRate >= 0)) &&
+             (!('walkingDurationMs' in d) || (d.walkingDurationMs is number && d.walkingDurationMs >= 0)) &&
+             (!('runningDurationMs' in d) || (d.runningDurationMs is number && d.runningDurationMs >= 0)) &&
+             (!('cyclingDurationMs' in d) || (d.cyclingDurationMs is number && d.cyclingDurationMs >= 0)) &&
+             (!('footballDurationMs' in d) || (d.footballDurationMs is number && d.footballDurationMs >= 0));
+    }
+
+    function isValidGearItem(d) {
+      return d.id is string && d.id.size() >= 1 && d.id.size() <= 100 &&
+             d.name is string && d.name.size() >= 1 && d.name.size() <= 100 &&
+             d.type is string && d.type in ['shoes', 'bike', 'other'] &&
+             d.brand is string && d.brand.size() >= 1 && d.brand.size() <= 100 &&
+             d.model is string && d.model.size() >= 1 && d.model.size() <= 100 &&
+             d.totalDistanceKm is number && d.totalDistanceKm >= 0 &&
+             d.maxDistanceKm is number && d.maxDistanceKm >= 0 &&
+             (!('isDefault' in d) || d.isDefault is bool);
+    }
+
+    function isValidWorkoutLog(d) {
+      return d.id is string && d.id.size() >= 1 && d.id.size() <= 100 &&
+             d.date is string && d.date.size() >= 8 && d.date.size() <= 30 &&
+             d.userId is string && d.userId.size() >= 1 && d.userId.size() <= 100 &&
+             d.exerciseId is string && d.exerciseId.size() >= 1 && d.exerciseId.size() <= 100 &&
+             d.exerciseName is string && d.exerciseName.size() >= 1 && d.exerciseName.size() <= 150 &&
+             d.setsCompleted is number && d.setsCompleted >= 0 &&
+             d.repsCompleted is list && d.repsCompleted.size() <= 100 &&
+             d.perceivedExertion is number && d.perceivedExertion >= 1 && d.perceivedExertion <= 10 &&
+             (!('videoNote' in d) || (d.videoNote is string && d.videoNote.size() <= 500)) &&
+             (!('videoFileUrl' in d) || (d.videoFileUrl is string && d.videoFileUrl.size() <= 2000)) &&
+             (!('notes' in d) || (d.notes is string && d.notes.size() <= 2000)) &&
+             (!('personalRecordBroken' in d) || d.personalRecordBroken is bool);
+    }
+
+    function isValidMilestones(d) {
+      return (!('lastUpdated' in d) || (d.lastUpdated is string && d.lastUpdated.size() <= 60)) &&
+             (!('currentStreakDays' in d) || (d.currentStreakDays is number && d.currentStreakDays >= 0)) &&
+             (!('totalCaloriesBurned' in d) || (d.totalCaloriesBurned is number && d.totalCaloriesBurned >= 0)) &&
+             (!('totalDistanceRunKm' in d) || (d.totalDistanceRunKm is number && d.totalDistanceRunKm >= 0)) &&
+             (!('totalDistanceCycleKm' in d) || (d.totalDistanceCycleKm is number && d.totalDistanceCycleKm >= 0)) &&
+             (!('totalDistanceWalkKm' in d) || (d.totalDistanceWalkKm is number && d.totalDistanceWalkKm >= 0));
+    }
+
+    function isValidRoutines(d) {
+      return d.items is list && d.items.size() <= 100 &&
+             (!('updatedAt' in d) || (d.updatedAt is string && d.updatedAt.size() <= 60));
+    }
+
+    function isValidCycleData(d) {
+      return d.logs is map &&
+             d.settings is map &&
+             (!('updatedAt' in d) || (d.updatedAt is string && d.updatedAt.size() <= 60));
+    }
+
+    function isValidActivityFeedPost(d) {
+      return d.id is string && d.id.size() >= 1 && d.id.size() <= 100 &&
+             d.date is string && d.date.size() >= 1 && d.date.size() <= 50 &&
+             d.timestamp is number && d.timestamp >= 0 &&
+             d.userId is string && d.userId.size() >= 1 && d.userId.size() <= 100 &&
+             d.title is string && d.title.size() >= 1 && d.title.size() <= 150 &&
+             d.sportType is string && d.sportType.size() >= 1 && d.sportType.size() <= 50 &&
+             (!('description' in d) || (d.description is string && d.description.size() <= 3000)) &&
+             (!('rpe' in d) || (d.rpe is number && d.rpe >= 0 && d.rpe <= 10)) &&
+             (!('activities' in d) || (d.activities is list && d.activities.size() <= 50)) &&
+             (!('gpsActivity' in d) || d.gpsActivity is map) &&
+             (!('backgroundTheme' in d) || (d.backgroundTheme is string && d.backgroundTheme.size() <= 50)) &&
+             (!('customMediaUrl' in d) || (d.customMediaUrl is string && d.customMediaUrl.size() <= 2000)) &&
+             (!('photos' in d) || (d.photos is list && d.photos.size() <= 50)) &&
+             (!('motivationalQuote' in d) || (d.motivationalQuote is string && d.motivationalQuote.size() <= 1000)) &&
+             (!('quoteAuthor' in d) || (d.quoteAuthor is string && d.quoteAuthor.size() <= 150)) &&
+             (!('totalHeartPoints' in d) || (d.totalHeartPoints is number && d.totalHeartPoints >= 0)) &&
+             (!('totalMoveMinutes' in d) || (d.totalMoveMinutes is number && d.totalMoveMinutes >= 0)) &&
+             (!('totalCalories' in d) || (d.totalCalories is number && d.totalCalories >= 0)) &&
+             (!('totalDistanceKm' in d) || (d.totalDistanceKm is number && d.totalDistanceKm >= 0)) &&
+             (!('totalSets' in d) || (d.totalSets is number && d.totalSets >= 0)) &&
+             (!('totalReps' in d) || (d.totalReps is number && d.totalReps >= 0)) &&
+             (!('elevationGainMeters' in d) || d.elevationGainMeters is number) &&
+             (!('avgPaceMinKm' in d) || (d.avgPaceMinKm is string && d.avgPaceMinKm.size() <= 50)) &&
+             (!('avgSpeedKmh' in d) || (d.avgSpeedKmh is number && d.avgSpeedKmh >= 0)) &&
+             (!('maxSpeedKmh' in d) || (d.maxSpeedKmh is number && d.maxSpeedKmh >= 0)) &&
+             (!('avgHeartRate' in d) || (d.avgHeartRate is number && d.avgHeartRate >= 0)) &&
+             (!('maxHeartRate' in d) || (d.maxHeartRate is number && d.maxHeartRate >= 0)) &&
+             (!('sufferScore' in d) || (d.sufferScore is number && d.sufferScore >= 0)) &&
+             (!('likesCount' in d) || (d.likesCount is number && d.likesCount >= 0)) &&
+             (!('isLiked' in d) || d.isLiked is bool) &&
+             (!('kudosUsers' in d) || (d.kudosUsers is list && d.kudosUsers.size() <= 1000)) &&
+             (!('comments' in d) || (d.comments is list && d.comments.size() <= 1000)) &&
+             (!('achievements' in d) || (d.achievements is list && d.achievements.size() <= 50)) &&
+             (!('recordBadges' in d) || (d.recordBadges is list && d.recordBadges.size() <= 50)) &&
+             (!('gearId' in d) || (d.gearId is string && d.gearId.size() <= 100)) &&
+             (!('gearName' in d) || (d.gearName is string && d.gearName.size() <= 150)) &&
+             (!('splits' in d) || (d.splits is list && d.splits.size() <= 100)) &&
+             (!('videoUrls' in d) || (d.videoUrls is list && d.videoUrls.size() <= 20));
+    }
+
+    function isFeedPostAuthor() {
+      return isAuthenticated() &&
+             (resource.data.userId == request.auth.uid ||
+              resource.data.userId in ['men', 'women', 'couple'] ||
+              request.auth.token.email == 'sughoshpdixit@gmail.com');
+    }
+
+    function isPostSocialInteraction() {
+      return isAuthenticated() &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['kudosUsers', 'likesCount', 'comments', 'isLiked']) &&
+             (!('kudosUsers' in request.resource.data) || (request.resource.data.kudosUsers is list && request.resource.data.kudosUsers.size() <= 1000)) &&
+             (!('comments' in request.resource.data) || (request.resource.data.comments is list && request.resource.data.comments.size() <= 1000)) &&
+             (!('likesCount' in request.resource.data) || (request.resource.data.likesCount is number && request.resource.data.likesCount >= 0));
+    }
+
+    function isValidActivityDoc(d) {
+      return d.id is string && d.id.size() >= 1 && d.id.size() <= 100 &&
+             d.userId is string && d.userId.size() >= 1 && d.userId.size() <= 100 &&
+             d.source is string && d.source in ['STRAVA', 'GOOGLE_FIT', 'DEVICE', 'GPX_IMPORT', 'FIT_IMPORT', 'MANUAL'] &&
+             d.sportType is string && d.sportType in ['RUN', 'WALK', 'RIDE', 'HIKE', 'TRAIL_RUN', 'ROAD_TRIP', 'TRACK_WORKOUT', 'TREADMILL', 'CALISTHENICS', 'FOOTBALL', 'OTHER'] &&
+             d.title is string && d.title.size() >= 1 && d.title.size() <= 150 &&
+             d.startedAt is number && d.startedAt >= 0 &&
+             d.endedAt is number && d.endedAt >= 0 &&
+             d.elapsedTimeSeconds is number && d.elapsedTimeSeconds >= 0 &&
+             d.movingTimeSeconds is number && d.movingTimeSeconds >= 0 &&
+             d.distanceMeters is number && d.distanceMeters >= 0 &&
+             d.elevationGainMeters is number &&
+             d.calories is number && d.calories >= 0 &&
+             d.averagePaceSecondsPerKm is number && d.averagePaceSecondsPerKm >= 0 &&
+             d.averagePaceString is string && d.averagePaceString.size() >= 1 && d.averagePaceString.size() <= 30 &&
+             d.averageSpeedMps is number && d.averageSpeedMps >= 0 &&
+             d.averageSpeedKmh is number && d.averageSpeedKmh >= 0 &&
+             d.privacyLevel is string && d.privacyLevel in ['PRIVATE', 'FOLLOWERS', 'PUBLIC'] &&
+             d.routeRenderMode is string && d.routeRenderMode in ['RAW', 'CLEANED', 'MATCHED', 'NO_MAP'] &&
+             d.processingStatus is string && d.processingStatus in ['QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED', 'SKIPPED'] &&
+             d.splits is list && d.splits.size() <= 500 &&
+             d.createdAt is string && d.createdAt.size() >= 1 && d.createdAt.size() <= 50 &&
+             d.updatedAt is string && d.updatedAt.size() >= 1 && d.updatedAt.size() <= 50 &&
+             (!('sourceActivityId' in d) || (d.sourceActivityId is string && d.sourceActivityId.size() <= 100)) &&
+             (!('maxSpeedKmh' in d) || (d.maxSpeedKmh is number && d.maxSpeedKmh >= 0)) &&
+             (!('rawGeometryId' in d) || (d.rawGeometryId is string && d.rawGeometryId.size() <= 100)) &&
+             (!('cleanedGeometryId' in d) || (d.cleanedGeometryId is string && d.cleanedGeometryId.size() <= 100)) &&
+             (!('matchedGeometryId' in d) || (d.matchedGeometryId is string && d.matchedGeometryId.size() <= 100)) &&
+             (!('simplifiedGeometryId' in d) || (d.simplifiedGeometryId is string && d.simplifiedGeometryId.size() <= 100)) &&
+             (!('videoGeometryId' in d) || (d.videoGeometryId is string && d.videoGeometryId.size() <= 100)) &&
+             (!('encodedPolyline' in d) || (d.encodedPolyline is string && d.encodedPolyline.size() <= 200000)) &&
+             (!('qualityReport' in d) || d.qualityReport is map) &&
+             (!('recordBadges' in d) || (d.recordBadges is list && d.recordBadges.size() <= 50)) &&
+             (!('notes' in d) || (d.notes is string && d.notes.size() <= 5000)) &&
+             (!('mediaUrls' in d) || (d.mediaUrls is list && d.mediaUrls.size() <= 50));
+    }
+
+    function isValidGeometryDoc(d) {
+      return d.id is string && d.id.size() >= 1 && d.id.size() <= 100 &&
+             d.activityId is string && d.activityId.size() >= 1 && d.activityId.size() <= 100 &&
+             d.geometryKind is string && d.geometryKind in ['RAW', 'CLEANED', 'MATCHED', 'SIMPLIFIED', 'VIDEO'] &&
+             d.encoding is string && d.encoding in ['POLYLINE6', 'GEOJSON'] &&
+             d.compactGeometry is string && d.compactGeometry.size() >= 1 && d.compactGeometry.size() <= 500000 &&
+             d.pointCount is number && d.pointCount >= 0 &&
+             d.distanceMeters is number && d.distanceMeters >= 0 &&
+             d.matchProvider is string && d.matchProvider in ['NONE', 'VALHALLA', 'PASSTHROUGH'] &&
+             d.processingVersion is string && d.processingVersion.size() >= 1 && d.processingVersion.size() <= 50 &&
+             d.createdAt is string && d.createdAt.size() >= 1 && d.createdAt.size() <= 50 &&
+             (!('matchConfidence' in d) || (d.matchConfidence is number && d.matchConfidence >= 0)) &&
+             (!('segments' in d) || (d.segments is list && d.segments.size() <= 1000)) &&
+             (!('bounds' in d) || d.bounds is map) &&
+             (!('metadata' in d) || d.metadata is map);
+    }
+
+    function isValidProcessingJob(d) {
+      return d.id is string && d.id.size() >= 1 && d.id.size() <= 100 &&
+             d.activityId is string && d.activityId.size() >= 1 && d.activityId.size() <= 100 &&
+             d.jobType is string && d.jobType in ['NORMALIZE', 'QUALITY_ANALYSIS', 'MAP_MATCH', 'THUMBNAIL', 'VIDEO'] &&
+             d.status is string && d.status in ['QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED', 'SKIPPED'] &&
+             d.attempts is number && d.attempts >= 0 &&
+             d.createdAt is string && d.createdAt.size() >= 1 && d.createdAt.size() <= 50 &&
+             (!('errorMessage' in d) || (d.errorMessage is string && d.errorMessage.size() <= 1000)) &&
+             (!('metadata' in d) || d.metadata is map) &&
+             (!('startedAt' in d) || (d.startedAt is string && d.startedAt.size() <= 50)) &&
+             (!('completedAt' in d) || (d.completedAt is string && d.completedAt.size() <= 50));
+    }
+
+    function isValidTrailVideo(d) {
+      return d.id is string && d.id.size() >= 1 && d.id.size() <= 100 &&
+             d.activityId is string && d.activityId.size() >= 1 && d.activityId.size() <= 100 &&
+             d.template is string && d.template in ['SIGNATURE_TRAIL_REPLAY'] &&
+             d.aspectRatio is string && d.aspectRatio in ['9_16', '1_1', '16_9'] &&
+             d.status is string && d.status in ['READY', 'GENERATING', 'COMPLETED', 'FAILED'] &&
+             d.createdAt is string && d.createdAt.size() >= 1 && d.createdAt.size() <= 50 &&
+             (!('storagePath' in d) || (d.storagePath is string && d.storagePath.size() <= 500)) &&
+             (!('downloadUrl' in d) || (d.downloadUrl is string && d.downloadUrl.size() <= 2000)) &&
+             (!('thumbnailStoragePath' in d) || (d.thumbnailStoragePath is string && d.thumbnailStoragePath.size() <= 500)) &&
+             (!('thumbnailUrl' in d) || (d.thumbnailUrl is string && d.thumbnailUrl.size() <= 2000)) &&
+             (!('durationSeconds' in d) || (d.durationSeconds is number && d.durationSeconds >= 0)) &&
+             (!('completedAt' in d) || (d.completedAt is string && d.completedAt.size() <= 50)) &&
+             (!('errorMessage' in d) || (d.errorMessage is string && d.errorMessage.size() <= 1000));
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // Community Social Feed Posts
+    match /activity_feed_posts/{postId} {
+      allow read: if true;
+
+      allow create: if isAuthenticated() &&
+                    isValidActivityFeedPost(request.resource.data) &&
+                    (request.resource.data.userId == request.auth.uid ||
+                     request.resource.data.userId in ['men', 'women', 'couple'] ||
+                     request.auth.token.email == 'sughoshpdixit@gmail.com');
+
+      allow update: if (isFeedPostAuthor() &&
+                        isValidActivityFeedPost(request.resource.data) &&
+                        areImmutableFieldsUnchanged(['id', 'userId', 'timestamp'])) ||
+                       isPostSocialInteraction();
+
+      allow delete: if isFeedPostAuthor();
+    }
+
+    // Route Intelligence Activities & Subcollections
+    match /activities/{activityId} {
+      allow read: if resource.data.privacyLevel != 'PRIVATE' ||
+                     (isAuthenticated() && request.auth.uid == resource.data.userId) ||
+                     isDemoUser(resource.data.userId);
+
+      allow create: if isAuthenticated() &&
+                    isValidActivityDoc(request.resource.data) &&
+                    (request.resource.data.userId == request.auth.uid ||
+                     isDemoUser(request.resource.data.userId) ||
+                     request.auth.token.email == 'sughoshpdixit@gmail.com');
+
+      allow update: if isAuthenticated() &&
+                    isValidActivityDoc(request.resource.data) &&
+                    (resource.data.userId == request.auth.uid ||
+                     isDemoUser(resource.data.userId) ||
+                     request.auth.token.email == 'sughoshpdixit@gmail.com') &&
+                    areImmutableFieldsUnchanged(['id', 'userId', 'createdAt']);
+
+      allow delete: if isAuthenticated() &&
+                    (resource.data.userId == request.auth.uid ||
+                     isDemoUser(resource.data.userId) ||
+                     request.auth.token.email == 'sughoshpdixit@gmail.com');
+
+      match /geometries/{geometryId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && isValidGeometryDoc(request.resource.data);
+        allow update: if isAuthenticated() && isValidGeometryDoc(request.resource.data) && areImmutableFieldsUnchanged(['id', 'activityId', 'createdAt']);
+        allow delete: if isAuthenticated();
+      }
+
+      match /processingJobs/{jobId} {
+        allow read: if isAuthenticated() || isDemoUser('sughosh');
+        allow create: if isAuthenticated() && isValidProcessingJob(request.resource.data);
+        allow update: if isAuthenticated() && isValidProcessingJob(request.resource.data) && areImmutableFieldsUnchanged(['id', 'activityId', 'createdAt']);
+        allow delete: if isAuthenticated();
+      }
+
+      match /trailVideos/{videoId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && isValidTrailVideo(request.resource.data);
+        allow update: if isAuthenticated() && isValidTrailVideo(request.resource.data) && areImmutableFieldsUnchanged(['id', 'activityId', 'createdAt']);
+        allow delete: if isAuthenticated();
+      }
+    }
+
+    // User Subcollections
+    match /users/{userId} {
+      // Default deny on root user document
+      allow read, write: if isOwner(userId);
+
+      match /gps_activities/{activityId} {
+        allow read: if isOwner(userId) || isDemoUser(userId);
+        allow create: if isOwner(userId) && isValidGpsActivity(request.resource.data);
+        allow update: if isOwner(userId) && isValidGpsActivity(request.resource.data) && areImmutableFieldsUnchanged(['id', 'startTime']);
+        allow delete: if isOwner(userId);
+      }
+
+      match /daily_metrics/{metricId} {
+        allow read: if isOwner(userId) || isDemoUser(userId);
+        allow create: if isOwner(userId) && isValidDailyMetric(request.resource.data);
+        allow update: if isOwner(userId) && isValidDailyMetric(request.resource.data) && areImmutableFieldsUnchanged(['date']);
+        allow delete: if isOwner(userId);
+      }
+
+      match /gear/{gearId} {
+        allow read: if isOwner(userId) || isDemoUser(userId);
+        allow create: if isOwner(userId) && isValidGearItem(request.resource.data);
+        allow update: if isOwner(userId) && isValidGearItem(request.resource.data) && areImmutableFieldsUnchanged(['id']);
+        allow delete: if isOwner(userId);
+      }
+
+      match /workout_logs/{logId} {
+        allow read: if isOwner(userId) || isDemoUser(userId);
+        allow create: if isOwner(userId) && isValidWorkoutLog(request.resource.data);
+        allow update: if isOwner(userId) && isValidWorkoutLog(request.resource.data) && areImmutableFieldsUnchanged(['id', 'date']);
+        allow delete: if isOwner(userId);
+      }
+
+      match /milestones/{milestoneId} {
+        allow read: if isOwner(userId) || isDemoUser(userId);
+        allow create, update: if isOwner(userId) && isValidMilestones(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /routines/{routineId} {
+        allow read: if isOwner(userId) || isDemoUser(userId);
+        allow create, update: if isOwner(userId) && isValidRoutines(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      // CRITICAL HEALTH PII: Menstrual & Ovulation Cycle Logs
+      // Strictly restricted to authenticated owner. Never exposed to demo or unauthenticated readers.
+      match /cycle_data/{cycleId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidCycleData(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      // Fallback for any other user subcollections
+      match /{allSubcollections=**} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }

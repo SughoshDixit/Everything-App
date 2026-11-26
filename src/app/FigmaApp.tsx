@@ -54,13 +54,14 @@ import type { ManualCategory } from "../components/ManualActivityLogModal"
 import { notificationService } from "../services/notificationService"
 import { autoActivityDetectionService } from "../services/autoActivityDetectionService"
 import { ActivityMapPreview } from "../components/ActivityMapPreview"
-import { getRoutePointsForWorkout } from "../utils/routeGeometryGenerator"
+import { getRoutePointsForWorkout, createAspectRatioProjector } from "../utils/routeGeometryGenerator"
 import { ActivityExportService } from "../utils/activityExportService"
+import { drawAnimatedAthleteMarker } from "../utils/googleMapsRenderer"
+import { calculateHaversineKm } from "../utils/gpsFilter"
 import type { UserProfile, GpsActivityLog, StravaActivityPost, SocialShareCardData, Workout, Sport, AutoDetectedActivity } from "../types"
 import type { ActivityDocument, RouteGeometryDocument } from "../types/routeIntelligence"
 import {
   Activity,
-  ArrowDownToLine,
   ArrowRight,
   ArrowUpRight,
   Bell,
@@ -90,7 +91,6 @@ import {
   Sparkles,
   Target,
   Trophy,
-  Upload,
   Users,
   Utensils,
   Share2,
@@ -2961,427 +2961,423 @@ function Performance({ open }: { open: () => void }) {
     </div>
   )
 }
-function smoothRoute(route: string) {
-  return (route.match(/M[^M]+/g) || [])
-    .map((segment) => {
-      const values = (segment.match(/\d+(?:\.\d+)?/g) || []).map(Number)
-      const points = Array.from({ length: values.length / 2 }, (_, index) => ({
-        x: values[index * 2],
-        y: values[index * 2 + 1],
-      }))
-      if (points.length < 2) return segment
-      let curve = `M ${points[0].x} ${points[0].y}`
-      for (let index = 0; index < points.length - 1; index++) {
-        const before = points[Math.max(0, index - 1)]
-        const start = points[index]
-        const end = points[index + 1]
-        const after = points[Math.min(points.length - 1, index + 2)]
-        curve += ` C ${start.x + (end.x - before.x) / 6} ${start.y + (end.y - before.y) / 6}, ${end.x - (after.x - start.x) / 6} ${end.y - (after.y - start.y) / 6}, ${end.x} ${end.y}`
-      }
-      return curve + (segment.includes("Z") ? " Z" : "")
-    })
-    .join(" ")
-}
-const studioRoute = smoothRoute(workouts[0].route)
 function Studio({ toast }: { toast: (message: string) => void }) {
   const { currentProfile } = useAthleteApp()
+  const athleteName = currentProfile === "women" ? "Shreya Dixit" : "Sughosh Dixit"
+
+  // Step 1: Activity & Footage
+  const [selectedWorkoutIdx, setSelectedWorkoutIdx] = useState(0)
+  const selectedWorkout = workouts[selectedWorkoutIdx] || workouts[0]
+  const routePoints = useMemo(() => getRoutePointsForWorkout(selectedWorkout), [selectedWorkout])
+
+  // Precompute cumulative geodetic Haversine distances to prevent numeral jitter
+  const cumDists = useMemo(() => {
+    if (!routePoints || routePoints.length === 0) return [0]
+    const dists = new Array(routePoints.length).fill(0)
+    for (let i = 1; i < routePoints.length; i++) {
+      dists[i] = dists[i - 1] + calculateHaversineKm(
+        routePoints[i - 1].latitude,
+        routePoints[i - 1].longitude,
+        routePoints[i].latitude,
+        routePoints[i].longitude
+      )
+    }
+    return dists
+  }, [routePoints])
+  const finalDistKm = cumDists[cumDists.length - 1] || parseFloat(selectedWorkout.distance) || 5.24
+
+  // Backdrop state
   const layered = new URLSearchParams(useLocation().search).has("layered")
   const [background, setBackground] = useState(
-    layered && studioTransfer.photo ? "Workout photo" : "Dark canvas",
+    layered && studioTransfer.photo ? "Workout photo" : "Dark canvas"
   )
-  const [resolution, setResolution] = useState("1080p")
-  const [quote, setQuote] = useState("The only way out is through.")
+  const [photo, setPhoto] = useState(() => (layered ? studioTransfer.photo : ""))
   const [scrim, setScrim] = useState(55)
+  const [mapOpacity, setMapOpacity] = useState(() => (layered ? studioTransfer.opacity : 70))
+  const photoInput = useRef<HTMLInputElement>(null)
+
+  // Step 2: HUD & Telemetry
+  const [quote, setQuote] = useState("The only way out is through.")
+  const [showTelemetry, setShowTelemetry] = useState(true)
+  const [showQuote, setShowQuote] = useState(true)
+  const [videoDuration, setVideoDuration] = useState(15) // 15s (Instagram Reels default), 30s, 60s
+
+  // Step 3: Export & Quality
+  const [resolution, setResolution] = useState<"1080p" | "4K UHD">("1080p")
+  const [exporting, setExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
+
+  // Live Canvas Preview & Playback state
   const [progress, setProgress] = useState(100)
   const [playing, setPlaying] = useState(false)
-  const [exporting, setExporting] = useState(false)
-  const [photo, setPhoto] = useState(() =>
-    layered ? studioTransfer.photo : "",
-  )
-  const [mapOpacity, setMapOpacity] = useState(() =>
-    layered ? studioTransfer.opacity : 0,
-  )
-  const poster = useRef<SVGSVGElement>(null)
-  const photoInput = useRef<HTMLInputElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Animation playback loop
   useEffect(() => {
     if (!playing) return
-    const timer = setInterval(
-      () => setProgress((value) => (value >= 100 ? 0 : value + 1)),
-      90,
-    )
+    const stepInterval = 1000 / 30 // ~30fps preview loop
+    const totalSteps = (videoDuration * 1000) / stepInterval
+    const increment = 100 / totalSteps
+
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          return 0
+        }
+        return Math.min(100, prev + increment)
+      })
+    }, stepInterval)
+
     return () => clearInterval(timer)
-  }, [playing])
-  async function exportArt(video: boolean) {
-    if (!poster.current || exporting) return
-    if (
-      video &&
-      (typeof MediaRecorder === "undefined" ||
-        !HTMLCanvasElement.prototype.captureStream)
-    ) {
-      toast(
-        "Video export isn’t supported in this browser. Export a PNG poster instead.",
-      )
-      return
+  }, [playing, videoDuration])
+
+  // Draw interactive preview canvas
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    const w = canvas.width
+    const h = canvas.height
+    const scale = w / 360
+    const ratio = Math.max(0, Math.min(1, progress / 100))
+
+    // 1. Background
+    const bgGrad = ctx.createLinearGradient(0, 0, w, h)
+    bgGrad.addColorStop(0, "#080c14")
+    bgGrad.addColorStop(0.5, "#0f172a")
+    bgGrad.addColorStop(1, "#05070c")
+    ctx.fillStyle = bgGrad
+    ctx.fillRect(0, 0, w, h)
+
+    // Satellite or photo overlay
+    if (background === "Satellite" && mapOpacity > 0) {
+      ctx.fillStyle = `rgba(14, 116, 144, ${mapOpacity / 400})`
+      ctx.fillRect(0, 0, w, h)
     }
+
+    // Dot Matrix Pattern
+    ctx.fillStyle = "rgba(255, 255, 255, 0.04)"
+    const dotStep = Math.round(18 * scale)
+    for (let x = 10 * scale; x < w; x += dotStep) {
+      for (let y = 10 * scale; y < h; y += dotStep) {
+        ctx.beginPath()
+        ctx.arc(x, y, 0.8 * scale, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+
+    // 2. Header: Brand + Reels Audio Indicator
+    ctx.fillStyle = "#CCFF00"
+    ctx.font = `900 ${Math.round(16 * scale)}px "Montserrat", sans-serif`
+    ctx.fillText("kuchh bhii.", 20 * scale, 34 * scale)
+
+    ctx.fillStyle = "rgba(204, 255, 0, 0.15)"
+    ctx.strokeStyle = "#CCFF00"
+    ctx.lineWidth = 1 * scale
+    ctx.beginPath()
+    ctx.roundRect(w - 145 * scale, 18 * scale, 125 * scale, 22 * scale, 11 * scale)
+    ctx.fill()
+    ctx.stroke()
+
+    ctx.fillStyle = "#CCFF00"
+    ctx.font = `800 ${Math.round(8.5 * scale)}px monospace`
+    ctx.fillText("🎵 REEL-READY AUDIO", w - 137 * scale, 32 * scale)
+
+    ctx.fillStyle = "#94a3b8"
+    ctx.font = `700 ${Math.round(8 * scale)}px monospace`
+    ctx.fillText(`${selectedWorkout.sport.toUpperCase()} • ${selectedWorkout.location.toUpperCase()}`, 20 * scale, 50 * scale)
+
+    // 3. Draw Route with Dual-Stroke Glow
+    if (routePoints.length >= 2) {
+      const mapX = 24 * scale
+      const mapY = 64 * scale
+      const mapW = w - 48 * scale
+      const mapH = h - 250 * scale
+
+      const { project } = createAspectRatioProjector(
+        routePoints,
+        { x: mapX, y: mapY, width: mapW, height: mapH },
+        20 * scale
+      )
+
+      // Ghost path
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"
+      ctx.lineWidth = 2 * scale
+      ctx.setLineDash([4 * scale, 4 * scale])
+      ctx.beginPath()
+      routePoints.forEach((p, idx) => {
+        const [x, y] = project(p.latitude, p.longitude)
+        if (idx === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+      ctx.setLineDash([])
+
+      // Active completed path
+      const pointsCount = Math.max(2, Math.floor(routePoints.length * ratio))
+      const currentSlice = routePoints.slice(0, pointsCount)
+      const themeColor = selectedWorkout.color || "#FC5200"
+
+      // Outer glow
+      ctx.save()
+      ctx.lineCap = "round"
+      ctx.lineJoin = "round"
+      ctx.shadowColor = themeColor
+      ctx.shadowBlur = 12 * scale
+      ctx.strokeStyle = `${themeColor}88`
+      ctx.lineWidth = 7 * scale
+      ctx.beginPath()
+      currentSlice.forEach((p, idx) => {
+        const [x, y] = project(p.latitude, p.longitude)
+        if (idx === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+
+      // Inner stroke
+      ctx.shadowBlur = 3 * scale
+      ctx.strokeStyle = themeColor
+      ctx.lineWidth = 3.5 * scale
+      ctx.beginPath()
+      currentSlice.forEach((p, idx) => {
+        const [x, y] = project(p.latitude, p.longitude)
+        if (idx === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+
+      // Razor core
+      ctx.shadowBlur = 0
+      ctx.strokeStyle = "#FFFFFF"
+      ctx.lineWidth = 1.2 * scale
+      ctx.beginPath()
+      currentSlice.forEach((p, idx) => {
+        const [x, y] = project(p.latitude, p.longitude)
+        if (idx === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+      ctx.restore()
+
+      // Start Pin
+      const [startX, startY] = project(routePoints[0].latitude, routePoints[0].longitude)
+      ctx.fillStyle = "#10B981"
+      ctx.beginPath()
+      ctx.arc(startX, startY, 4.5 * scale, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = "#FFFFFF"
+      ctx.lineWidth = 1.5 * scale
+      ctx.stroke()
+
+      // Athlete Marker with Directional Beam
+      const activePt = currentSlice[currentSlice.length - 1]
+      const prevPt = currentSlice[Math.max(0, currentSlice.length - 2)]
+      const [curX, curY] = project(activePt.latitude, activePt.longitude)
+      const [prevX, prevY] = project(prevPt.latitude, prevPt.longitude)
+
+      let headingRad = 0
+      const dx = curX - prevX
+      const dy = curY - prevY
+      if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
+        headingRad = Math.atan2(dx, -dy)
+      }
+
+      drawAnimatedAthleteMarker(ctx, {
+        x: curX,
+        y: curY,
+        headingRad,
+        scale: scale * 0.9,
+        accentColor: themeColor,
+        activityType: selectedWorkout.sport.toLowerCase(),
+        elapsedMs: performance.now(),
+        showRadar: true,
+        showHeadingBeam: true,
+      })
+    }
+
+    // 4. Live Telemetry HUD Card
+    if (showTelemetry) {
+      const hudX = 20 * scale
+      const hudY = h - 176 * scale
+      const hudW = w - 40 * scale
+      const hudH = 110 * scale
+
+      ctx.fillStyle = "rgba(15, 23, 42, 0.9)"
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)"
+      ctx.lineWidth = 1 * scale
+      ctx.beginPath()
+      ctx.roundRect(hudX, hudY, hudW, hudH, 12 * scale)
+      ctx.fill()
+      ctx.stroke()
+
+      // Left Accent bar
+      ctx.fillStyle = selectedWorkout.color || "#FC5200"
+      ctx.beginPath()
+      ctx.roundRect(hudX, hudY, 4 * scale, hudH, 2 * scale)
+      ctx.fill()
+
+      // Title
+      ctx.fillStyle = "#ffffff"
+      ctx.font = `800 ${Math.round(13 * scale)}px "Montserrat", sans-serif`
+      const titleTrunc = selectedWorkout.title.length > 22 ? selectedWorkout.title.slice(0, 20) + "..." : selectedWorkout.title
+      ctx.fillText(titleTrunc, hudX + 14 * scale, hudY + 22 * scale)
+
+      // Live Tabular Odometer
+      const activeIdx = Math.min(routePoints.length - 1, Math.floor(ratio * (routePoints.length - 1)))
+      const liveKm = (routePoints.length > 0 ? cumDists[activeIdx] : ratio * finalDistKm).toFixed(2)
+
+      ctx.fillStyle = "#94a3b8"
+      ctx.font = `700 ${Math.round(8 * scale)}px monospace`
+      ctx.fillText("LIVE DISTANCE", hudX + 14 * scale, hudY + 39 * scale)
+
+      ctx.fillStyle = "#ffffff"
+      ctx.font = `900 ${Math.round(22 * scale)}px monospace`
+      const slotX = hudX + 14 * scale
+      const charSlot = 14 * scale
+      for (let c = 0; c < liveKm.length; c++) {
+        ctx.fillText(liveKm[c], slotX + c * charSlot, hudY + 66 * scale)
+      }
+
+      ctx.fillStyle = "#CCFF00"
+      ctx.font = `800 ${Math.round(11 * scale)}px "Montserrat", sans-serif`
+      ctx.fillText("KM", slotX + liveKm.length * charSlot + 5 * scale, hudY + 65 * scale)
+
+      // Sub-metrics
+      ctx.fillStyle = "#94a3b8"
+      ctx.font = `700 ${Math.round(7.5 * scale)}px monospace`
+      ctx.fillText(`PACE: ${selectedWorkout.pace}`, hudX + 14 * scale, hudY + 92 * scale)
+      ctx.fillText(`TIME: ${selectedWorkout.time}`, hudX + 110 * scale, hudY + 92 * scale)
+      ctx.fillText(`ELEV: +185m`, hudX + 210 * scale, hudY + 92 * scale)
+    }
+
+    // 5. Quote Box
+    if (showQuote) {
+      const qX = 20 * scale
+      const qY = h - 56 * scale
+      const qW = w - 40 * scale
+      const qH = 44 * scale
+
+      ctx.fillStyle = "rgba(15, 23, 42, 0.85)"
+      ctx.strokeStyle = "rgba(204, 255, 0, 0.25)"
+      ctx.lineWidth = 1 * scale
+      ctx.beginPath()
+      ctx.roundRect(qX, qY, qW, qH, 8 * scale)
+      ctx.fill()
+      ctx.stroke()
+
+      ctx.fillStyle = "#CCFF00"
+      ctx.fillRect(qX, qY, 3 * scale, qH)
+
+      ctx.fillStyle = "#f8fafc"
+      ctx.font = `italic 700 ${Math.round(8.5 * scale)}px "Montserrat", sans-serif`
+      const qSnippet = quote.length > 40 ? quote.slice(0, 38) + "..." : quote
+      ctx.fillText(`"${qSnippet}"`, qX + 10 * scale, qY + 18 * scale)
+
+      ctx.fillStyle = "#94a3b8"
+      ctx.font = `600 ${Math.round(6.5 * scale)}px monospace`
+      ctx.fillText(`⚡ Made with intention doing Kuchh Bhii by Sughosh 😉`, qX + 10 * scale, qY + 34 * scale)
+    }
+
+    // 6. Bottom Scrub Line
+    ctx.fillStyle = "rgba(255, 255, 255, 0.15)"
+    ctx.fillRect(0, h - 5 * scale, w, 5 * scale)
+    ctx.fillStyle = "#CCFF00"
+    ctx.fillRect(0, h - 5 * scale, w * ratio, 5 * scale)
+  }, [progress, selectedWorkout, background, photo, scrim, mapOpacity, quote, showTelemetry, showQuote, routePoints, cumDists, finalDistKm])
+
+  // Export handling
+  async function exportArt(video: boolean) {
+    if (exporting) return
     setExporting(true)
+    setExportProgress(0)
+
     try {
       if (video) {
-        toast("Rendering 9:16 vertical trail video replay...")
-        const activeWorkout = workouts[0]
-        const pts = getRoutePointsForWorkout(activeWorkout)
+        toast(`Generating ${resolution} Reel-Ready 60FPS video replay...`)
         const res = await ActivityExportService.downloadVideo(
-          activeWorkout,
-          pts,
-          currentProfile === "women" ? "Shreya Dixit" : "Sughosh Dixit"
+          selectedWorkout,
+          routePoints,
+          athleteName,
+          {
+            resolution: resolution === "4K UHD" ? "4k" : "1080p",
+            durationSec: videoDuration,
+            quote,
+            onProgress: (pct) => setExportProgress(pct)
+          }
         )
         toast(res)
-        return
-      }
-      const svg = new XMLSerializer().serializeToString(poster.current)
-      const image = new Image()
-      const svgUrl = URL.createObjectURL(
-        new Blob([svg], { type: "image/svg+xml;charset=utf-8" }),
-      )
-      await new Promise<void>((resolve, reject) => {
-        image.onload = () => resolve()
-        image.onerror = reject
-        image.src = svgUrl
-      })
-      const height =
-        resolution === "4K UHD" ? 3840 : resolution === "1080p" ? 1920 : 1280
-      const canvas = document.createElement("canvas")
-      canvas.height = height
-      canvas.width = (height * 9) / 16
-      const context = canvas.getContext("2d")
-      if (!context) throw new Error("Canvas unavailable")
-      const download = (blob: Blob, extension: string) => {
-        const fileName = `everything-morning-miles-${resolution}.${extension}`
-        const mimeType = extension === "png" ? "image/png" : extension === "mp4" ? "video/mp4" : "video/webm"
-        const bridge = typeof window !== "undefined" ? window.AndroidBridge : undefined
-        if (bridge && typeof bridge.downloadBase64File === "function") {
-          const reader = new FileReader()
-          reader.onloadend = () => {
-            const base64 = reader.result as string
-            bridge.downloadBase64File(base64, fileName, mimeType)
-          }
-          reader.readAsDataURL(blob)
-          return
-        }
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement("a")
-        link.href = url
-        link.download = fileName
-        link.click()
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
-      }
-      context.drawImage(image, 0, 0, canvas.width, canvas.height)
-      if (video) {
-        const stream = canvas.captureStream(30)
-        const mime = ["video/webm;codecs=vp9", "video/webm", "video/mp4"].find(
-          (type) => MediaRecorder.isTypeSupported(type),
-        )
-        if (!mime) throw new Error("No supported video format")
-        const recorder = new MediaRecorder(stream, {
-          mimeType: mime,
-          videoBitsPerSecond: height > 1920 ? 16000000 : 8000000,
-        })
-        const chunks: BlobPart[] = []
-        recorder.ondataavailable = (event) => {
-          if (event.data.size) chunks.push(event.data)
-        }
-        const finished = new Promise<void>((resolve, reject) => {
-          recorder.onerror = reject
-          recorder.onstop = () => {
-            download(
-              new Blob(chunks, { type: mime }),
-              mime.includes("mp4") ? "mp4" : "webm",
-            )
-            stream.getTracks().forEach((track) => track.stop())
-            resolve()
-          }
-        })
-        recorder.start()
-        const started = performance.now()
-        await new Promise<void>((resolve) => {
-          const frame = () => {
-            const elapsed = performance.now() - started
-            context.drawImage(image, 0, 0, canvas.width, canvas.height)
-            const pulse = 8 + Math.sin(elapsed / 220) * 5
-            context.beginPath()
-            context.arc(
-              canvas.width * 0.3,
-              canvas.height * 0.6,
-              (pulse * height) / 720,
-              0,
-              Math.PI * 2,
-            )
-            context.fillStyle = "#fc4c0280"
-            context.fill()
-            if (elapsed < 5000) requestAnimationFrame(frame)
-            else resolve()
-          }
-          requestAnimationFrame(frame)
-        })
-        recorder.stop()
-        await finished
       } else {
-        const blob = await new Promise<Blob | null>((resolve) =>
-          canvas.toBlob(resolve, "image/png"),
+        toast("Generating 4K Ultra-HD athletic poster...")
+        const res = await ActivityExportService.downloadPoster(
+          selectedWorkout,
+          routePoints,
+          athleteName
         )
-        if (!blob) throw new Error("Image export failed")
-        download(blob, "png")
+        toast(res)
       }
-      URL.revokeObjectURL(svgUrl)
-      toast(
-        `${resolution} ${
-          video ? "video" : "poster"
-        } exported. Your effort deserves to be seen.`,
-      )
-    } catch {
-      toast(
-        "The export couldn’t finish. Try 1080p or a dark canvas background.",
-      )
+    } catch (err: unknown) {
+      toast("Export encountered an issue: " + (err instanceof Error ? err.message : String(err)))
     } finally {
       setExporting(false)
+      setExportProgress(0)
     }
   }
+
+  const quotePresets = [
+    "The only way out is through.",
+    "Discipline equals freedom.",
+    "Intention over everything.",
+    "What hurts today makes you stronger tomorrow."
+  ]
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+      {/* LEFT: LIVE 9:16 CANVAS PREVIEW & SCRUB STAGE */}
       <section className={`${panel} flex flex-col items-center p-6`}>
-        <div className="mb-5 flex w-full items-center justify-between text-[9px] text-muted-foreground">
-          <span className="uppercase tracking-widest">Your canvas</span>
-          <span>9:16 · STORY FORMAT</span>
+        <div className="mb-4 flex w-full items-center justify-between text-[10px] text-muted-foreground">
+          <span className="font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+            <Sparkles size={12} /> Live Reel Studio Preview
+          </span>
+          <span className="font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded-md text-[9px]">
+            9:16 VERTICAL • {resolution}
+          </span>
         </div>
-        <svg
-          ref={poster}
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 393 698"
-          className="w-full max-w-[320px] rounded-lg border border-white/10 shadow-2xl"
-          role="img"
-          aria-label="Activity poster preview"
-        >
-          <defs>
-            <linearGradient id="posterbg" x1="0" y1="0" x2="1" y2="1">
-              <stop stopColor="#101820" />
-              <stop offset="1" stopColor="#080b11" />
-            </linearGradient>
-            <filter id="posterglow">
-              <feGaussianBlur stdDeviation="3" />
-            </filter>
-            <pattern
-              id="posterdots"
-              width="20"
-              height="20"
-              patternUnits="userSpaceOnUse"
-            >
-              <circle cx="1" cy="1" r="0.7" fill="#758194" opacity="0.25" />
-            </pattern>
-          </defs>
-          <rect width="393" height="698" fill="url(#posterbg)" />
-          {photo && background === "Workout photo" && (
-            <image
-              href={photo}
-              width="393"
-              height="698"
-              preserveAspectRatio="xMidYMid slice"
-            />
-          )}
-          {background === "Route mesh" &&
-            Array.from({ length: 14 }, (_, index) => (
-              <path
-                key={index}
-                d={studioRoute}
-                transform={`translate(${-30 + index * 7} ${180 + index * 6}) scale(1.3)`}
-                fill="none"
-                stroke="#fc4c02"
-                opacity="0.1"
-                strokeWidth="1"
-              />
-            ))}
-          <rect
-            width="393"
-            height="698"
-            fill="#080b11"
-            opacity={background === "Workout photo" ? scrim / 100 : 0.1}
+
+        {/* Live Canvas Viewport */}
+        <div className="relative group flex justify-center w-full">
+          <canvas
+            ref={canvasRef}
+            width={360}
+            height={640}
+            className="w-full max-w-[320px] rounded-2xl border border-white/15 shadow-2xl bg-[#080c14] aspect-[9/16] object-contain"
           />
-          <rect width="393" height="698" fill="url(#posterdots)" />
-          {mapOpacity > 0 && (
-            <g opacity={mapOpacity / 100}>
-              <image
-                href="https://mt1.google.com/vt/lyrs=y&x=1471&y=949&z=11"
-                x="0"
-                y="0"
-                width="393"
-                height="698"
-                preserveAspectRatio="xMidYMid slice"
-                opacity="0.85"
-              />
-              <rect width="393" height="698" fill="#080b11" opacity="0.2" />
-            </g>
-          )}
-          <text
-            x="28"
-            y="43"
-            fill="#ccff00"
-            fontFamily="Arial,sans-serif"
-            fontSize="17"
-            fontWeight="700"
-          >
-            kuchh bhii.
-          </text>
-          <text
-            x="365"
-            y="41"
-            fill="#929ba9"
-            fontFamily="monospace"
-            fontSize="9"
-            textAnchor="end"
-          >
-            01 OCT 2026
-          </text>
-          <rect
-            x="24"
-            y="72"
-            width="345"
-            height="140"
-            rx="12"
-            fill="#121826"
-            fillOpacity="0.85"
-            stroke="#ffffff18"
-          />
-          <text
-            x="43"
-            y="101"
-            fill="#a1a9b5"
-            fontFamily="monospace"
-            fontSize="10"
-          >
-            MORNING MILES, CLEAR MIND.
-          </text>
-          <text
-            x="43"
-            y="150"
-            fill="#ffffff"
-            fontFamily="Arial,sans-serif"
-            fontSize="42"
-            fontWeight="800"
-          >
-            5.24
-            <tspan fontSize="16" fill="#929ba9">
-              {" "}
-              km
-            </tspan>
-          </text>
-          <text
-            x="43"
-            y="182"
-            fill="#929ba9"
-            fontFamily="monospace"
-            fontSize="11"
-          >
-            4:37 /KM 24:12 +185 M
-          </text>
-          <rect
-            x="242"
-            y="123"
-            width="104"
-            height="25"
-            rx="12"
-            fill="#ffd70015"
-            stroke="#ffd70055"
-          />
-          <text
-            x="294"
-            y="139"
-            fill="#e9c959"
-            fontFamily="monospace"
-            fontSize="8"
-            textAnchor="middle"
-          >
-            PB · 1K 3:52
-          </text>
-          <g transform="translate(0 209) scale(1.35)">
-            <path
-              d={studioRoute}
-              fill="none"
-              stroke="#fc4c02"
-              strokeWidth="7"
-              opacity="0.4"
-              filter="url(#posterglow)"
-            />
-            <path
-              d={studioRoute}
-              fill="none"
-              stroke="#fc4c02"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              pathLength="100"
-              strokeDasharray={`${progress} 100`}
-            />
-            <circle cx="87" cy="146" r="4" fill="#ff8a50" />
-          </g>
-          <text
-            x="196"
-            y="545"
-            textAnchor="middle"
-            fill="#929ba9"
-            fontFamily="monospace"
-            fontSize="9"
-          >
-            CUBBON PARK · BENGALURU
-          </text>
-          <rect
-            x="24"
-            y="573"
-            width="345"
-            height="79"
-            rx="10"
-            fill="#151913"
-            fillOpacity="0.9"
-            stroke="#d5b34d44"
-          />
-          <text
-            x="196"
-            y="608"
-            textAnchor="middle"
-            fill="#e9dba7"
-            fontFamily="Arial,sans-serif"
-            fontSize="13"
-            fontWeight="600"
-          >
-            {quote.length > 42 ? `${quote.slice(0, 42)}…` : quote}
-          </text>
-          <text
-            x="196"
-            y="631"
-            textAnchor="middle"
-            fill="#929ba9"
-            fontFamily="Arial,sans-serif"
-            fontSize="7"
-          >
-            Made with an intention of doing Kuchh Bhii by Sughosh 😉
-          </text>
-          <text
-            x="196"
-            y="676"
-            textAnchor="middle"
-            fill="#657080"
-            fontFamily="monospace"
-            fontSize="8"
-            letterSpacing="3"
-          >
-            KUCHH BHII · INTENTION OVER EVERYTHING
-          </text>
-        </svg>
-        <div className="mt-5 flex w-full max-w-[320px] items-center gap-3">
+
+          {/* Quick Play/Pause Floating Overlay */}
           <button
-            aria-label={playing ? "Pause preview" : "Play preview"}
+            type="button"
             onClick={() => {
-              if (!playing && progress === 100) setProgress(0)
+              if (!playing && progress >= 100) setProgress(0)
               setPlaying(!playing)
             }}
-            className="text-primary"
+            className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 p-2.5 rounded-full text-white transition cursor-pointer shadow-lg"
+            aria-label={playing ? "Pause preview" : "Play preview"}
+          >
+            {playing ? <Pause size={16} /> : <Play size={16} className="text-[#CCFF00]" />}
+          </button>
+        </div>
+
+        {/* Scrubber & Timeline Bar */}
+        <div className="mt-5 flex w-full max-w-[320px] items-center gap-3">
+          <button
+            type="button"
+            aria-label={playing ? "Pause" : "Play"}
+            onClick={() => {
+              if (!playing && progress >= 100) setProgress(0)
+              setPlaying(!playing)
+            }}
+            className="text-primary hover:opacity-85 transition cursor-pointer"
           >
             {playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
@@ -3391,159 +3387,281 @@ function Studio({ toast }: { toast: (message: string) => void }) {
             min="0"
             max="100"
             value={progress}
-            onChange={(event) => setProgress(Number(event.target.value))}
-            className="h-1 flex-1 accent-[#ccff00]"
+            onChange={(event) => {
+              setPlaying(false)
+              setProgress(Number(event.target.value))
+            }}
+            className="h-1.5 flex-1 accent-[#CCFF00] bg-white/15 rounded-lg cursor-pointer"
           />
-          <span className="font-mono text-[9px] text-muted-foreground">
-            0:{String(Math.round(progress / 20)).padStart(2, "0")} / 0:05
+          <span className="font-mono text-[10px] text-muted-foreground w-16 text-right">
+            0:{String(Math.round((progress / 100) * videoDuration)).padStart(2, "0")} / 0:{String(videoDuration).padStart(2, "0")}
           </span>
         </div>
       </section>
-      <section className={`${panel} h-fit p-6 sm:p-8`}>
-        <div className="flex items-center gap-2">
-          <Sparkles size={17} className="text-primary" />
-          <h2 className="font-display text-lg font-bold">Make it yours.</h2>
+
+      {/* RIGHT: 3-STEP INTUITIVE CREATION WORKFLOW */}
+      <section className={`${panel} h-fit p-6 sm:p-8 space-y-7`}>
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex items-center gap-2">
+            <Video size={18} className="text-primary" />
+            <h2 className="font-display text-lg font-bold">Activity Video Studio</h2>
+          </div>
+          <span className="text-[10px] font-mono text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/25 px-2 py-0.5 rounded-full">
+            Reel-Ready v2.4
+          </span>
         </div>
-        <div className="mt-7 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          01 / Background
+
+        {/* STEP 1: ACTIVITY & FOOTAGE */}
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[9px] font-mono font-bold">1</span>
+            Select Activity & Backdrop
+          </div>
+
+          {/* Activity Selector */}
+          <div className="mt-3">
+            <label className="text-[10px] text-muted-foreground block mb-1">Target Workout</label>
+            <select
+              value={selectedWorkoutIdx}
+              onChange={(e) => setSelectedWorkoutIdx(Number(e.target.value))}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-xs text-white outline-none focus:border-primary/50 cursor-pointer"
+            >
+              {workouts.map((w, idx) => (
+                <option key={w.id || idx} value={idx}>
+                  {w.sport} • {w.title} ({w.distance} km)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Backdrop Type Selector */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {[
+              { id: "Dark canvas", label: "Dark Canvas" },
+              { id: "Satellite", label: "Google Satellite" },
+              { id: "Route mesh", label: "Route Mesh" },
+              { id: "Workout photo", label: "Photo Backdrop" },
+            ].map(({ id, label }) => (
+              <button
+                type="button"
+                key={id}
+                onClick={() => {
+                  setBackground(id)
+                  if (id === "Workout photo" && !photo) photoInput.current?.click()
+                }}
+                className={`rounded-xl border px-3 py-3 text-[11px] font-semibold text-center transition cursor-pointer ${
+                  background === id
+                    ? "border-primary bg-primary/10 text-primary shadow-sm"
+                    : "border-border bg-background/50 text-muted-foreground hover:border-white/20 hover:text-white"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <input
+            ref={photoInput}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                const reader = new FileReader()
+                reader.onload = () => {
+                  setPhoto(reader.result as string)
+                  setBackground("Workout photo")
+                }
+                reader.readAsDataURL(file)
+              }
+            }}
+          />
+
+          {background === "Workout photo" && (
+            <div className="mt-3 p-3 rounded-xl bg-white/5 border border-white/10">
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>Glass Scrim</span>
+                <span className="font-mono text-white">{scrim}%</span>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="90"
+                value={scrim}
+                onChange={(e) => setScrim(Number(e.target.value))}
+                className="mt-2 w-full accent-[#CCFF00]"
+              />
+              <button
+                type="button"
+                onClick={() => photoInput.current?.click()}
+                className="mt-2 text-[10px] text-primary underline"
+              >
+                Upload different photo
+              </button>
+            </div>
+          )}
+
+          {background === "Satellite" && (
+            <div className="mt-3 p-3 rounded-xl bg-white/5 border border-white/10">
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>Satellite Opacity</span>
+                <span className="font-mono text-white">{mapOpacity}%</span>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="100"
+                value={mapOpacity}
+                onChange={(e) => setMapOpacity(Number(e.target.value))}
+                className="mt-2 w-full accent-[#CCFF00]"
+              />
+            </div>
+          )}
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          {["Dark canvas", "Route mesh", "Workout photo"].map((name) => (
+
+        {/* STEP 2: HUD & INTENTION */}
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[9px] font-mono font-bold">2</span>
+            HUD & Intention
+          </div>
+
+          {/* Telemetry Toggles */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <button
-              onClick={() => {
-                setBackground(name)
-                if (name === "Workout photo" && !photo)
-                  photoInput.current?.click()
-              }}
-              key={name}
-              className={`rounded-xl border px-3 py-5 text-[11px] ${
-                background === name
-                  ? "border-primary/40 bg-primary/5 text-primary"
-                  : "border-border bg-background text-muted-foreground hover:border-white/25"
+              type="button"
+              onClick={() => setShowTelemetry(!showTelemetry)}
+              className={`rounded-xl border px-3 py-2 text-[11px] font-semibold text-center transition cursor-pointer ${
+                showTelemetry
+                  ? "border-[#38bdf8] bg-[#38bdf8]/10 text-[#38bdf8]"
+                  : "border-border text-muted-foreground hover:border-white/20"
               }`}
             >
-              {name === "Workout photo" && (
-                <Upload size={13} className="mr-2 inline" />
-              )}
-              {name}
+              {showTelemetry ? "✓ Live Odometer HUD" : "+ Live Odometer HUD"}
             </button>
-          ))}
-        </div>
-        <input
-          ref={photoInput}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0]
-            if (file) {
-              const reader = new FileReader()
-              reader.onload = () => {
-                setPhoto(reader.result as string)
-                setBackground("Workout photo")
-              }
-              reader.readAsDataURL(file)
-            }
-          }}
-        />
-        {background === "Workout photo" && (
-          <div className="mt-4">
-            <label className="flex justify-between text-[10px] text-muted-foreground">
-              Glass scrim <span>{scrim}%</span>
-            </label>
-            <input
-              type="range"
-              aria-label="Photo scrim opacity"
-              min="10"
-              max="90"
-              value={scrim}
-              onChange={(event) => setScrim(Number(event.target.value))}
-              className="mt-3 w-full accent-[#ccff00]"
-            />
+
             <button
-              onClick={() => photoInput.current?.click()}
-              className="mt-3 text-[10px] text-primary"
+              type="button"
+              onClick={() => setShowQuote(!showQuote)}
+              className={`rounded-xl border px-3 py-2 text-[11px] font-semibold text-center transition cursor-pointer ${
+                showQuote
+                  ? "border-[#ffd700] bg-[#ffd700]/10 text-[#ffd700]"
+                  : "border-border text-muted-foreground hover:border-white/20"
+              }`}
             >
-              Change workout photo
+              {showQuote ? "✓ Quote Banner" : "+ Quote Banner"}
             </button>
           </div>
-        )}
-        <div className="mt-6">
-          <label
-            className="flex items-center justify-between text-[10px] text-muted-foreground"
-            htmlFor="studio-map-opacity"
-          >
-            Map layer opacity{" "}
-            <span className="font-mono text-primary">{mapOpacity}%</span>
-          </label>
-          <input
-            id="studio-map-opacity"
-            type="range"
-            min="0"
-            max="100"
-            value={mapOpacity}
-            onChange={(event) => setMapOpacity(Number(event.target.value))}
-            className="mt-3 w-full accent-[#ccff00]"
-          />
+
+          {/* Motivational Quote Input */}
+          {showQuote && (
+            <div className="mt-3">
+              <label className="text-[10px] text-muted-foreground block mb-1">Motivational Quote</label>
+              <textarea
+                value={quote}
+                maxLength={70}
+                onChange={(e) => setQuote(e.target.value)}
+                rows={2}
+                className="w-full resize-none rounded-xl border border-border bg-background p-3 text-xs leading-5 outline-none focus:border-primary/50 text-white"
+              />
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {quotePresets.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setQuote(preset)}
+                    className="text-[9px] bg-white/5 hover:bg-white/10 border border-white/10 rounded-md px-2 py-1 text-muted-foreground hover:text-white transition cursor-pointer"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Video Duration Selector */}
+          <div className="mt-3">
+            <label className="text-[10px] text-muted-foreground block mb-1">Video Duration (Pacing)</label>
+            <div className="flex gap-2">
+              {[
+                { sec: 15, label: "15s (Reels Standard)" },
+                { sec: 30, label: "30s (Detailed)" },
+                { sec: 60, label: "60s (Slow-mo)" },
+              ].map(({ sec, label }) => (
+                <button
+                  type="button"
+                  key={sec}
+                  onClick={() => setVideoDuration(sec)}
+                  className={`flex-1 rounded-lg border py-2 text-[10px] font-semibold transition cursor-pointer ${
+                    videoDuration === sec
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-white/20"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="mt-8 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          02 / Your intention
-        </div>
-        <label
-          htmlFor="quote"
-          className="mt-4 block text-[10px] text-muted-foreground"
-        >
-          A thought worth carrying with you.
-        </label>
-        <textarea
-          id="quote"
-          value={quote}
-          maxLength={75}
-          onChange={(event) => setQuote(event.target.value)}
-          rows={3}
-          className="mt-3 w-full resize-none rounded-xl border border-border bg-background p-4 text-xs leading-6 outline-none focus:border-primary/40"
-        />
-        <div className="mt-8 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          03 / Export quality
-        </div>
-        <div className="mt-4 flex gap-2">
-          {["4K UHD", "1080p", "720p"].map((value) => (
+
+        {/* STEP 3: EXPORT & SOCIAL DELIVERY */}
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[9px] font-mono font-bold">3</span>
+            Resolution & Reel Export
+          </div>
+
+          {/* Resolution Options */}
+          <div className="mt-3 flex gap-2">
+            {(["1080p", "4K UHD"] as const).map((val) => (
+              <button
+                type="button"
+                key={val}
+                onClick={() => setResolution(val)}
+                className={`flex-1 rounded-lg border py-2.5 font-mono text-[11px] font-bold transition cursor-pointer ${
+                  resolution === val
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-white/20"
+                }`}
+              >
+                {val} {val === "1080p" ? "⚡ (Reels Native)" : "🎬"}
+              </button>
+            ))}
+          </div>
+
+          {/* Instagram Music Compatibility Callout */}
+          <div className="mt-3 p-3 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/25 text-[10px] leading-relaxed text-[#f8fafc]">
+            <span className="font-bold text-[#CCFF00] flex items-center gap-1 mb-1">
+              🎵 Instagram Trending Music Compatible
+            </span>
+            Includes an embedded silent stereo audio carrier track so Instagram Reels recognizes valid audio channels and allows you to add any trending song directly in the Instagram app!
+          </div>
+
+          {/* Export Action Buttons */}
+          <div className="mt-4 space-y-2">
             <button
-              key={value}
-              onClick={() => setResolution(value)}
-              className={`flex-1 rounded-lg border py-3 font-mono text-[10px] ${
-                resolution === value
-                  ? "border-primary/40 bg-primary/5 text-primary"
-                  : "border-border text-muted-foreground"
-              }`}
+              type="button"
+              disabled={exporting}
+              onClick={() => exportArt(true)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#FC5200] hover:bg-[#e04800] py-3.5 text-xs font-bold text-white shadow-lg shadow-[#FC5200]/25 transition cursor-pointer disabled:opacity-50"
             >
-              {value}
+              <Video size={15} />
+              {exporting ? `Rendering Video (${exportProgress}%)...` : `🎬 Export ${resolution} Video (Reel-Ready)`}
             </button>
-          ))}
+
+            <button
+              type="button"
+              disabled={exporting}
+              onClick={() => exportArt(false)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 py-3 text-xs font-bold text-white transition cursor-pointer disabled:opacity-50"
+            >
+              <Download size={14} className="text-[#CCFF00]" />
+              Download High-Res Poster (PNG)
+            </button>
+          </div>
         </div>
-        <button
-          disabled={exporting}
-          onClick={() => exportArt(true)}
-          className="mt-7 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3.5 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
-        >
-          <ArrowDownToLine size={15} />
-          {exporting
-            ? "Rendering your masterpiece…"
-            : `Export ${resolution} video`}
-        </button>
-        <button
-          disabled={exporting}
-          onClick={() => exportArt(false)}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-3 text-[10px] text-muted-foreground hover:text-white disabled:opacity-50"
-        >
-          <ArrowDownToLine size={13} />
-          Download poster · PNG
-        </button>
-        <p className="mt-4 text-center text-[8px] leading-4 text-muted-foreground">
-          5-second animated video · Browser-native export
-          <br />
-          Photorealistic Google Maps satellite layer & telemetry HUD.
-        </p>
       </section>
     </div>
   )

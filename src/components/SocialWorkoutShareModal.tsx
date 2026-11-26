@@ -37,6 +37,7 @@ import {
   drawGoogleMapsBrandBadge,
   drawAnimatedAthleteMarker
 } from '../utils/googleMapsRenderer';
+import { calculateHaversineKm } from '../utils/gpsFilter';
 
 interface SocialWorkoutShareModalProps {
   initialData: SocialShareCardData;
@@ -234,6 +235,21 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
   }, [rawRoutePoints]);
 
   const totalPoints = routePoints.length;
+
+  // Precompute cumulative geodetic Haversine distances to prevent digit jitter & ensure accurate distance counting
+  const cumDists = useMemo(() => {
+    if (!routePoints || routePoints.length === 0) return [0];
+    const dists = new Array(routePoints.length).fill(0);
+    for (let i = 1; i < routePoints.length; i++) {
+      dists[i] = dists[i - 1] + calculateHaversineKm(
+        routePoints[i - 1].latitude,
+        routePoints[i - 1].longitude,
+        routePoints[i].latitude,
+        routePoints[i].longitude
+      );
+    }
+    return dists;
+  }, [routePoints]);
 
   const [is4k, setIs4k] = useState<boolean>(true);
 
@@ -652,7 +668,8 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
     // 6. HUD & Overlays: Telemetry, Quotes, Brand & "Made with intention doing Kuchh Bhii"
     const progressRatio = totalPoints > 1 ? videoCurrentIndex / (totalPoints - 1) : 1;
-    const currentDist = (totalDistNum * progressRatio).toFixed(2);
+    const currentDistNum = (cumDists && cumDists.length > videoCurrentIndex) ? cumDists[videoCurrentIndex] : (totalDistNum * progressRatio);
+    const currentDist = currentDistNum.toFixed(2);
     const speedVal = currentPoint.speed ? (currentPoint.speed * 3.6).toFixed(1) : (isCurrentDrive ? '72.5' : '11.8');
 
     // Aesthetic Top Gradient Scrim for Story View
@@ -689,10 +706,19 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       ctx.roundRect(cardX, cardY, 10 * scale, cardH, 5 * scale);
       ctx.fill();
 
-      // Big Live Metric: Distance + 4K badge
+      // Big Live Metric: Distance with Jitter-Free Tabular Slot Odometer
       ctx.fillStyle = '#ffffff';
-      ctx.font = `900 ${Math.round(44 * scale)}px "Montserrat", sans-serif`;
-      ctx.fillText(`⚡ ${currentDist} km`, cardX + 28 * scale, cardY + 54 * scale);
+      ctx.font = `900 ${Math.round(44 * scale)}px monospace`;
+      const prefix = '⚡ ';
+      ctx.fillText(prefix, cardX + 28 * scale, cardY + 54 * scale);
+      const slotStep = 26 * scale;
+      const numX = cardX + 28 * scale + 48 * scale;
+      for (let c = 0; c < currentDist.length; c++) {
+        ctx.fillText(currentDist[c], numX + c * slotStep, cardY + 54 * scale);
+      }
+      ctx.fillStyle = '#CCFF00';
+      ctx.font = `800 ${Math.round(24 * scale)}px "Montserrat", sans-serif`;
+      ctx.fillText('km', numX + currentDist.length * slotStep + 10 * scale, cardY + 54 * scale);
 
       // Stage Pill & Details
       ctx.fillStyle = primaryColor;
@@ -860,8 +886,9 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       const canvas = videoCanvasRef.current;
       const canvasStream = canvas.captureStream(60);
 
-      // Mix Audio Track if user uploaded local audio or custom video has audio
+      // Mix Audio Track: If user uploaded custom audio, mix it; otherwise inject Reel-Ready silent audio carrier
       let combinedStream = canvasStream;
+      let hasAudioTrack = false;
       if (customAudioUrl && userAudioElementRef.current) {
         try {
           userAudioElementRef.current.currentTime = audioStartTime;
@@ -872,17 +899,53 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
           if (audioStream && audioStream.getAudioTracks().length > 0) {
             const tracks = [...canvasStream.getVideoTracks(), ...audioStream.getAudioTracks()];
             combinedStream = new MediaStream(tracks);
+            hasAudioTrack = true;
           }
         } catch (e) {
           console.warn('Audio capture stream fallback:', e);
         }
       }
 
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-        ? 'video/webm;codecs=vp9,opus'
-        : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
-        ? 'video/webm;codecs=vp8,opus'
-        : 'video/webm';
+      // If no custom audio was added, inject a silent stereo audio carrier track so Instagram Reels recognizes valid audio
+      // and allows the user to apply any trending song from Instagram's Music Library without container errors.
+      if (!hasAudioTrack) {
+        try {
+          const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          if (AudioCtx) {
+            const audioCtx = new AudioCtx();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.00001, audioCtx.currentTime);
+            const dest = audioCtx.createMediaStreamDestination();
+            osc.connect(gain);
+            gain.connect(dest);
+            osc.start();
+            const silentTrack = dest.stream.getAudioTracks()[0];
+            if (silentTrack) {
+              combinedStream = new MediaStream([...canvasStream.getVideoTracks(), silentTrack]);
+            }
+          }
+        } catch (audioErr) {
+          console.warn('Silent audio carrier setup skipped:', audioErr);
+        }
+      }
+
+      // Check for MP4 with H.264/AAC support first for maximum Instagram compatibility
+      const mimeCandidates = [
+        'video/mp4;codecs=avc1,mp4a.40.2',
+        'video/mp4',
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm'
+      ];
+      let mimeType = 'video/webm';
+      for (const cand of mimeCandidates) {
+        if (MediaRecorder.isTypeSupported(cand)) {
+          mimeType = cand;
+          break;
+        }
+      }
+      const isMp4 = mimeType.includes('mp4');
 
       recordedChunksRef.current = [];
       const targetBitrate = RESOLUTION_CONFIG[videoResolution].bitrate;
@@ -896,7 +959,6 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
       } catch (err) {
         console.warn('Fallback to standard bitrate for MediaRecorder:', err);
         mediaRecorder = new MediaRecorder(combinedStream, {
-          mimeType,
           videoBitsPerSecond: 12_000_000,
           audioBitsPerSecond: 192_000
         });
@@ -913,9 +975,11 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
         if (userAudioElementRef.current) {
           userAudioElementRef.current.pause();
         }
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const fileExt = isMp4 ? 'mp4' : 'webm';
+        const fileMime = isMp4 ? 'video/mp4' : 'video/webm';
+        const blob = new Blob(recordedChunksRef.current, { type: fileMime });
         const resTag = videoResolution === '4k' ? '4K_UHD' : videoResolution.toUpperCase();
-        const fileName = `KuchhBhii_Track_${resTag}_${initialData.title.replace(/\s+/g, '_')}_${Date.now()}.webm`;
+        const fileName = `KuchhBhii_Track_${resTag}_${initialData.title.replace(/\s+/g, '_')}_${Date.now()}.${fileExt}`;
         const shareTitle = `${initialData.title} (${resTag}) Video Track 🚀`;
         const shareText = `Check out my ${initialData.workoutType} track in ${RESOLUTION_CONFIG[videoResolution].label} on Kuchh Bhii App! 🔥 "${currentQuote.text}" — Made with an intention of doing Kuchh Bhii by Sughosh 😉⚡`;
 
@@ -926,7 +990,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
           if (shouldShareDirectly) {
             if (window.AndroidBridge && typeof window.AndroidBridge.shareBase64Media === 'function') {
-              const ok = window.AndroidBridge.shareBase64Media(base64Data, fileName, 'video/webm', shareTitle, shareText);
+              const ok = window.AndroidBridge.shareBase64Media(base64Data, fileName, fileMime, shareTitle, shareText);
               if (ok) {
                 setIsRecordingVideo(false);
                 setRecordProgress(100);
@@ -936,7 +1000,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
               }
             }
 
-            const videoFile = new File([blob], fileName, { type: 'video/webm' });
+            const videoFile = new File([blob], fileName, { type: fileMime });
             if (navigator.canShare && navigator.canShare({ files: [videoFile] })) {
               try {
                 await navigator.share({
@@ -955,11 +1019,11 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
 
           // Direct Download: Try AndroidBridge first
           if (window.AndroidBridge && typeof window.AndroidBridge.downloadBase64File === 'function') {
-            const saved = window.AndroidBridge.downloadBase64File(base64Data, fileName, 'video/webm');
+            const saved = window.AndroidBridge.downloadBase64File(base64Data, fileName, fileMime);
             if (saved) {
               setIsRecordingVideo(false);
               setRecordProgress(100);
-              setToastMessage('Video saved to Gallery / Storage! 🎬');
+              setToastMessage('Reel-Ready video saved to Android Movies! 🎬');
               setTimeout(() => setToastMessage(null), 3000);
               return;
             }
@@ -975,7 +1039,7 @@ export const SocialWorkoutShareModal: React.FC<SocialWorkoutShareModalProps> = (
           document.body.removeChild(a);
           setIsRecordingVideo(false);
           setRecordProgress(100);
-          setToastMessage('Video Downloaded to Files! 🎬');
+          setToastMessage('Reel-Ready Video Downloaded! 🎬');
           setTimeout(() => setToastMessage(null), 3000);
         };
         reader.readAsDataURL(blob);
